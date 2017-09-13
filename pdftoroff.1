@@ -17,13 +17,14 @@ pdftoroff - convert pdf to various text formats (roff, html, TeX, text)
 .SH DESCRIPTION
 
 Extract text from a pdf file undoing page, column and paragraph formatting if
-possible but retaining italic and bold faces. The output can be in one of the
+possible but retaining italic and bold faces. The output is in one of the
 following formats: groff(1), html, plain TeX, text with font changes, simple
 text or a user-given format.
 
 The groff output can be used to reformat the text to a smaller page size and a
-different font to make it more readable on a small tablet or e-ink reader,
-as shown in the REFORMAT section.
+different font to make it more readable on a small tablet or e-ink ebook
+reader, as shown in the REFORMAT section. The \fIpdftoebook\fP script does
+this.
 .
 .
 .
@@ -67,7 +68,8 @@ see OUTPUT FORMAT, below
 The following code re-formats a pdf file for a 200x250 page with 5pt margins
 and Helvetica font, so that it reads better to a small tablet or e-ink reader.
 It extracts the text from the pdf file, prepends it with some groff(7) page and
-font code and then compiles back to pdf.
+font code and then compiles back to pdf. This is the core of the
+\fIpdftoebook\fP script.
 
 .nf
 .ft I

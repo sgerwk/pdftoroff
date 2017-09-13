@@ -1,0 +1,61 @@
+#!/bin/sh
+#
+# reformat a pdf to a smaller page by extracting text and compiling with groff
+#
+# pdftoebook [-w width] [-h height] [-m margin] in.pdf [out.pdf]
+
+# options
+
+WIDTH=200
+HEIGHT=250
+MARGIN=5
+
+while getopts "?w:h:m:" opt;
+do
+	case $opt in
+	w)	WIDTH=$OPTARG;;
+	h)	HEIGHT=$OPTARG;;
+	m)	MARGIN=$OPTARG;;
+	*)	echo -en "usage:\n\tpdftoebook [-w width] [-h height] "
+		echo -e "[-m margin] in.pdf [out.pdf]"
+		echo -e "\t\t-w width\twidth in points, default 200"
+		echo -e "\t\t-w height\theight in points, default 250"
+		echo -e "\t\t-w margin\tmargin in points, default 5"
+		exit 1;;
+	esac
+done
+
+# input and output file names
+
+shift $((OPTIND - 1))
+[ $# -lt 1 ] && echo "pdf file missing" && exit 1
+IN="$1"
+shift 1
+OUT=$(basename "$IN" .pdf)-ebook.pdf
+[ $# -gt 0 ] && OUT="$1"
+
+echo "$IN -> $OUT ${WIDTH}x$HEIGHT +$MARGIN"
+
+# calculate line and page
+
+LINE=$(($WIDTH-$MARGIN*2))
+PAGE=$(($HEIGHT-$MARGIN*2))
+
+# extract text from pdf and recompile with groff
+
+{
+cat <<!
+.\" set margins and line and page lenght
+.device papersize=${WIDTH}p,${HEIGHT}p
+.po ${MARGIN}p
+.ll ${LINE}p
+.pl ${PAGE}p
+.
+.\" font family (Helvetica)
+.fam H
+!
+
+pdftoroff "$IN";
+} | \
+groff -Dutf8 -Tpdf - > "$OUT"
+
