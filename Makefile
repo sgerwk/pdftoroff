@@ -13,5 +13,5 @@ install: all
 pdftoroff pdffit pdfrects-test: pdfrects.o
 
 clean:
-	rm -f ${PROGS}
+	rm -f *.o ${PROGS}
 
