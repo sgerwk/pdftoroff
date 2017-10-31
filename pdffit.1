@@ -1,0 +1,186 @@
+.TH pdffit 1 "October 22, 2017"
+
+.
+.
+.
+.SH NAME
+pdffit - fit pages into given paper size
+
+.
+.
+.
+.SH SYNOPSIS
+\fBpdffit\fP
+[\fIoptions\fP]
+\fIfile.pdf\fP
+
+.
+.
+.
+.SH DESCRIPTION
+
+Resize the pages of a pdf file to fit a given paper size. The page scaling
+makes the text in the original page fill the output page but for the given
+margin (default 40.0).
+
+.
+.
+.
+.SH OPTIONS
+
+The options that are presumed to be most recurring in practice are \fI-p\fP
+(paper size), \fI-o\fP (output file), \fI-l\fP (landscape output), \fI-m\fP
+(margin), \fI-e\fP (fixed scale) and \fI-w\fP (whole page).
+
+.TP
+.B
+-p \fIpaper\fP
+paper size;
+it can be a name (case insensitive)
+like \fIa4\fP or \fIletter\fP,
+or a pair of measures in points \fIwidth,height\fP;
+the default is what in \fI/etc/papersize\fP;
+if this file does not exists or it is not readable, the default is \fIa4\fP
+.TP
+.B
+-o \fIoutfile\fP
+the output file name;
+default is \fIinput-paper.pdf\fP if the input is \fIinput.pdf\fP and the paper
+size is \fIpaper\fP
+.TP
+.B
+-l
+landscape output
+.TP
+.B
+-m \fImargin\fP
+margin in the output file;
+can be a single number or a quadruple \fIleft,top,right,bottom\fP;
+the default is \fI0.0\fP if \fI-w\fP is also given, otherwise \fI40.0\fP
+.TP
+.B
+-e
+scale all pages the same;
+some pages may result smaller than others;
+the default is that pages are individually scaled to better fit the page
+.TP
+.B
+-w
+resize the whole page, not just its text area;
+this is the minimal change for modifying the paper size,
+like turning a letter-size pdf into a4
+.TP
+.B
+-r
+do not maintain aspect ratio
+.TP
+.B
+-k
+adapt to ebook viewing: output page 200x250, default margin 5.0
+.TP
+.B
+-g \fIx1,y1,x2,y2\fP
+the destination page; by default is the same as the paper size
+(see below for an explanation)
+.TP
+.B
+-f
+draw the border of the destination page
+.TP
+.B
+-s
+draw the border of the original page
+.TP
+.B
+-d
+draw a square in a corner to check margins;
+this is intended for testing: it shows how large the margin is
+.TP
+.B
+-b
+draw the bounding box of each page;
+this is intended for testing: it shows how large the page is considered to be
+.TP
+.B
+-h
+help
+.
+.
+.
+.SH DRAWINGS
+
+This program copies only the text of the original page into
+some part of the output page with the given margins.
+
+.nf
+*************************
+*                       *
+*    texttexttext       *
+*    texttexttext       *
+*    texttexttext       *
+*    texttexttext       *
+*    texttexttext       *
+*                       *
+*************************
+.fi
+
+To this extent, two boxes are defined in the original page: the page size (*)
+and the bounding box, the latter being the box enclosing only the text in the
+page.
+
+Three boxes are defined in the output page:
+the whole page (#),
+the output destination page (%),
+and the destination box (+).
+The destination page is where the text with the new margins goes.
+The destination box is the same without margins.
+
+.nf
+###################################
+#                                 #
+#      %%%%%%%%%%%%%%%%%%%%%      #
+#      %                   %      #
+#      %    ++++++++++++   %      #
+#      %    ++++++++++++   %      #
+#      %    ++++++++++++   %      #
+#      %    ++++++++++++   %      #
+#      %    ++++++++++++   %      #
+#      %                   %      #
+#      %%%%%%%%%%%%%%%%%%%%%      #
+#                                 #
+###################################
+.fi
+
+This program maps the bounding box of the input file into the destination box
+of the output. In other words, it exactly fills the destination box with the
+text in the input.
+
+.nf
+###################################
+#                                 #
+#      %%%%%%%%%%%%%%%%%%%%%      #
+#      %                   %      #
+#      %    texttexttext   %      #
+#      %    texttexttext   %      #
+#      %    texttexttext   %      #
+#      %    texttexttext   %      #
+#      %    texttexttext   %      #
+#      %                   %      #
+#      %%%%%%%%%%%%%%%%%%%%%      #
+#                                 #
+###################################
+.fi
+
+These boxes can be drawn on the destination page by options
+\fI-f\fP, \fI-s\fP, \fI-d\fP and \fI-b\fP,
+but of course the bounding box and the destination box should coincide.
+.
+.
+.
+.SH TODO
+The bounding box only includes text; it should also include images.
+
+The page could be clipped to its bounding box when copying it to the cairo
+surface. This could only matters when only part of the page is actually copied,
+not its entire bounding box.
+
