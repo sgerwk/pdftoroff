@@ -10,6 +10,8 @@ pdftoroff - convert pdf to various text formats (roff, html, TeX, text)
 .SH SYNOPSIS
 \fBpdftoroff\fP
 [\fI-r\fP|\fI-w\fP|\fI-p\fP|\fI-f\fP|\fI-t\fP|\fI-s fmt\fP]
+[\fI-m method\fP [\fI-d distance\fP]]
+[\fI-v\fP]
 \fIfile.pdf\fP
 .
 .
@@ -63,9 +65,42 @@ text only
 output using the parameters in \fIfmt\fP
 see OUTPUT FORMAT, below
 
+.TP
+\fB-m\fP \fImethod\fP
+conversion method:
+
+.RS
+.IP 0 4
+detect columns on the fly
+.IP 1
+use the bounding box of the page
+.IP 2
+use the blocks of text on the page
+.IP 3
+use the blocks of text on the page, sorted
+.RE
+
+.IP
+the default method is 1, which is fast and usually gives good results on
+single-column documents; methods 2 is slower, but often produces better results
+on multiple-column documents; method 3 is even slower, but the sorting of the
+blocks may be necessary when the characters in the document are not in the
+correct order
+
+.TP
+\fB-d\fP \fIdistance\fP
+minimal distance between blocks of text in the page; the default is 15; a
+smaller value like 10 may be appropriate when the document uses small fonts or
+has little space between columns or between the header/footer and the text;
+this value only affects method 2
+
+.TP
+.B -v
+verbose: print the reason for the line breaks
+
 .SH REFORMAT
 
-The following code re-formats a pdf file for a 200x250 page with 5pt margins
+The following script re-formats a pdf file for a 200x250 page with 5pt margins
 and Helvetica font, so that it reads better to a small tablet or e-ink reader.
 It extracts the text from the pdf file, prepends it with some groff(7) page and
 font code and then compiles back to pdf. This is the core of the
@@ -211,6 +246,48 @@ replace the ampersand (\fI&\fP) with this
 .
 .
 .
+.SH METHODS
+
+All conversion methods scan the characters in the page in the same order as in
+the pdf file. A new line is detected on:
+
+.IP \(bu 4
+a large vertical space from the previous character
+.IP \(bu
+a small vertical space from the previous character, if the previous character
+is not at the right of the column (short previous line)
+.IP \(bu
+a small vertical space from the previous character, if the current character is
+not at the left of the column (indented line)
+.RE
+
+The second and third conditions depend on the left and right border of the
+current column. The conversion methods differ on how these are found:
+
+.IP 0 4
+The left border is the left corner of the leftmost character in the page.
+Column changes are detected by large decreases in the y coordinate, and
+cause a recalculation of the left border from the remaining charaters in the
+page. The right border is a fixed position in the page.
+
+.IP 1
+The left and right border are given by the bounding box of the page. This works
+on single-column pages. This is the default method.
+
+.IP 2
+The blocks of text in the page are determined before scanning the page. The
+left and right borders for each character are those of the blocks of text it is
+in.
+
+.IP 3
+This is the same as 2, but blocks are sorted before scanning the page. It is
+slower than method 2 not because of the sorting but because the whole page
+needs to be scanned in search of characters in the first block, again for the
+second, the third, etc. This may be necessary if the characters in the file are
+not in the order they shold be printed.
+.
+.
+.
 .SH BUGS
 
 Replacements are limited to some fixed characters (\\, ., <, > and &). Instead,
@@ -225,11 +302,12 @@ the body of the text in the other formats).
 A command line option should allow specifying a number of boxes so that text is
 extracted from them in order rather than from the whole page. This is because
 the method used by pdftoroff to detect the start of a new column does not
-always work. Such an option would also allow to discard headers and footer. As
-an example, \fI-b box1,box2,box3;box4;box5;2*\fP would extract text from
-\fIbox1,box2,box3\fP from the first page, from \fIbox4\fP from the second, from
-\fIbox5\fP from the third, and the repeat with \fIbox4\fP and \fIbox5\fP until
-the end of the document.
+always work, and even if it does, characters in the file are not necessarily in
+the correct order. Such an option would also allow to discard headers and
+footer. As an example, \fI-b box1,box2,box3;box4;box5;2*\fP would extract text
+from \fIbox1,box2,box3\fP from the first page, from \fIbox4\fP from the second,
+from \fIbox5\fP from the third, and the repeat with \fIbox4\fP and \fIbox5\fP
+until the end of the document.
 
 The html ouput is not always correct. If the document starts with an italic
 font, then switches to italic and bold and then to bold only, the resulting
