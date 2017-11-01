@@ -68,6 +68,11 @@ extern gboolean debugpar;
 #define NONE '\0'
 #define START '\1'
 
+/* in the functions for extracting text from boxes or pages, start with
+ *	gboolean newpar = FALSE;
+ *	char prev = START;
+ * then pass &newpar, &prev unchanged from one call to the next */
+
 /* show the characters in a box in a page */
 void showbox(FILE *fd, PopplerPage *page, PopplerRectangle *zone,
 		int method, struct measure *measure, struct format *format,
