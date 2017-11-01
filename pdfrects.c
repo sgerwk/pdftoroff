@@ -95,8 +95,8 @@ typedef struct {
 /*
  * print a rectangle
  */
-void rectangle_print(PopplerRectangle *r) {
-	printf("[%g,%g - %g,%g]\n", r->x1, r->y1, r->x2, r->y2);
+void rectangle_print(FILE *fd, PopplerRectangle *r) {
+	fprintf(fd, "[%g,%g - %g,%g]\n", r->x1, r->y1, r->x2, r->y2);
 }
 
 /*
@@ -215,11 +215,11 @@ void rectanglelist_free(RectangleList *rl) {
 /*
  * print a rectangle list
  */
-void rectanglelist_print(RectangleList *rl) {
+void rectanglelist_print(FILE *fd, RectangleList *rl) {
 	gint r;
 
 	for (r = 0; r < rl->num; r++)
-		rectangle_print(&rl->rect[r]);
+		rectangle_print(fd, &rl->rect[r]);
 }
 
 /*

@@ -75,9 +75,9 @@ struct format {
  * print reason for a paragraph break
  */
 gboolean debugpar = FALSE;
-void dnewpar(char *why) {
+void dnewpar(FILE *fd, char *why) {
 	if (debugpar)
-		printf(why);
+		fprintf(fd, why);
 }
 
 /*
@@ -85,7 +85,8 @@ void dnewpar(char *why) {
  *	start	TRUE to start the new face, FALSE to end the previous
  *	reset	TRUE to temporarily end or restore all active faces
  */
-void face(gboolean start, gboolean reset, gboolean *italic, gboolean *bold,
+void face(FILE *fd, gboolean start, gboolean reset,
+		gboolean *italic, gboolean *bold,
 		PopplerTextAttributes *attr, struct format *format) {
 	gboolean newitalic, newbold;
 
@@ -98,36 +99,36 @@ void face(gboolean start, gboolean reset, gboolean *italic, gboolean *bold,
 				/* font name */
 
 	if (start && ! reset && *format->fontname != '\0')
-		printf(format->fontname, attr->font_name);
+		fprintf(fd, format->fontname, attr->font_name);
 			
 				/* font start, no end except for resets */
 
 	if (start) {
 		if (! newitalic && ! newbold)
-			printf(format->plain);
+			fprintf(fd, format->plain);
 		else if (newitalic && ! newbold)
-			printf(format->italic);
+			fprintf(fd, format->italic);
 		else if (! newitalic && newbold)
-			printf(format->bold);
+			fprintf(fd, format->bold);
 		if (newitalic && newbold)
-			printf(format->bolditalic);
+			fprintf(fd, format->bolditalic);
 	}
 	if (! start && reset)
-		printf(format->plain);
+		fprintf(fd, format->plain);
 
 				/* font start-end */
 
 	if (! start) {
 		if (*bold && newbold == reset)
-			printf(format->boldend);
+			fprintf(fd, format->boldend);
 		if (*italic && newitalic == reset)
-			printf(format->italicend);
+			fprintf(fd, format->italicend);
 	}
 	else {
 		if (*italic == reset && newitalic)
-			printf(format->italicbegin);
+			fprintf(fd, format->italicbegin);
 		if (*bold == reset && newbold)
-			printf(format->boldbegin);
+			fprintf(fd, format->boldbegin);
 	}
 
 				/* update current font */
@@ -141,20 +142,20 @@ void face(gboolean start, gboolean reset, gboolean *italic, gboolean *bold,
 /*
  * show a single character
  */
-void showcharacter(char *cur, char *next, gboolean newpar,
+void showcharacter(FILE *fd, char *cur, char *next, gboolean newpar,
 		struct format *format) {
 	if (*cur == '\\')
-		printf(format->backslash);
+		fprintf(fd, format->backslash);
 	else if (newpar && *cur == '.')
-		printf(format->firstdot);
+		fprintf(fd, format->firstdot);
 	else if (*cur == '<')
-		printf(format->less);
+		fprintf(fd, format->less);
 	else if (*cur == '>')
-		printf(format->greater);
+		fprintf(fd, format->greater);
 	else if (*cur == '&')
-		printf(format->and);
+		fprintf(fd, format->and);
 	else if (*cur != '-' || (*next && *next != '\n'))
-		fwrite(cur, 1, next - cur, stdout);
+		fwrite(cur, 1, next - cur, fd);
 }
 
 #ifdef _PDFRECTS_H
@@ -162,7 +163,7 @@ void showcharacter(char *cur, char *next, gboolean newpar,
 /*
  * show the characters in a box
  */
-void showbox(PopplerPage *page, PopplerRectangle *zone,
+void showbox(FILE *fd, PopplerPage *page, PopplerRectangle *zone,
 		int method, struct measure *measure, struct format *format,
 		gboolean *newpar, char **prev) {
 	char *text, *cur, *next;
@@ -216,7 +217,7 @@ void showbox(PopplerPage *page, PopplerRectangle *zone,
 		detectcolumn = FALSE;
 		break;
 	default:
-		printf("no such conversion method: %d\n", method);
+		fprintf(stderr, "no such conversion method: %d\n", method);
 		exit(EXIT_FAILURE);
 	}
 
@@ -250,14 +251,15 @@ void showbox(PopplerPage *page, PopplerRectangle *zone,
 				tr = &crect;
 			}
 			else {
-				printf("\n");
-				printf("error: cannot find text rectangle\n");
-				printf("character: %c ", *cur);
-				printf("(%d)\n", *cur);
-				printf("rectangle:\n");
-				rectangle_print(&crect);
-				printf("text area:\n");
-				rectanglelist_print(textarea);
+				fprintf(stderr, "\n");
+				fprintf(stderr, "error: cannot find ");
+				fprintf(stderr, "text rectangle\n");
+				fprintf(stderr, "character: %c ", *cur);
+				fprintf(stderr, "(%d)\n", *cur);
+				fprintf(stderr, "rectangle:\n");
+				rectangle_print(stderr, &crect);
+				fprintf(stderr, "text area:\n");
+				rectanglelist_print(stderr, textarea);
 				exit(EXIT_FAILURE);
 			}
 			left = tr->x1;
@@ -270,7 +272,7 @@ void showbox(PopplerPage *page, PopplerRectangle *zone,
 		if (newline || *cur == '\n') {
 			if (crect.x2 - left <
 			    (tr->x2 - left) * measure->rightreturn / 100) {
-				dnewpar("[1]");
+				dnewpar(fd, "[1]");
 				*newpar = TRUE;
 			}
 			else if (! hyphen)
@@ -310,13 +312,13 @@ void showbox(PopplerPage *page, PopplerRectangle *zone,
 
 			if (crect.y1 - y > measure->newline) {
 				if (crect.y1 - y > measure->newpar) {
-					dnewpar("[2]");
+					dnewpar(fd, "[2]");
 					*newpar = TRUE;
 				}
 				y = crect.y1;
 				if (crect.x1 - left >
 						measure->indenttolerance) {
-					dnewpar("[3]");
+					dnewpar(fd, "[3]");
 					*newpar = TRUE;
 				}
 			}
@@ -324,26 +326,29 @@ void showbox(PopplerPage *page, PopplerRectangle *zone,
 					/* new paragraph */
 
 			if (*newpar) {
-				face(FALSE, TRUE, &italic, &bold, attr, format);
+				face(fd, FALSE, TRUE,
+					&italic, &bold, attr, format);
 				if (! ! strcmp(*prev, "start"))
-					printf(format->parend);
-				printf(format->parstart);
-				face(TRUE, TRUE, &italic, &bold, attr, format);
+					fprintf(fd, format->parend);
+				fprintf(fd, format->parstart);
+				face(fd, TRUE, TRUE,
+					&italic, &bold, attr, format);
 			}
 			else
-				printf(*prev);
+				fprintf(fd, *prev);
 			*prev = "";
 
 					/* start a new font face */
 
 			if (newface && *cur != ' ') {
-				face(TRUE, FALSE, &italic, &bold, attr, format);
+				face(fd, TRUE, FALSE,
+					&italic, &bold, attr, format);
 				newface = FALSE;
 			}
 
 					/* print character */
 
-			showcharacter(cur, next, *newpar, format);
+			showcharacter(fd, cur, next, *newpar, format);
 
 					/* status of hyphen and newpar */
 
@@ -357,11 +362,13 @@ void showbox(PopplerPage *page, PopplerRectangle *zone,
 			     (g_unichar_isspace(*next) ? 1 : 0)) {
 			attrelem = g_list_next(attrelem);
 			if (! attrelem) {
-				face(FALSE, TRUE, &italic, &bold, attr, format);
+				face(fd, FALSE, TRUE,
+					&italic, &bold, attr, format);
 				break;
 			}
 			attr = (PopplerTextAttributes *) (attrelem->data);
-			face(FALSE, FALSE, &italic, &bold, attr, format);
+			face(fd, FALSE, FALSE,
+				&italic, &bold, attr, format);
 			newface = TRUE;
 		}
 	}
@@ -369,7 +376,7 @@ void showbox(PopplerPage *page, PopplerRectangle *zone,
 			/* end of page is like a carriage return in text */
 
 	if (crect.x2 - left < (tr->x2 - left) * measure->rightreturn / 100) {
-		dnewpar("[4]");
+		dnewpar(fd, "[4]");
 		*newpar = TRUE;
 	}
 	else if (! hyphen)
@@ -380,14 +387,14 @@ void showbox(PopplerPage *page, PopplerRectangle *zone,
 	free(text);
 }
 
-void showpage(PopplerPage *page,
+void showpage(FILE *fd, PopplerPage *page,
 		int method, struct measure *measure, struct format *format,
 		gboolean *newpar, char **prev) {
 	RectangleList *textarea;
 	gint r;
 
 	if (method != 3) {
-		showbox(page, NULL, method, measure, format, newpar, prev);
+		showbox(fd, page, NULL, method, measure, format, newpar, prev);
 		return;
 	}
 
@@ -395,7 +402,7 @@ void showpage(PopplerPage *page,
 		rectanglelist_textarea_distance(page, measure->textdistance);
 	rectanglelist_sort(textarea);
 	for (r = 0; r < textarea->num; r++)
-		showbox(page, &textarea->rect[r], 3,
+		showbox(fd, page, &textarea->rect[r], 3,
 			measure, format, newpar, prev);
 }
 
@@ -404,7 +411,7 @@ void showpage(PopplerPage *page,
 /*
  * show a page, no-pdfrects version
  */
-void showpage(PopplerPage *page,
+void showpage(FILE *fd, PopplerPage *page,
 		int method, struct measure *measure, struct format *format,
 		gboolean *newpar, char **prev) {
 	char *text, *cur, *next;
@@ -423,7 +430,7 @@ void showpage(PopplerPage *page,
 				/* method */
 
 	if (method != 0) {
-		printf("only supported method in this version is 0\n");
+		fprintf(stderr, "this version only supports method 0\n");
 		exit(EXIT_FAILURE);
 	}
 
@@ -462,7 +469,7 @@ void showpage(PopplerPage *page,
 
 		if (*cur == '\n') {
 			if (crect.x2 < width * measure->rightreturn / 100) {
-				dnewpar("[1]");
+				dnewpar(fd, "[1]");
 				*newpar = TRUE;
 			}
 			else if (! hyphen)
@@ -495,37 +502,40 @@ void showpage(PopplerPage *page,
 
 			if (crect.y1 - y > measure->newline) {
 				if (crect.y1 - y > measure->newpar) {
-					dnewpar("[2]");
+					dnewpar(fd, "[2]");
 					*newpar = TRUE;
 				}
 				y = crect.y1;
 				if (x < crect.x1 - measure->indenttolerance) {
-					dnewpar("[3]");
+					dnewpar(fd, "[3]");
 					*newpar = TRUE;
 				}
 			}
 
 			if (*newpar) {
-				face(FALSE, TRUE, &italic, &bold, attr, format);
+				face(fd, FALSE, TRUE,
+					&italic, &bold, attr, format);
 				if (! ! strcmp(*prev, "start"))
-					printf(format->parend);
-				printf(format->parstart);
-				face(TRUE, TRUE, &italic, &bold, attr, format);
+					fprintf(fd, format->parend);
+				fprintf(fd, format->parstart);
+				face(fd, TRUE, TRUE,
+					&italic, &bold, attr, format);
 			}
 			else
-				printf(*prev);
+				fprintf(fd, *prev);
 			*prev = "";
 
 					/* start a new font face */
 
 			if (newface && *cur != ' ') {
-				face(TRUE, FALSE, &italic, &bold, attr, format);
+				face(fd, TRUE, FALSE,
+					&italic, &bold, attr, format);
 				newface = FALSE;
 			}
 
 					/* print character */
 
-			showcharacter(cur, next, *newpar, format);
+			showcharacter(fd, cur, next, *newpar, format);
 
 					/* status of hyphen and newpar */
 
@@ -539,11 +549,12 @@ void showpage(PopplerPage *page,
 			     (g_unichar_isspace(*next) ? 1 : 0)) {
 			attrelem = g_list_next(attrelem);
 			if (! attrelem) {
-				face(FALSE, TRUE, &italic, &bold, attr, format);
+				face(fd, FALSE, TRUE,
+					&italic, &bold, attr, format);
 				break;
 			}
 			attr = (PopplerTextAttributes *) (attrelem->data);
-			face(FALSE, FALSE, &italic, &bold, attr, format);
+			face(fd, FALSE, FALSE, &italic, &bold, attr, format);
 			newface = TRUE;
 		}
 	}
@@ -551,7 +562,7 @@ void showpage(PopplerPage *page,
 			/* end of page is like a carriage return in text */
 
 	if (crect.x2 < width * measure->rightreturn / 100) {
-		dnewpar("[4]");
+		dnewpar(fd, "[4]");
 		*newpar = TRUE;
 	}
 	else if (! hyphen)
@@ -575,11 +586,13 @@ char *filenametouri(char *filename) {
 	else {
 		dir = malloc(4096);
 		if (dir == NULL) {
-			printf("failed to allocate memory for directory\n");
+			fprintf(stderr,
+				"failed to allocate memory for directory\n");
 			exit(EXIT_FAILURE);
 		}
 		if (getcwd(dir, 4096) == NULL) {
-			printf("error in obtaining the current directory\n");
+			fprintf(stderr,
+				"error in obtaining the current directory\n");
 			exit(EXIT_FAILURE);
 		}
 		sep = "/";
@@ -588,7 +601,7 @@ char *filenametouri(char *filename) {
 	uri = malloc(strlen("file:") + strlen(dir) +
 		strlen(sep) + strlen(filename) + 1);
 	if (uri == NULL) {
-		printf("failed to allocate memory for file name\n");
+		fprintf(stderr, "failed to allocate memory for file name\n");
 		exit(EXIT_FAILURE);
 	}
 	strcpy(uri, "file:");
@@ -813,10 +826,11 @@ int main(int argc, char *argv[]) {
 
 	for (npage = 0; npage < poppler_document_get_n_pages(doc); npage++) {
 		page = poppler_document_get_page(doc, npage);
-		showpage(page, method, &measure, format, &newpar, &prev);
+		showpage(stdout, page,
+			method, &measure, format, &newpar, &prev);
 	}
 	if (! ! strcmp(prev, "start"))
-		printf(format->parend);
+		fprintf(stdout, format->parend);
 
 	free(filename);
 	return EXIT_SUCCESS;
