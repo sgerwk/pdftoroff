@@ -129,6 +129,7 @@ void face(FILE *fd, gboolean start, gboolean reset,
 
 /*
  * show a single character
+ *	rest	character not written (hyphen at end of line) or NONE
  */
 void showcharacter(FILE *fd, char *cur, char *next, char *rest,
 		gboolean newpar, struct format *format) {
@@ -173,7 +174,6 @@ gboolean newcolumn(gdouble y, PopplerRectangle crect,
  * box-not-found error
  */
 void boxnotfound(char *cur, PopplerRectangle *crect, RectangleList *textarea) {
-	fprintf(stderr, "\n");
 	fprintf(stderr, "error: cannot find text rectangle\n");
 	fprintf(stderr, "character: %c (%d)\n", *cur, *cur);
 	fprintf(stderr, "rectangle:\n");
@@ -185,8 +185,8 @@ void boxnotfound(char *cur, PopplerRectangle *crect, RectangleList *textarea) {
 
 /*
  * show the characters in a box
- * newpar	paragraph in previous box/page is already known to be over
- * prev		unprinted character from previous box, possibly NONE or START
+ *	newpar	paragraph in previous box/page is already known to be over
+ *	prev	unprinted character from previous box, possibly NONE or START
  */
 void showbox(FILE *fd, PopplerPage *page, PopplerRectangle *zone,
 		int method, struct measure *measure, struct format *format,
@@ -437,10 +437,10 @@ void enddocument(FILE *fd, struct format *format, char prev) {
  */
 void showdocumentpart(FILE *fd, PopplerDocument *doc, int first, int last,
 		int method, struct measure *measure, struct format *format) {
-	PopplerPage *page;
 	gboolean newpar = FALSE;
 	char prev = START;
 	int npage;
+	PopplerPage *page;
 
 	for (npage = first; npage <= last; npage++) {
 		page = poppler_document_get_page(doc, npage);
