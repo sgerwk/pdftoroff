@@ -1,7 +1,7 @@
 /*
  * pdftext.c
  *
- * convert pdf to text or enriched text (roff, html)
+ * convert pdf to text or rich text (roff, html, tex)
  */
 
 #include <stdlib.h>
