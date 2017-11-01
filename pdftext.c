@@ -192,7 +192,7 @@ void showbox(FILE *fd, PopplerPage *page, PopplerRectangle *zone,
 		break;
 	case 2:
 		textarea = rectanglelist_textarea_distance(page,
-				measure->textdistance);
+				measure->blockdistance);
 		detectcolumn = FALSE;
 		break;
 	case 3:
@@ -228,9 +228,12 @@ void showbox(FILE *fd, PopplerPage *page, PopplerRectangle *zone,
 			newline = FALSE;
 		else {
 			ti = rectanglelist_contain(textarea, &crect);
+			if (debugpar && method != 3)
+				fprintf(fd, "\n=== BLOCK %d ===\n", ti);
 			if (ti != -1)
 				tr = &textarea->rect[ti];
 			else if (*cur == ' ') {
+				dnewpar(fd, "_SPACE_");
 				ti = -1;
 				tr = &crect;
 			}
@@ -386,11 +389,14 @@ void showpage(FILE *fd, PopplerPage *page,
 	}
 
 	textarea =
-		rectanglelist_textarea_distance(page, measure->textdistance);
+		rectanglelist_textarea_distance(page, measure->blockdistance);
 	rectanglelist_sort(textarea);
-	for (r = 0; r < textarea->num; r++)
+	for (r = 0; r < textarea->num; r++) {
+		if (debugpar)
+			fprintf(fd, "\n=== BLOCK %d ===\n", r);
 		showbox(fd, page, &textarea->rect[r], 3,
 			measure, format, newpar, prev);
+	}
 }
 
 #else

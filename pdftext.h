@@ -21,7 +21,7 @@ struct measure {
 	int newcolumny;		/* more than this -Dy% is new column (and) */
 	int indenttolerance;	/* tolerance for x at start of line */
 	int headfooter;		/* ignore x,y of chars at begin/end of page */
-	int textdistance;	/* distance between blocks of text */
+	int blockdistance;	/* distance between blocks of text */
 };
 
 /*
