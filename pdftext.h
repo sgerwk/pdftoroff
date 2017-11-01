@@ -19,7 +19,7 @@ struct measure {
 	int rightreturn;	/* line end before this x% is a new paragraph */
 	int newcolumnx;		/* more than this Dx% is new column (and) */
 	int newcolumny;		/* more than this -Dy% is new column (and) */
-	int indenttolerance;	/* tolerance for x at start of line */
+	int indent;		/* more than this at start of line is indent */
 	int headfooter;		/* ignore x,y of chars at begin/end of page */
 	int blockdistance;	/* distance between blocks of text */
 };
@@ -64,18 +64,22 @@ extern struct format format_text;
 /* print reason for a paragraph break */
 extern gboolean debugpar;
 
+/* previous character, keep START at the end */
+#define NONE '\0'
+#define START '\1'
+
 /* show the characters in a box in a page */
 void showbox(FILE *fd, PopplerPage *page, PopplerRectangle *zone,
 		int method, struct measure *measure, struct format *format,
-		gboolean *newpar, char **prev);
+		gboolean *newpar, char *prev);
 
 /* show the characters in a page */
 void showpage(FILE *fd, PopplerPage *page,
 		int method, struct measure *measure, struct format *format,
-		gboolean *newpar, char **prev);
+		gboolean *newpar, char *prev);
 
 /* end a document */
-void enddocument(FILE *fd, struct format *format, char *prev);
+void enddocument(FILE *fd, struct format *format, char prev);
 
 /* show some pages of a pdf document */
 void showdocumentpart(FILE *fd, PopplerDocument *doc, int first, int last,
