@@ -5,6 +5,7 @@ user-defined format. It is used by the included **pdftoebook** script to
 reformat a pdf file to a smaller page, so that it becomes suited to be read on
 a small tablet or e-ink ebook reader.
 
-Also included is **pdffit**, which resized the page of a pdf file so that their
-text fits into a given paper size (e.g., A4 or letter) with a given margin.
+Also included is **pdffit**, which resizes the pages of a pdf file so that
+their text fits into a given paper size (e.g., A4 or letter) with a given
+margin.
 
