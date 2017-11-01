@@ -68,10 +68,13 @@ extern gboolean debugpar;
 #define NONE '\0'
 #define START '\1'
 
-/* in the functions for extracting text from boxes or pages, start with
- *	gboolean newpar = FALSE;
- *	char prev = START;
- * then pass &newpar, &prev unchanged from one call to the next */
+/* in the functions for extracting text from boxes or pages, define newpar
+ * and prev; then pass &newpar, &prev unchanged from one call to the next */
+
+/* start processing a document */
+void startdocument(FILE *fd,
+		int method, struct measure *measure, struct format *format,
+		gboolean *newpar, char *prev);
 
 /* show the characters in a box in a page */
 void showbox(FILE *fd, PopplerPage *page, PopplerRectangle *zone,
@@ -83,20 +86,22 @@ void showpage(FILE *fd, PopplerPage *page,
 		int method, struct measure *measure, struct format *format,
 		gboolean *newpar, char *prev);
 
-/* end a document */
-void enddocument(FILE *fd, struct format *format, char prev);
+/* end processing a document */
+void enddocument(FILE *fd,
+		int method, struct measure *measure, struct format *format,
+		gboolean *newpar, char *prev);
 
 /* show some pages of a pdf document */
 void showdocumentpart(FILE *fd, PopplerDocument *doc, int first, int last,
 		int method, struct measure *measure, struct format *format);
 
 /* show a pdf document */
-void showdocument(FILE *fd, PopplerDocument *doc, int method,
-		struct measure *measure, struct format *format);
+void showdocument(FILE *fd, PopplerDocument *doc,
+		int method, struct measure *measure, struct format *format);
 
 /* show a pdf file */
-void showfile(FILE *fd, char *filename, int method,
-		struct measure *measure, struct format *format);
+void showfile(FILE *fd, char *filename,
+		int method, struct measure *measure, struct format *format);
 
 /* parse a string into a struct format */
 struct format *parseformat(char *s);

@@ -425,10 +425,29 @@ void showpage(FILE *fd, PopplerPage *page,
 }
 
 /*
+ * start processing a document
+ */
+void startdocument(FILE *fd,
+		int method, struct measure *measure, struct format *format,
+		gboolean *newpar, char *prev) {
+	(void)fd;
+	(void)method;
+	(void)measure;
+	(void)format;
+	*newpar = FALSE;
+	*prev = START;
+}
+
+/*
  * end a document
  */
-void enddocument(FILE *fd, struct format *format, char prev) {
-	if (prev != START)
+void enddocument(FILE *fd,
+		int method, struct measure *measure, struct format *format,
+		gboolean *newpar, char *prev) {
+	(void)method;
+	(void)measure;
+	(void)newpar;
+	if (*prev != START)
 		fprintf(fd, format->parend);
 }
 
@@ -437,24 +456,25 @@ void enddocument(FILE *fd, struct format *format, char prev) {
  */
 void showdocumentpart(FILE *fd, PopplerDocument *doc, int first, int last,
 		int method, struct measure *measure, struct format *format) {
-	gboolean newpar = FALSE;
-	char prev = START;
+	gboolean newpar;
+	char prev;
 	int npage;
 	PopplerPage *page;
 
+	startdocument(fd, method, measure, format, &newpar, &prev);
 	for (npage = first; npage <= last; npage++) {
 		page = poppler_document_get_page(doc, npage);
 		delement(fd, "[PAGE %d]", npage);
 		showpage(fd, page, method, measure, format, &newpar, &prev);
 	}
-	enddocument(fd, format, prev);
+	enddocument(fd, method, measure, format, &newpar, &prev);
 }
 
 /*
  * show a pdf document
  */
-void showdocument(FILE *fd, PopplerDocument *doc, int method,
-		struct measure *measure, struct format *format) {
+void showdocument(FILE *fd, PopplerDocument *doc,
+		int method, struct measure *measure, struct format *format) {
 	showdocumentpart(fd, doc, 0, poppler_document_get_n_pages(doc) - 1,
 		method, measure, format);
 }
@@ -462,8 +482,8 @@ void showdocument(FILE *fd, PopplerDocument *doc, int method,
 /*
  * show a pdf file
  */
-void showfile(FILE *fd, char *filename, int method,
-		struct measure *measure, struct format *format) {
+void showfile(FILE *fd, char *filename,
+		int method, struct measure *measure, struct format *format) {
 	char *uri;
 	PopplerDocument *doc;
 
