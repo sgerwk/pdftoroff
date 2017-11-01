@@ -1,0 +1,14 @@
+#!/bin/sh
+
+[ $# -lt 1 ] && echo "pdf file name missing" && exit 1
+[ ! -f "$1" ] && echo "file $1 does not exist" && exit 1
+
+[ "$COLUMN" != "" ] && WIDTH=80 || \
+	WIDTH=$(stty -a | grep -o 'columns [0-9][0-9]*' | cut -d' ' -f2)
+
+pdftoroff -t -m 3 "$1"		| \
+sed 's,^,_PAR_,'		| \
+fmt -s -w $WIDTH		| \
+sed 's,^_PAR_,   ,'		| \
+less
+
