@@ -610,20 +610,29 @@ void enddocument(FILE *fd, struct format *format, char *prev) {
 }
 
 /*
- * show a pdf document
+ * show some pages of a pdf document
  */
-void showdocument(FILE *fd, PopplerDocument *doc, int method,
-		struct measure *measure, struct format *format) {
+void showdocumentpart(FILE *fd, PopplerDocument *doc, int first, int last,
+		int method, struct measure *measure, struct format *format) {
 	PopplerPage *page;
 	gboolean newpar = TRUE;
 	char *prev = "start";
 	int npage;
 
-	for (npage = 0; npage < poppler_document_get_n_pages(doc); npage++) {
+	for (npage = first; npage <= last; npage++) {
 		page = poppler_document_get_page(doc, npage);
 		showpage(fd, page, method, measure, format, &newpar, &prev);
 	}
 	enddocument(fd, format, prev);
+}
+
+/*
+ * show a pdf document
+ */
+void showdocument(FILE *fd, PopplerDocument *doc, int method,
+		struct measure *measure, struct format *format) {
+	showdocumentpart(fd, doc, 0, poppler_document_get_n_pages(doc) - 1,
+		method, measure, format);
 }
 
 /*

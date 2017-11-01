@@ -64,7 +64,7 @@ extern struct format format_text;
 /* print reason for a paragraph break */
 extern gboolean debugpar;
 
-/* show the characters in a box */
+/* show the characters in a box in a page */
 void showbox(FILE *fd, PopplerPage *page, PopplerRectangle *zone,
 		int method, struct measure *measure, struct format *format,
 		gboolean *newpar, char **prev);
@@ -76,6 +76,10 @@ void showpage(FILE *fd, PopplerPage *page,
 
 /* end a document */
 void enddocument(FILE *fd, struct format *format, char *prev);
+
+/* show some pages of a pdf document */
+void showdocumentpart(FILE *fd, PopplerDocument *doc, int first, int last,
+		int method, struct measure *measure, struct format *format);
 
 /* show a pdf document */
 void showdocument(FILE *fd, PopplerDocument *doc, int method,
