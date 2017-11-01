@@ -21,7 +21,8 @@
  */
 
 /* print a rectangle */
-void rectangle_print(FILE *fd, PopplerRectangle *);
+void rectangle_print(FILE *, PopplerRectangle *);
+void rectangle_printyaml(FILE *, char *first, char *indent, PopplerRectangle *);
 
 /* check whether the first rectangle contains the second */
 gboolean rectangle_contain(PopplerRectangle *, PopplerRectangle *);
@@ -65,7 +66,9 @@ void rectanglelist_tighten(RectangleList *);
 void rectanglelist_free(RectangleList *);
 
 /* print a rectangle list */
-void rectanglelist_print(FILE *fd, RectangleList *);
+void rectanglelist_print(FILE *, RectangleList *);
+void rectanglelist_printyaml(FILE *, char *first, char *indent,
+	RectangleList *);
 
 /* remove a rectangle from a list */
 void rectanglelist_delete(RectangleList *, gint);

@@ -98,6 +98,13 @@ typedef struct {
 void rectangle_print(FILE *fd, PopplerRectangle *r) {
 	fprintf(fd, "[%g,%g - %g,%g]\n", r->x1, r->y1, r->x2, r->y2);
 }
+void rectangle_printyaml(FILE *fd, char *first, char *indent,
+		PopplerRectangle *r) {
+	fprintf(fd, "%sx1: %g\n", first, r->x1);
+	fprintf(fd, "%sy1: %g\n", indent, r->y1);
+	fprintf(fd, "%sx2: %g\n", indent, r->x2);
+	fprintf(fd, "%sy2: %g\n", indent, r->y2);
+}
 
 /*
  * check if rectangle satisfies the bounds: both dimensions and at least one
@@ -220,6 +227,13 @@ void rectanglelist_print(FILE *fd, RectangleList *rl) {
 
 	for (r = 0; r < rl->num; r++)
 		rectangle_print(fd, &rl->rect[r]);
+}
+void rectanglelist_printyaml(FILE *fd, char *first, char *indent,
+		RectangleList *rl) {
+	gint r;
+
+	for (r = 0; r < rl->num; r++)
+		rectangle_printyaml(fd, first, indent, &rl->rect[r]);
 }
 
 /*

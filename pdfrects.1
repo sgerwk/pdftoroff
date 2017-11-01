@@ -1,0 +1,69 @@
+.TH pdfrects 1 "November 1, 2017"
+.
+.
+.
+.SH NAME
+pdfrects - bounding box or text area of the pages of a pdf file
+.
+.
+.
+.SH SYNOPSYS
+
+.PD 0
+.TP 9
+.B pdfrects
+[\fB-f\fP \fIpage\fP] [\fB-l\fP \fIpage\fP]
+[\fB-b\fP] [\fB-d\fP \fIdistance\fP] [\fB-n\fP [\fB-s\fP]]
+.IP
+[\fB-a\fP] [\fB-r\fP \fIlevel\fP] [\fB-h\fP] \fIfile.pdf\fP
+.PD
+
+.SH DESCRIPTION
+
+.B pdfrects
+finds either the bounding box or the area of the text in the pages of a pdf
+file. The first is the smallest rectangle encosing all text. The second is a
+list of rectangles enclosing the text as tightly as possible while obeying a
+minimal distance between them (15 by default).
+
+These rectangles are drawn on the pages of the output \fIfile-boxes.pdf\fP in
+random colors, and printed on stdout in YAML format.
+
+.SH OPTIONS
+
+.TP
+\fB-f\fP \fIpage\fP
+first page
+.TP
+\fB-f\fP \fIpage\fP
+last page
+.TP
+.B -b
+bounding box; the default is the textarea
+.TP
+\fB-d\fP \fIdistance\fP
+the minimal distance between boxes in the textarea; a lower values implies a
+larger number of rectangles
+.TP
+.B -n
+number boxes in the pdf output
+.TP
+.B -s
+sort boxes
+.TP
+.B -a
+test the box addition function: a 100x100 box is added to a location free of
+text
+.TP
+\fB-r\fP \fIlevel\fP
+test the textarea algorithm
+.TP
+.B -h
+help
+.
+.
+.
+.SH SEE ALSO
+\fBpdffit\fP(\fI1\fP),
+\fBpdftoroff\fP(\fI1\fP)
+
