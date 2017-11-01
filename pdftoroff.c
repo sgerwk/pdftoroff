@@ -35,7 +35,7 @@
 int main(int argc, char *argv[]) {
 	gboolean usage, opterr;
 	gboolean method = 1;
-	struct measure measure = {8, 25, 80, 30, 40, 4, 20, 25};
+	struct measure measure = {8, 25, 80, 30, 40, 6, 20, 25};
 	struct format *format;
 				/* arguments */
 
