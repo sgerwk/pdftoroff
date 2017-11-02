@@ -7,5 +7,6 @@ a small tablet or e-ink ebook reader.
 
 Also included is **pdffit**, which resizes the pages of a pdf file so that
 their text fits into a given paper size (e.g., A4 or letter) with a given
-margin.
+margin. The related program **pdfrects** finds the bounding box or the text
+area of the pages of a pdf file.
 
