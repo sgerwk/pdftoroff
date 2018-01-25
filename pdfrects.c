@@ -100,6 +100,10 @@ void rectangle_print(FILE *fd, PopplerRectangle *r) {
 }
 void rectangle_printyaml(FILE *fd, char *first, char *indent,
 		PopplerRectangle *r) {
+	if (r == NULL) {
+		printf("%sNULL\n", indent);
+		return;
+	}
 	fprintf(fd, "%sx1: %g\n", first, r->x1);
 	fprintf(fd, "%sy1: %g\n", indent, r->y1);
 	fprintf(fd, "%sx2: %g\n", indent, r->x2);
@@ -159,6 +163,8 @@ void rectangle_shift(PopplerRectangle *r, gdouble x, gdouble y) {
  * join rectangles: the first becomes the smallest rectangle containing both
  */
 void rectangle_join(PopplerRectangle *a, PopplerRectangle *b) {
+	if (b == NULL)
+		return;
 	a->x1 = MIN(a->x1, b->x1);
 	a->y1 = MIN(a->y1, b->y1);
 	a->x2 = MAX(a->x2, b->x2);
@@ -596,7 +602,7 @@ RectangleList *rectanglelist_textarea(PopplerPage *page) {
 }
 
 /*
- * overall bounding box
+ * overall bounding box (NULL if no text is in the page)
  */
 PopplerRectangle *rectanglelist_boundingbox(PopplerPage *page) {
 	RectangleList *all;
@@ -606,6 +612,8 @@ PopplerRectangle *rectanglelist_boundingbox(PopplerPage *page) {
 
 	all = rectanglelist_new(0);
 	poppler_page_get_text_layout(page, &all->rect, &n);
+	if (n == 0)
+		return NULL;
 	all->num = n;
 
 	boundingbox = poppler_rectangle_copy(all->rect + 0);
@@ -620,6 +628,8 @@ PopplerRectangle *rectanglelist_boundingbox(PopplerPage *page) {
  * draw a rectangle on a cairo context with a random color
  */
 void rectangle_draw(cairo_t *cr, PopplerRectangle *rect, gboolean fill) {
+	if (rect == NULL)
+		return;
 	cairo_set_source_rgb(cr,
 		((gdouble) random()) / RAND_MAX * 0.8,
 		((gdouble) random()) / RAND_MAX * 0.8,

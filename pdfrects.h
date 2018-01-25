@@ -106,7 +106,7 @@ RectangleList *rectanglelist_textarea(PopplerPage *);
 /* area of text in a page, with minimal distance considered a white space */
 RectangleList *rectanglelist_textarea_distance(PopplerPage *, gdouble);
 
-/* bounding box of the page */
+/* bounding box of the page (NULL if no text is in the page) */
 PopplerRectangle *rectanglelist_boundingbox(PopplerPage *);
 
 /*

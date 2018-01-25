@@ -216,9 +216,15 @@ int main(int argc, char *argv[]) {
 
 	if (overall && ! wholepage) {
 		page = poppler_document_get_page(doc, 0);
-		boundingbox = rectanglelist_boundingbox(page);
+		for (n = 0, boundingbox = NULL;
+		     n < npages && boundingbox == NULL;
+		     n++)
+			boundingbox = rectanglelist_boundingbox(page); 
 		for (n = 1; n < npages; n++) {
+			page = poppler_document_get_page(doc, n);
 			temp = rectanglelist_boundingbox(page);
+			if (temp == NULL)
+				continue;
 			rectangle_join(boundingbox, temp);
 			poppler_rectangle_free(temp);
 		}
@@ -228,8 +234,11 @@ int main(int argc, char *argv[]) {
 		printf("page %d\n", n + 1);
 		page = poppler_document_get_page(doc, n);
 		poppler_page_get_size(page, &psize.x2, &psize.y2);
-		if (! overall && ! wholepage)
+		if (! overall && ! wholepage) {
 			boundingbox = rectanglelist_boundingbox(page);
+			if (boundingbox == NULL)
+				continue;
+		}
 
 		cr = cairo_create(surface);
 		rectangle_map_to_cairo(cr, &dest,
