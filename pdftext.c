@@ -511,41 +511,45 @@ struct format *parseformat(char *s) {
 	memset(f, 0, sizeof(struct format));
 
 	if (! (f->parstart = strsep(&c, ",")))
-		return NULL;
+		goto parse_error;
 	if (! (f->parend = strsep(&c, ",")))
-		return NULL;
+		goto parse_error;
 	if (! (f->fontname = strsep(&c, ",")))
-		return NULL;
+		goto parse_error;
 	if (! (f->plain = strsep(&c, ",")))
-		return NULL;
+		goto parse_error;
 	if (! (f->italic = strsep(&c, ",")))
-		return NULL;
+		goto parse_error;
 	if (! (f->bold = strsep(&c, ",")))
-		return NULL;
+		goto parse_error;
 	if (! (f->bolditalic = strsep(&c, ",")))
-		return NULL;
+		goto parse_error;
 	if (! (f->italicbegin = strsep(&c, ",")))
-		return NULL;
+		goto parse_error;
 	if (! (f->italicend = strsep(&c, ",")))
-		return NULL;
+		goto parse_error;
 	if (! (f->boldbegin = strsep(&c, ",")))
-		return NULL;
+		goto parse_error;
 	if (! (f->boldend = strsep(&c, ",")))
-		return NULL;
+		goto parse_error;
 	if (! (t = strsep(&c, ",")))
-		return NULL;
+		goto parse_error;
 	f->reset = ! strcmp(t, "true");
 	if (! (f->backslash = strsep(&c, ",")))
-		return NULL;
+		goto parse_error;
 	if (! (f->firstdot = strsep(&c, ",")))
-		return NULL;
+		goto parse_error;
 	if (! (f->less = strsep(&c, ",")))
-		return NULL;
+		goto parse_error;
 	if (! (f->greater = strsep(&c, ",")))
-		return NULL;
+		goto parse_error;
 	if (! (f->and = strsep(&c, ",")))
-		return NULL;
+		goto parse_error;
 
 	return f;
+
+parse_error:
+	free(f);
+	return NULL;
 }
 
