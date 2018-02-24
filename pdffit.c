@@ -22,26 +22,28 @@ int main(int argc, char *argv[]) {
 	char *infile, *uri, *outfile = NULL;
 	gboolean usage = FALSE, opterror = FALSE;
 	gboolean landscape = FALSE, ratio = TRUE, individual = FALSE;
-	gboolean wholepage = FALSE, givendest = FALSE, givenmargin = FALSE;
+	gboolean wholepage = FALSE, emptypages = FALSE;
+	gboolean givendest = FALSE, givenmargin = FALSE;
 	gboolean orig = FALSE, frame = FALSE, drawbb = FALSE, debug = FALSE;
 	gdouble w, h;
 	char *paper = NULL;
 	PopplerRectangle *pagesize = NULL;
-	PopplerRectangle pagedest, outdest, dest, test, *temp;
+	PopplerRectangle pagedest, outdest, dest, test;
 	gdouble defaultmargin = 40.0;
 	gdouble marginx1, marginy1, marginx2, marginy2;
 
 	PopplerDocument *doc;
 	PopplerPage *page;
 	int npages, n;
-	PopplerRectangle *boundingbox, psize = {0.0, 0.0, 0.0, 0.0};
+	PopplerRectangle *boundingbox, *pageboundingbox;
+	PopplerRectangle psize = {0.0, 0.0, 0.0, 0.0};
 
 	cairo_surface_t *surface;
 	cairo_t *cr;
 
 				/* arguments */
 
-	while ((opt = getopt(argc, argv, "hiwfskbrldm:p:g:o:")) != -1)
+	while ((opt = getopt(argc, argv, "hiewfskbrldm:p:g:o:")) != -1)
 		switch(opt) {
 		case 'l':
 			landscape = TRUE;
@@ -51,6 +53,9 @@ int main(int argc, char *argv[]) {
 			break;
 		case 'i':
 			individual = TRUE;
+			break;
+		case 'e':
+			emptypages = TRUE;
 			break;
 		case 'p':
 			paper = optarg;
@@ -131,6 +136,7 @@ int main(int argc, char *argv[]) {
 		printf("\tpdffit [options] file.pdf\n");
 		printf("\t\t-l\t\tlandscape\n");
 		printf("\t\t-i\t\tscale each page individually\n");
+		printf("\t\t-e\t\tskip empty pages\n");
 		printf("\t\t-r\t\tdo not maintain aspect ratio\n");
 		printf("\t\t-p paper\tpaper size (a4, letter, 500,500...)\n");
 		printf("\t\t-w\t\tresize the whole page, without margins\n");
@@ -210,35 +216,48 @@ int main(int argc, char *argv[]) {
 		exit(EXIT_FAILURE);
 	}
 
-				/* copy to destination */
+				/* destination surface */
 
 	surface = cairo_pdf_surface_create(outfile, pagedest.x2, pagedest.y2);
 
+				/* join bounding box of all pages */
+
 	if (! individual && ! wholepage) {
 		page = poppler_document_get_page(doc, 0);
-		for (n = 0, boundingbox = NULL;
-		     n < npages && boundingbox == NULL;
-		     n++)
-			boundingbox = rectanglelist_boundingbox(page); 
-		for (n = 1; n < npages; n++) {
+		boundingbox = NULL;
+		for (n = 0; n < npages; n++) {
 			page = poppler_document_get_page(doc, n);
-			temp = rectanglelist_boundingbox(page);
-			if (temp == NULL)
+			pageboundingbox = rectanglelist_boundingbox(page);
+			if (pageboundingbox == NULL)
 				continue;
-			rectangle_join(boundingbox, temp);
-			poppler_rectangle_free(temp);
+			if (boundingbox == NULL)
+				boundingbox = pageboundingbox;
+			else {
+				rectangle_join(boundingbox, pageboundingbox);
+				poppler_rectangle_free(pageboundingbox);
+			}
 		}
 	}
 
+				/* copy each page to destination */
+
 	for (n = 0; n < npages; n++) {
-		printf("page %d\n", n + 1);
+		printf("page %-5d  ", n + 1);
 		page = poppler_document_get_page(doc, n);
 		poppler_page_get_size(page, &psize.x2, &psize.y2);
-		if (individual && ! wholepage) {
-			boundingbox = rectanglelist_boundingbox(page);
-			if (boundingbox == NULL)
-				continue;
+		pageboundingbox = rectanglelist_boundingbox(page);
+		if (pageboundingbox == NULL && emptypages) {
+			printf("\n");
+			continue;
 		}
+
+		if (individual && ! wholepage)
+			boundingbox = pageboundingbox;
+
+		rectangle_print(stdout, wholepage ? &psize : boundingbox);
+		printf(" -> ");
+		rectangle_print(stdout, &dest);
+		printf("\n");
 
 		cr = cairo_create(surface);
 		rectangle_map_to_cairo(cr, &dest,
@@ -246,6 +265,7 @@ int main(int argc, char *argv[]) {
 			ratio,
 			individual && n == npages - 1);
 		poppler_page_render_for_printing(page, cr);
+
 		if (drawbb)
 			rectangle_draw(cr, boundingbox, FALSE);
 		if (orig)
@@ -255,6 +275,7 @@ int main(int argc, char *argv[]) {
 			rectangle_draw(cr, &outdest, FALSE);
 		if (debug)
 			rectangle_draw(cr, &test, TRUE);
+
 		cairo_destroy(cr);
 		cairo_surface_show_page(surface);
 
