@@ -686,6 +686,9 @@ void rectangle_map_to_cairo(cairo_t *cr,
 	gdouble scalex, scaley;
 	gdouble marginx, marginy;
 
+	if (src == NULL || dst == NULL)
+		return;
+
 	srcw = src->x2 - src->x1;
 	srch = src->y2 - src->y1;
 	dstw = dst->x2 - dst->x1;
