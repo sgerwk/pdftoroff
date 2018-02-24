@@ -21,7 +21,7 @@ int main(int argc, char *argv[]) {
 	int opt;
 	char *infile, *uri, *outfile = NULL;
 	gboolean usage = FALSE, opterror = FALSE;
-	gboolean landscape = FALSE, ratio = TRUE, overall = FALSE;
+	gboolean landscape = FALSE, ratio = TRUE, individual = FALSE;
 	gboolean wholepage = FALSE, givendest = FALSE, givenmargin = FALSE;
 	gboolean orig = FALSE, frame = FALSE, drawbb = FALSE, debug = FALSE;
 	gdouble w, h;
@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
 
 				/* arguments */
 
-	while ((opt = getopt(argc, argv, "hewfskbrldm:p:g:o:")) != -1)
+	while ((opt = getopt(argc, argv, "hiwfskbrldm:p:g:o:")) != -1)
 		switch(opt) {
 		case 'l':
 			landscape = TRUE;
@@ -49,8 +49,8 @@ int main(int argc, char *argv[]) {
 		case 'r':
 			ratio = FALSE;
 			break;
-		case 'e':
-			overall = TRUE;
+		case 'i':
+			individual = TRUE;
 			break;
 		case 'p':
 			paper = optarg;
@@ -130,7 +130,7 @@ int main(int argc, char *argv[]) {
 		printf("usage:\n");
 		printf("\tpdffit [options] file.pdf\n");
 		printf("\t\t-l\t\tlandscape\n");
-		printf("\t\t-e\t\tuse overall bounding box of all pages\n");
+		printf("\t\t-i\t\tscale each page individually\n");
 		printf("\t\t-r\t\tdo not maintain aspect ratio\n");
 		printf("\t\t-p paper\tpaper size (a4, letter, 500,500...)\n");
 		printf("\t\t-w\t\tresize the whole page, without margins\n");
@@ -214,7 +214,7 @@ int main(int argc, char *argv[]) {
 
 	surface = cairo_pdf_surface_create(outfile, pagedest.x2, pagedest.y2);
 
-	if (overall && ! wholepage) {
+	if (! individual && ! wholepage) {
 		page = poppler_document_get_page(doc, 0);
 		for (n = 0, boundingbox = NULL;
 		     n < npages && boundingbox == NULL;
@@ -234,7 +234,7 @@ int main(int argc, char *argv[]) {
 		printf("page %d\n", n + 1);
 		page = poppler_document_get_page(doc, n);
 		poppler_page_get_size(page, &psize.x2, &psize.y2);
-		if (! overall && ! wholepage) {
+		if (individual && ! wholepage) {
 			boundingbox = rectanglelist_boundingbox(page);
 			if (boundingbox == NULL)
 				continue;
@@ -244,7 +244,7 @@ int main(int argc, char *argv[]) {
 		rectangle_map_to_cairo(cr, &dest,
 			wholepage ? &psize : boundingbox,
 			ratio,
-			! overall && n == npages - 1);
+			individual && n == npages - 1);
 		poppler_page_render_for_printing(page, cr);
 		if (drawbb)
 			rectangle_draw(cr, boundingbox, FALSE);
@@ -258,11 +258,11 @@ int main(int argc, char *argv[]) {
 		cairo_destroy(cr);
 		cairo_surface_show_page(surface);
 
-		if (! overall && ! wholepage)
+		if (individual && ! wholepage)
 			poppler_rectangle_free(boundingbox);
 	}
 
-	if (overall && ! wholepage)
+	if (! individual && ! wholepage)
 		poppler_rectangle_free(boundingbox);
 
 	cairo_surface_destroy(surface);
