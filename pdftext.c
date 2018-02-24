@@ -178,6 +178,7 @@ void boxnotfound(char *cur, PopplerRectangle *crect, RectangleList *textarea) {
 	fprintf(stderr, "character: %c (%d)\n", *cur, *cur);
 	fprintf(stderr, "rectangle:\n");
 	rectangle_print(stderr, crect);
+	fprintf(stderr, "\n");
 	fprintf(stderr, "text area:\n");
 	rectanglelist_print(stderr, textarea);
 	exit(EXIT_FAILURE);
