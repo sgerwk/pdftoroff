@@ -96,7 +96,10 @@ typedef struct {
  * print a rectangle
  */
 void rectangle_print(FILE *fd, PopplerRectangle *r) {
-	fprintf(fd, "[%g,%g - %g,%g]", r->x1, r->y1, r->x2, r->y2);
+	if (r == NULL)
+		fprintf(fd, "[]");
+	else
+		fprintf(fd, "[%g,%g - %g,%g]", r->x1, r->y1, r->x2, r->y2);
 }
 void rectangle_printyaml(FILE *fd, char *first, char *indent,
 		PopplerRectangle *r) {
