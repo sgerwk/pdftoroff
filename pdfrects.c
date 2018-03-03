@@ -787,27 +787,28 @@ PopplerRectangle *get_papersize(char *name) {
  */
 char *defaultpapersize() {
 	FILE *fd;
-	char *s;
+	char s[100], *r;
 	char *res;
 
 	fd = fopen("/etc/papersize", "r");
 	if (fd == NULL)
 		return NULL;
 
-	s = malloc(100);
+	r = malloc(100);
 	do {
 		res = fgets(s, 90, fd);
-	} while (res && s[0] == '#');
+		if (res == NULL) {
+			fclose(fd);
+			free(r);
+			return NULL;
+		}
+		res = strchr(s, '#');
+		if (res)
+			*res = '\0';
+	} while (sscanf(s, "%90s", r) != 1);
+
 	fclose(fd);
-
-	if (res == NULL) {
-		free(s);
-		return NULL;
-	}
-
-	if (s[strlen(s) - 1] == '\n')
-		s[strlen(s) - 1] = '\0';
-	return s;
+	return r;
 }
 
 /*
