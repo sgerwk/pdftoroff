@@ -812,13 +812,33 @@ char *defaultpapersize() {
 }
 
 /*
+ * escape filenames
+ */
+char *filenameescape(char *filename) {
+	char *res;
+	int i, j;
+
+	res = malloc(strlen(filename) * 3 + 1);
+	for (i = 0, j = 0; filename[i] != '\0'; i++)
+		if (filename[i] >= 32 && filename[i] != '%')
+			res[j++] = filename[i];
+		else {
+			sprintf(res + j, "%%%02X", filename[i]);
+			j += 3;
+		}
+	res[j] = '\0';
+
+	return res;
+}
+
+/*
  * from file name to uri
  */
 char *filenametouri(char *filename) {
-	char *dir, *sep, *uri;
+	char *dir, *sep, *esc, *uri;
 
 	if (filename[0] == '/') {
-		dir = "";
+		dir = strdup("");
 		sep = "";
 	}
 	else {
@@ -834,8 +854,10 @@ char *filenametouri(char *filename) {
 		sep = "/";
 	}
 
+	esc = filenameescape(filename);
+
 	uri = malloc(strlen("file:") + strlen(dir) +
-		strlen(sep) + strlen(filename) + 1);
+		strlen(sep) + strlen(esc) + 1);
 	if (uri == NULL) {
 		printf("failed to allocate memory for file name\n");
 		return NULL;
@@ -843,8 +865,10 @@ char *filenametouri(char *filename) {
 	strcpy(uri, "file:");
 	strcat(uri, dir);
 	strcat(uri, sep);
-	strcat(uri, filename);
+	strcat(uri, esc);
 
+	free(esc);
+	free(dir);
 	return uri;
 }
 
