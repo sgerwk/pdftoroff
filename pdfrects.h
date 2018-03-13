@@ -109,6 +109,9 @@ RectangleList *rectanglelist_textarea_distance(PopplerPage *, gdouble);
 /* bounding box of the page (NULL if no text is in the page) */
 PopplerRectangle *rectanglelist_boundingbox(PopplerPage *);
 
+/* overall bounding box of the whole document (NULL if no text) */
+PopplerRectangle *rectanglelist_boundingbox_document(PopplerDocument *doc);
+
 /*
  * drawing-related functions
  */

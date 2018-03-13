@@ -220,24 +220,10 @@ int main(int argc, char *argv[]) {
 
 	surface = cairo_pdf_surface_create(outfile, pagedest.x2, pagedest.y2);
 
-				/* join bounding box of all pages */
+				/* bounding box of all pages */
 
-	if (! individual && ! wholepage) {
-		page = poppler_document_get_page(doc, 0);
-		boundingbox = NULL;
-		for (n = 0; n < npages; n++) {
-			page = poppler_document_get_page(doc, n);
-			pageboundingbox = rectanglelist_boundingbox(page);
-			if (pageboundingbox == NULL)
-				continue;
-			if (boundingbox == NULL)
-				boundingbox = pageboundingbox;
-			else {
-				rectangle_join(boundingbox, pageboundingbox);
-				poppler_rectangle_free(pageboundingbox);
-			}
-		}
-	}
+	if (! individual && ! wholepage)
+		boundingbox = rectanglelist_boundingbox_document(doc);
 
 				/* copy each page to destination */
 

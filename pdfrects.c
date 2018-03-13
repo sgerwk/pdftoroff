@@ -20,8 +20,12 @@
  *	lower values lead to finer coverings of the used area
  *
  * PopplerRectangle *rectanglelist_boundingbox(PopplerPage *);
- * 	the overall bounding box of the page: the smallest rectangle that cover
- * 	all text in the page
+ * 	the overall bounding box of the page: the smallest rectangle that
+ * 	covers all text in the page
+ *
+ * PopplerRectangle *rectanglelist_boundingbox_document(PopplerDocument *);
+ * 	overall bounding box of the whole document: smallest rectangle that
+ * 	contains all text in all pages
  */
 
 /*
@@ -626,6 +630,34 @@ PopplerRectangle *rectanglelist_boundingbox(PopplerPage *page) {
 		rectangle_join(boundingbox, all->rect + i);
 
 	rectanglelist_free(all);
+	return boundingbox;
+}
+
+/*
+ * overall bounding box of the whole document (NULL if no text)
+ */
+PopplerRectangle *rectanglelist_boundingbox_document(PopplerDocument *doc) {
+	PopplerPage *page;
+	PopplerRectangle *boundingbox, *pageboundingbox;
+	int npages, n;
+
+	npages = poppler_document_get_n_pages(doc);
+	if (npages < 0)
+		return NULL;
+	boundingbox = NULL;
+	for (n = 0; n < npages; n++) {
+		page = poppler_document_get_page(doc, n);
+		pageboundingbox = rectanglelist_boundingbox(page);
+		if (pageboundingbox == NULL)
+			continue;
+		if (boundingbox == NULL)
+			boundingbox = pageboundingbox;
+		else {
+			rectangle_join(boundingbox, pageboundingbox);
+			poppler_rectangle_free(pageboundingbox);
+		}
+	}
+
 	return boundingbox;
 }
 
