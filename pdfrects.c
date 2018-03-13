@@ -860,6 +860,7 @@ char *filenametouri(char *filename) {
 		strlen(sep) + strlen(esc) + 1);
 	if (uri == NULL) {
 		printf("failed to allocate memory for file name\n");
+		free(esc);
 		return NULL;
 	}
 	strcpy(uri, "file:");
