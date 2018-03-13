@@ -708,11 +708,15 @@ void rectanglelist_draw(cairo_t *cr, RectangleList *rl,
  * for example, poppler_page_render_for_printing(page, cr) renders the
  * rectangle src in the page as dst on the cairo context
  *
+ * horizontal: scale so that src fits into dst horizontally
+ * ratio: preserve aspect ratio
+ * topalign: map so that that dst maps to the top of src
+ *
  * call cairo_identity_matrix(cr) to reset the transformation matrix
  */
 void rectangle_map_to_cairo(cairo_t *cr,
 		PopplerRectangle *dst, PopplerRectangle *src,
-		gboolean ratio, gboolean topalign) {
+		gboolean horizontal, gboolean ratio, gboolean topalign) {
 	gdouble srcw, srch;
 	gdouble dstw, dsth;
 	gdouble scalex, scaley;
@@ -727,11 +731,15 @@ void rectangle_map_to_cairo(cairo_t *cr,
 	dsth = dst->y2 - dst->y1;
 
 	scalex = dstw / srcw;
-	scaley = dsth / srch;
-	if (ratio && scalex > scaley)
-		scalex = scaley;
-	if (ratio && scaley > scalex)
+	if (horizontal)
 		scaley = scalex;
+	else {
+		scaley = dsth / srch;
+		if (ratio && scalex > scaley)
+			scalex = scaley;
+		if (ratio && scaley > scalex)
+			scaley = scalex;
+	}
 
 	marginx = dst->x1 + (dstw - srcw * scalex) / 2;
 	marginy = dst->y1 + (dsth - srch * scaley) / 2;
