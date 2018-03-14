@@ -51,8 +51,11 @@ int rectangle_compare(PopplerRectangle *, PopplerRectangle *);
 
 #define MAXRECT 50000
 typedef struct {
+	/* public */
 	PopplerRectangle *rect;
 	gint num;
+
+	/* private */
 	gint max;
 } RectangleList;
 
