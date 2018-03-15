@@ -301,6 +301,23 @@ gboolean rectanglelist_add(RectangleList *rl, PopplerRectangle *rect) {
 }
 
 /*
+ * smallest rectangle enclosing all in a rectangle list
+ */
+PopplerRectangle *rectanglelist_joinall(RectangleList *rl) {
+	PopplerRectangle *a;
+	int r;
+
+	if (rl == NULL || rl->num == 0)
+		return NULL;
+
+	a = poppler_rectangle_copy(&rl->rect[0]);
+	for (r = 1; r < rl->num; r++)
+		rectangle_join(a, &rl->rect[r]);
+
+	return a;
+}
+
+/*
  * index of rectangle in a list containing another rectangle
  */
 gint rectanglelist_contain(RectangleList *rl, PopplerRectangle *r) {

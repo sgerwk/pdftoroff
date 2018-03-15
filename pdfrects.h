@@ -79,6 +79,9 @@ void rectanglelist_delete(RectangleList *, gint);
 /* add a rectangle to a list, if not redundant */
 gboolean rectanglelist_add(RectangleList *, PopplerRectangle *);
 
+/* smallest rectangle enclosing all in a rectangle list */
+PopplerRectangle *rectanglelist_joinall(RectangleList *);
+
 /* index of first rectangle in list in a relation to another rectangle */
 gint rectanglelist_contain(RectangleList *, PopplerRectangle *);
 gint rectanglelist_touch(RectangleList *, PopplerRectangle *);
