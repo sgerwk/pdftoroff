@@ -1,8 +1,9 @@
-PROGS=pdftoroff pdffit pdfrects
+PROGS=pdftoroff pdffit pdfrects hovacui
 
 CFLAGS+=-g -Wall -Wextra
 CFLAGS+=${shell pkg-config --cflags poppler-glib}
 LDFLAGS+=${shell pkg-config --libs poppler-glib}
+hovacui: LDFLAGS+=${shell pkg-config --libs ncurses}
 
 all: ${PROGS}
 
@@ -12,7 +13,8 @@ install: all
 
 pdftoroff: pdftext.o
 pdfrects: pdfrects-main.o
-pdftoroff pdffit pdfrects: pdfrects.o
+pdftoroff pdffit pdfrects hovacui: pdfrects.o
+hovacui: cairofb.o
 
 clean:
 	rm -f *.o ${PROGS}
