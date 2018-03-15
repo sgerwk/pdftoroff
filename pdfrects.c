@@ -664,16 +664,27 @@ PopplerRectangle *rectanglelist_boundingbox_document(PopplerDocument *doc) {
 /*
  * draw a rectangle on a cairo context with a random color
  */
-void rectangle_draw(cairo_t *cr, PopplerRectangle *rect, gboolean fill) {
+void rectangle_draw(cairo_t *cr, PopplerRectangle *rect,
+		gboolean randomcolor, gboolean fill, gboolean enclosing) {
+	double enlarge = 0.0;
+
 	if (rect == NULL)
 		return;
-	cairo_set_source_rgb(cr,
-		((gdouble) random()) / RAND_MAX * 0.8,
-		((gdouble) random()) / RAND_MAX * 0.8,
-		((gdouble) random()) / RAND_MAX * 0.8);
+
+	if (! randomcolor)
+		cairo_set_source_rgb(cr, 0.8, 0.8, 1.0);
+	else
+		cairo_set_source_rgb(cr,
+			((gdouble) random()) / RAND_MAX * 0.8,
+			((gdouble) random()) / RAND_MAX * 0.8,
+			((gdouble) random()) / RAND_MAX * 0.8);
+	if (enclosing)
+		enlarge = cairo_get_line_width(cr) / 2;
 	cairo_rectangle(cr,
-		rect->x1, rect->y1,
-		rect->x2 - rect->x1, rect->y2 - rect->y1);
+		rect->x1 - enlarge,
+		rect->y1 - enlarge,
+		rect->x2 - rect->x1 + enlarge * 2,
+		rect->y2 - rect->y1 + enlarge * 2);
 	if (fill)
 		cairo_fill(cr);
 	cairo_stroke(cr);
@@ -683,12 +694,12 @@ void rectangle_draw(cairo_t *cr, PopplerRectangle *rect, gboolean fill) {
  * draw a rectangle list on a cairo context
  */
 void rectanglelist_draw(cairo_t *cr, RectangleList *rl,
-		gboolean fill, gboolean num) {
+		gboolean fill, gboolean enclosing, gboolean num) {
 	gint r;
 	char buf[20];
 
 	for (r = 0; r < rl->num; r++) {
-		rectangle_draw(cr, rl->rect + r, fill);
+		rectangle_draw(cr, rl->rect + r, TRUE, fill, enclosing);
 		if (num) {
 			cairo_move_to(cr,
 				rl->rect[r].x1 - 10.0,

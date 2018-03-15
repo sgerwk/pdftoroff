@@ -254,14 +254,14 @@ int main(int argc, char *argv[]) {
 		poppler_page_render_for_printing(page, cr);
 
 		if (drawbb)
-			rectangle_draw(cr, boundingbox, FALSE);
+			rectangle_draw(cr, boundingbox, TRUE, FALSE, FALSE);
 		if (orig)
-			rectangle_draw(cr, &psize, FALSE);
+			rectangle_draw(cr, &psize, TRUE, FALSE, FALSE);
 		cairo_identity_matrix(cr);
 		if (frame)
-			rectangle_draw(cr, &outdest, FALSE);
+			rectangle_draw(cr, &outdest, TRUE, FALSE, FALSE);
 		if (debug)
-			rectangle_draw(cr, &test, TRUE);
+			rectangle_draw(cr, &test, TRUE, TRUE, FALSE);
 
 		cairo_destroy(cr);
 		cairo_surface_show_page(surface);

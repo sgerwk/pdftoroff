@@ -119,12 +119,13 @@ PopplerRectangle *rectanglelist_boundingbox_document(PopplerDocument *doc);
  * drawing-related functions
  */
 
-/* draw a rectangle, possibly filled */
-void rectangle_draw(cairo_t *, PopplerRectangle *, gboolean fill);
+/* draw a rectangle, possibly filled or enclosing */
+void rectangle_draw(cairo_t *, PopplerRectangle *,
+	gboolean randomcolor, gboolean fill, gboolean enclosing);
 
 /* draw a rectangle list, possibly numbering each */
 void rectanglelist_draw(cairo_t *, RectangleList *,
-	gboolean fill, gboolean num);
+	gboolean fill, gboolean enclosing, gboolean num);
 
 /* map a poppler rectangle into a cairo surface */
 void rectangle_map_to_cairo(cairo_t *cr,
