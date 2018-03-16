@@ -10,3 +10,7 @@ their text fits into a given paper size (e.g., A4 or letter) with a given
 margin. The related program **pdfrects** finds the bounding box or the text
 area of the pages of a pdf file.
 
+The **hovacui** pdf viewer for the Linux framebuffer (fbdev) automatically
+zooms to the blocks of text. It is particularly useful for two-column
+documents.
+
