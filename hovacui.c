@@ -400,7 +400,7 @@ char *helptext[] = {
 	"End        bottom of page",
 	"m          rotate among view modes:",
 	"           textarea, boundingbox, page",
-	"w          minimal viewbox width",
+	"w/W        + or - minimal viewbox width",
 	"           (determines the maximal zoom)",
 	"h          help",
 	"q          quit",
