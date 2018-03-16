@@ -13,13 +13,15 @@
  * - save last position(s) to $(HOME)/.pdfpositions
  * - include images (in pdfrects.c)
  * - change output.distance by option and by key
- * - help window
- * - go to page (dialog)
+ * - go to page (dialog); includes: go to end of document
  * - search:
- *	+ dialog
+ *	+ dialog (+paste)
  *	+ move to the textblock that contains the string,
  *	  set scrolly so that the string is at the center
  * - history of positions
+ * - set output->redraw to FALSE when not moving
+ * - note that horizontal fitting is intended for horizontal text
+ * - i18n
  */
 
 #include <stdlib.h>
@@ -33,6 +35,22 @@
 #include "pdfrects.h"
 
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
+
+/*
+ * the windows
+ */
+enum window {
+	WINDOW_DOCUMENT,
+	WINDOW_HELP,
+	WINDOW_GOTOPAGE,
+	WINDOW_SEARCH,
+	WINDOW_EXIT
+};
+
+/*
+ * special key that tells a window to initalize itself
+ */
+#define KEY_INIT 0
 
 /*
  * output parameters
@@ -52,6 +70,15 @@ struct output {
 
 	/* zoom to: 0=text, 1=boundingbox, 2=page */
 	int viewmode;
+
+	/* how much to scroll */
+	int scroll;
+
+	/* whether the document has to be redrawn */
+	int redraw;
+
+	/* whether the output is to be flushed */
+	int flush;
 };
 
 /*
@@ -230,11 +257,11 @@ int nextpage(struct position *position, struct output *output) {
 /*
  * scroll down
  */
-int scrolldown(struct position *position, struct output *output, double dy) {
+int scrolldown(struct position *position, struct output *output) {
 	moveto(position, output);
 	if (doctoscreen(output, position->viewbox->y2) >
 	    output->dest.y2 + 0.01) {
-		position->scrolly += dy;
+		position->scrolly += output->scroll;
 		return 0;
 	}
 
@@ -281,11 +308,11 @@ int prevpage(struct position *position, struct output *output) {
 /*
  * scroll up
  */
-int scrollup(struct position *position, struct output *output, double dy) {
+int scrollup(struct position *position, struct output *output) {
 	moveto(position, output);
 	if (doctoscreen(output, position->viewbox->y1) <
 	    output->dest.y1 - 0.01) {
-		position->scrolly -= dy;
+		position->scrolly -= output->scroll;
 		return 0;
 	}
 
@@ -295,6 +322,166 @@ int scrollup(struct position *position, struct output *output, double dy) {
 	}
 
 	return prevpage(position, output);
+}
+
+/*
+ * document window
+ */
+int document(int c, struct position *position, struct output *output) {
+	output->redraw = TRUE;
+
+	switch (c) {
+	case KEY_INIT:
+	case 'r':
+		readpage(position, output);
+		break;
+	case 'q':
+		return WINDOW_EXIT;
+	case 'h':
+		output->redraw = FALSE;
+		return WINDOW_HELP;
+	case KEY_DOWN:
+		scrolldown(position, output);
+		break;
+	case KEY_UP:
+		scrollup(position, output);
+		break;
+	case KEY_HOME:
+		firstviewbox(position, output);
+		break;
+	case KEY_END:
+		lastviewbox(position, output);
+		break;
+	case KEY_NPAGE:
+		nextpage(position, output);
+		break;
+	case KEY_PPAGE:
+		prevpage(position, output);
+		break;
+	case 'm':
+		output->viewmode = (output->viewmode + 1) % 3;
+		position->box = 0;
+		position->scrolly = 0;
+		readpage(position, output);
+		break;
+	case 'w':
+		output->minwidth -= 10;
+		break;
+	case 'W':
+		output->minwidth += 10;
+		break;
+	default:
+		;
+	}
+
+	return WINDOW_DOCUMENT;
+}
+
+/*
+ * print a line at current position
+ */
+void printline(cairo_t *cr, char *string, int advance) {
+	double x, y;
+	cairo_get_current_point(cr, &x, &y);
+	cairo_show_text(cr, string);
+	cairo_move_to(cr, x, y + advance);
+}
+
+/*
+ * help text
+ */
+char *helptext[] = {
+	"hovacui - pdf viewer with autozoom to text",
+	"------------------------------------------",
+	"",
+	"PageUp     previous page",
+	"PageDown   next page",
+	"Home       top of page",
+	"End        bottom of page",
+	"m          rotate among view modes:",
+	"           textarea, boundingbox, page",
+	"w          minimal viewbox width",
+	"           (determines the maximal zoom)",
+	"h          help",
+	"q          quit",
+	"",
+	"any key to continue"
+};
+
+/*
+ * help
+ */
+int help(int c, struct position *position, struct output *output) {
+	(void) position;
+	double percent = 0.8, prop = (1 - percent) / 2;
+	double marginx = (output->dest.x2 - output->dest.x1) * prop;
+	double marginy = (output->dest.y2 - output->dest.y1) * prop;
+	double fontsize = 18.0;
+	unsigned l;
+
+	if (c != KEY_INIT) {
+		output->redraw = TRUE;
+		return WINDOW_DOCUMENT;
+	}
+
+	cairo_identity_matrix(output->cr);
+	cairo_select_font_face(output->cr, "mono",
+	                CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+	cairo_set_font_size (output->cr, fontsize);
+	cairo_set_source_rgb(output->cr, 0.8, 0.8, 0.8);
+	cairo_rectangle(output->cr,
+		output->dest.x1 + marginx,
+		output->dest.y1 + marginy,
+		output->dest.x2 - output->dest.x1 - marginx * 2,
+		output->dest.y2 - output->dest.y1 - marginy * 2);
+	cairo_fill(output->cr);
+	cairo_move_to(output->cr,
+		output->dest.x1 + marginx + 10.0,
+		output->dest.y1 + marginy + 10.0 + fontsize);
+
+	cairo_set_source_rgb(output->cr, 0.0, 0.0, 0.0);
+
+	for (l = 0; l < sizeof(helptext) / sizeof(char *); l++)
+		printline(output->cr, helptext[l], fontsize);
+
+	cairo_stroke(output->cr);
+
+	output->redraw = FALSE;
+	output->flush = TRUE;
+	return WINDOW_HELP;
+}
+
+/*
+ * window selector
+ */
+int selectwindow(int window, int c,
+		struct position *position, struct output *output) {
+	switch (window) {
+	case WINDOW_DOCUMENT:
+		return document(c, position, output);
+	case WINDOW_HELP:
+		return help(c, position, output);
+	case WINDOW_GOTOPAGE:
+		return WINDOW_DOCUMENT;
+	case WINDOW_SEARCH:
+		return WINDOW_DOCUMENT;
+	}
+
+	return WINDOW_DOCUMENT;
+}
+
+/*
+ * draw the document
+ */
+void draw(struct cairofb *cairofb,
+		struct position *position, struct output *output) {
+	cairofb_clear(cairofb, 1.0, 1.0, 1.0);
+	moveto(position, output);
+	poppler_page_render(position->page, output->cr);
+	rectangle_draw(output->cr,
+		&position->textarea->rect[position->box],
+		FALSE, FALSE, TRUE);
+	cairofb_flush(cairofb);
 }
 
 /*
@@ -315,14 +502,13 @@ int main(int argn, char *argv[]) {
 	char *devname = "/dev/fb0";
 	struct cairofb *cairofb;
 	double margin = 10.0;
-	double scroll = 50.0;
 	struct position position;
 	struct output output;
 	int opt;
 
 	WINDOW *w;
 	int c;
-	int stayinloop;
+	int window, next;
 
 				/* arguments */
 
@@ -393,7 +579,7 @@ int main(int argn, char *argv[]) {
 	keypad(w, TRUE);
 	noecho();
 	curs_set(0);
-	ungetch('r');
+	ungetch(0);
 
 				/* initialize position and output */
 
@@ -401,6 +587,9 @@ int main(int argn, char *argv[]) {
 
 	output.cr = cairofb->cr;
 	output.distance = 15.0;
+	output.scroll = 50.0;
+
+	output.redraw = 1;
 
 	output.dest.x1 = margin;
 	output.dest.y1 = margin;
@@ -412,61 +601,28 @@ int main(int argn, char *argv[]) {
 
 				/* event loop */
 
-	for (stayinloop = 1; stayinloop; ) {
+	window = document(0, &position, &output);
 
-					/* read input */
+	while (window != WINDOW_EXIT) {
+
+					/* draw the document */
+
+		if (output.redraw)
+			draw(cairofb, &position, &output);
+
+					/* process input */
 
 		c = getch();
-		switch (c) {
-		case 'r':
-			readpage(&position, &output);
-			break;
-		case 'q':
-			stayinloop = 0;
-			break;
-		case KEY_DOWN:
-			scrolldown(&position, &output, scroll);
-			break;
-		case KEY_UP:
-			scrollup(&position, &output, scroll);
-			break;
-		case KEY_HOME:
-			firstviewbox(&position, &output);
-			break;
-		case KEY_END:
-			lastviewbox(&position, &output);
-			break;
-		case KEY_NPAGE:
-			nextpage(&position, &output);
-			break;
-		case KEY_PPAGE:
-			prevpage(&position, &output);
-			break;
-		case 'm':
-			output.viewmode = (output.viewmode + 1) % 3;
-			position.box = 0;
-			position.scrolly = 0;
-			readpage(&position, &output);
-			break;
-		case 'w':
-			output.minwidth -= 10;
-			break;
-		case 'W':
-			output.minwidth += 10;
-			break;
-		default:
-			continue;
-		} 
+		next = selectwindow(window, c, &position, &output);
+		if (next != window) {
+			window = next;
+			selectwindow(window, KEY_INIT, &position, &output);
+		}
 
-					/* draw */
+					/* flush output */
 
-		cairofb_clear(cairofb, 1.0, 1.0, 1.0);
-		moveto(&position, &output);
-		poppler_page_render(position.page, output.cr);
-		rectangle_draw(output.cr,
-			&position.textarea->rect[position.box],
-			FALSE, FALSE, TRUE);
-		cairofb_flush(cairofb);
+		if (output.flush)
+			cairofb_flush(cairofb);
 	}
 
 				/* close */
