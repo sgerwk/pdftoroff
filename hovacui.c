@@ -6,6 +6,7 @@
  * todo:
  * - man page
  * - vt switching
+ * - fb device parametric (ex. -d /dev/fb1)
  * - console clean on exit
  * - improve column-sorting rectangles (to be done in pdfrects.c)
  * - key to move to next/previous block of text
@@ -13,7 +14,7 @@
  * - save last position(s) to $(HOME)/.pdfpositions
  * - include images (in pdfrects.c)
  * - change output.distance by option and by key
- * - go to page (dialog); includes: go to end of document
+ * - utf8 in dialog()
  * - search:
  *	+ dialog (+paste)
  *	+ move to the textblock that contains the string,
@@ -27,6 +28,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <string.h>
 #include <poppler.h>
 #include <ncurses.h>
 #include <cairo.h>
@@ -121,8 +123,10 @@ void initposition(struct position *position) {
 int readpage(struct position *position, struct output *output) {
 	position->page =
 		poppler_document_get_page(position->doc, position->npage);
+
 	rectanglelist_free(position->textarea);
 	poppler_rectangle_free(position->boundingbox);
+
 	switch (output->viewmode) {
 	case 0:
 		position->textarea =
@@ -151,6 +155,7 @@ int readpage(struct position *position, struct output *output) {
 		position->textarea = rectanglelist_new(1);
 		rectanglelist_add(position->textarea, position->boundingbox);
 	}
+
 	return 0;
 }
 
@@ -172,10 +177,6 @@ double screentodoc(struct output *output, double y) {
  * change scrolly to avoid empty space atop or below (prefer empty space below)
  */
 void adjustscroll(struct position *position, struct output *output) {
-	/* even for the space atop, this is not simply checking
-	 * position->scrolly<0, which is only relative to the current
-	 * viewbox; it requires calculating whether position->scrolly is
-	 * negative relative to the whole page, or to its boundingbox */
 
 	/* bottom of bounding box mapped to the screen over bottom of screen */
 	if (doctoscreen(output, position->boundingbox->y2 - position->scrolly)
@@ -340,6 +341,9 @@ int document(int c, struct position *position, struct output *output) {
 	case 'h':
 		output->redraw = FALSE;
 		return WINDOW_HELP;
+	case 'g':
+		output->redraw = FALSE;
+		return WINDOW_GOTOPAGE;
 	case KEY_DOWN:
 		scrolldown(position, output);
 		break;
@@ -393,7 +397,6 @@ void printline(cairo_t *cr, char *string, int advance) {
 char *helptext[] = {
 	"hovacui - pdf viewer with autozoom to text",
 	"------------------------------------------",
-	"",
 	"PageUp     previous page",
 	"PageDown   next page",
 	"Home       top of page",
@@ -402,6 +405,7 @@ char *helptext[] = {
 	"           textarea, boundingbox, page",
 	"w/W        + or - minimal viewbox width",
 	"           (determines the maximal zoom)",
+	"g          go to page",
 	"h          help",
 	"q          quit",
 	"",
@@ -427,7 +431,8 @@ int help(int c, struct position *position, struct output *output) {
 	cairo_identity_matrix(output->cr);
 	cairo_select_font_face(output->cr, "mono",
 	                CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
-	cairo_set_font_size (output->cr, fontsize);
+	cairo_set_font_size(output->cr, fontsize);
+
 	cairo_set_source_rgb(output->cr, 0.8, 0.8, 0.8);
 	cairo_rectangle(output->cr,
 		output->dest.x1 + marginx,
@@ -435,20 +440,110 @@ int help(int c, struct position *position, struct output *output) {
 		output->dest.x2 - output->dest.x1 - marginx * 2,
 		output->dest.y2 - output->dest.y1 - marginy * 2);
 	cairo_fill(output->cr);
+
+	cairo_set_source_rgb(output->cr, 0.0, 0.0, 0.0);
 	cairo_move_to(output->cr,
 		output->dest.x1 + marginx + 10.0,
 		output->dest.y1 + marginy + 10.0 + fontsize);
-
-	cairo_set_source_rgb(output->cr, 0.0, 0.0, 0.0);
-
 	for (l = 0; l < sizeof(helptext) / sizeof(char *); l++)
 		printline(output->cr, helptext[l], fontsize);
-
 	cairo_stroke(output->cr);
 
 	output->redraw = FALSE;
 	output->flush = TRUE;
 	return WINDOW_HELP;
+}
+
+/*
+ * generic dialog
+ */
+void dialog(int c, struct output *output,
+		char *label, char *current, char *error) {
+	double percent = 0.8, prop = (1 - percent) / 2;
+	double marginx = (output->dest.x2 - output->dest.x1) * prop;
+	double fontsize = 18.0;
+	cairo_font_extents_t extents;
+	int l;
+
+	l = strlen(current);
+	if (c == KEY_BACKSPACE || c == KEY_DC) {
+		if (l < 0)
+			return;
+		current[l - 1] = '\0';
+	}
+	else if (c >= '0' && c <= '9') {
+		if (l > 50)
+			return;
+		current[l] = c;
+		current[l + 1] = '\0';
+	}
+	else if (c != KEY_INIT)
+		return;
+
+	cairo_identity_matrix(output->cr);
+	cairo_select_font_face(output->cr, "mono",
+	                CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+	cairo_set_font_size(output->cr, fontsize);
+
+	cairo_font_extents(output->cr, &extents);
+
+	cairo_set_source_rgb(output->cr, 0.8, 0.8, 0.8);
+	cairo_rectangle(output->cr,
+		output->dest.x1 + marginx,
+		output->dest.y1 + 20,
+		output->dest.x2 - output->dest.x1 - marginx * 2,
+		extents.height + 10);
+	cairo_fill(output->cr);
+
+	cairo_set_source_rgb(output->cr, 0.0, 0.0, 0.0);
+	cairo_move_to(output->cr,
+		output->dest.x1 + marginx + fontsize / 2,
+		output->dest.y1 + 20 + 5 + extents.ascent);
+	cairo_show_text(output->cr, label);
+	cairo_show_text(output->cr, current);
+	cairo_show_text(output->cr, "_ ");
+	cairo_show_text(output->cr, error);
+}
+
+/*
+ * dialog for a page number
+ */
+int gotopage(int c, struct position *position, struct output *output) {
+	static char gotostring[100] = "";
+	int n;
+
+	if (c == '\033' || c == 'q')
+		return WINDOW_DOCUMENT;
+
+	if (c != KEY_ENTER && c != '\n' &&
+	   (c != 'e' || gotostring[0] != '\0')) {
+		dialog(c, output, "go to page: ", gotostring, "");
+		output->flush = TRUE;
+		return WINDOW_GOTOPAGE;
+	}
+
+	if (c != 'e' && gotostring[0] == '\0')
+		return WINDOW_DOCUMENT;
+
+	n = c == 'e' ? position->totpages : atoi(gotostring);
+
+	if (n == position->npage + 1) {
+		gotostring[0] = '\0';
+		return WINDOW_DOCUMENT;
+	}
+
+	if (n < 1 || n > position->totpages) {
+		dialog(KEY_INIT, output,
+			"go to page: ", gotostring, "[no such page]");
+		output->flush = TRUE;
+		return WINDOW_GOTOPAGE;
+	}
+
+	position->npage = n - 1;
+	readpage(position, output);
+	firstviewbox(position, output);
+	gotostring[0] = '\0';
+	return WINDOW_DOCUMENT;
 }
 
 /*
@@ -462,12 +557,12 @@ int selectwindow(int window, int c,
 	case WINDOW_HELP:
 		return help(c, position, output);
 	case WINDOW_GOTOPAGE:
-		return WINDOW_DOCUMENT;
+		return gotopage(c, position, output);
 	case WINDOW_SEARCH:
 		return WINDOW_DOCUMENT;
+	default:
+		return WINDOW_DOCUMENT;
 	}
-
-	return WINDOW_DOCUMENT;
 }
 
 /*
@@ -601,7 +696,7 @@ int main(int argn, char *argv[]) {
 
 				/* event loop */
 
-	window = document(0, &position, &output);
+	window = document(KEY_INIT, &position, &output);
 
 	while (window != WINDOW_EXIT) {
 
