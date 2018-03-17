@@ -17,6 +17,7 @@
  * - utf8 in dialog()
  * - search:
  *	+ dialog (+paste)
+ *	+ poppler_page_find_text()
  *	+ move to the textblock that contains the string,
  *	  set scrolly so that the string is at the center
  * - history of positions
@@ -587,6 +588,8 @@ void usage() {
 	printf("usage:\n\thovacui [-m viewmode] [-w minwidth] file.pdf\n");
 	printf("\t\t-m viewmode\tzoom to: 0=text, 1=boundingbox, 2=page\n");
 	printf("\t\t-w minwidth\tminimal width, determine maximal zoom\n");
+	printf("keys: 'k'=help 'g'=go to page 'q'=quit ");
+	printf("'m'=change view mode\n");
 }
 
 /*
