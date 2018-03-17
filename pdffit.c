@@ -248,7 +248,7 @@ int main(int argc, char *argv[]) {
 		cr = cairo_create(surface);
 		rectangle_map_to_cairo(cr, &dest,
 			wholepage ? &psize : boundingbox,
-			0,
+			FALSE, FALSE,
 			ratio,
 			individual && n == npages - 1);
 		poppler_page_render_for_printing(page, cr);

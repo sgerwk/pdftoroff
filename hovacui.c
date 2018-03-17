@@ -225,7 +225,7 @@ void moveto(struct position *position, struct output *output) {
 	adjustviewbox(position, output);
 	
 	rectangle_map_to_cairo(output->cr, &output->dest, position->viewbox,
-		1, 0, 1);
+		TRUE, FALSE, 0, 1);
 	adjustscroll(position, output);
 
 	cairo_translate(output->cr, 0, -position->scrolly);
