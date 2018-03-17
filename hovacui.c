@@ -9,12 +9,16 @@
  * - fb device parametric (ex. -d /dev/fb1)
  * - console clean on exit
  * - improve column-sorting rectangles (to be done in pdfrects.c)
+ * - briefly show the page number in a corner when changing page
  * - key to move to next/previous block of text
  * - cache the textarea list of pages already scanned
  * - save last position(s) to $(HOME)/.pdfpositions
  * - include images (in pdfrects.c)
- * - change output.distance by option and by key
+ * - change output.distance by option (-t) and by keys ('t'/'T')
  * - utf8 in dialog()
+ * - turn help() into a generic text viewer window
+ * - 'W' stops when the page (or the boundingbox) is all inside the screen
+ * - allow fitting to page (like 'W' until maximal zoom)
  * - search:
  *	+ dialog (+paste)
  *	+ poppler_page_find_text()
