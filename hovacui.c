@@ -10,6 +10,7 @@
  * - console clean on exit
  * - improve column-sorting rectangles (to be done in pdfrects.c)
  * - briefly show the page number in a corner when changing page
+ * - briefly show the new mode after 'm' or 'f'
  * - key to move to next/previous block of text
  * - cache the textarea list of pages already scanned
  * - save last position(s) to $(HOME)/.pdfpositions
@@ -18,7 +19,7 @@
  * - utf8 in dialog()
  * - turn help() into a generic text viewer window
  * - 'W' stops when the page (or the boundingbox) is all inside the screen
- * - allow fitting to page (like 'W' until maximal zoom)
+ * - key to reset viewmode and fit direction to initial values
  * - search:
  *	+ dialog (+paste)
  *	+ poppler_page_find_text()
@@ -26,7 +27,8 @@
  *	  set scrolly so that the string is at the center
  * - history of positions
  * - set output->redraw to FALSE when not moving
- * - note that horizontal fitting is intended for horizontal text
+ * - note that horizontal fitting is intended for horizontal text,
+ *   but the program also supports vertical fitting
  * - i18n
  */
 
@@ -77,6 +79,9 @@ struct output {
 
 	/* zoom to: 0=text, 1=boundingbox, 2=page */
 	int viewmode;
+
+	/* fit horizontally (1), vertically (2) or both (0) */
+	int fit;
 
 	/* how much to scroll */
 	int scroll;
@@ -225,7 +230,7 @@ void moveto(struct position *position, struct output *output) {
 	adjustviewbox(position, output);
 	
 	rectangle_map_to_cairo(output->cr, &output->dest, position->viewbox,
-		TRUE, FALSE, 0, 1);
+		output->fit & 0x1, output->fit & 0x2, TRUE, TRUE);
 	adjustscroll(position, output);
 
 	cairo_translate(output->cr, 0, -position->scrolly);
@@ -378,6 +383,9 @@ int document(int c, struct position *position, struct output *output) {
 		break;
 	case 'W':
 		output->minwidth += 10;
+		break;
+	case 'f':
+		output->fit = (output->fit + 1) % 3;
 		break;
 	default:
 		;
@@ -589,11 +597,24 @@ void draw(struct cairofb *cairofb,
  */
 void usage() {
 	printf("fbdev pdf viewer with automatic zoom to text\n");
-	printf("usage:\n\thovacui [-m viewmode] [-w minwidth] file.pdf\n");
-	printf("\t\t-m viewmode\tzoom to: 0=text, 1=boundingbox, 2=page\n");
+	printf("usage:\n\thovacui [-m viewmode] [-f direction] ");
+	printf("[-w minwidth] file.pdf\n");
+	printf("\t\t-m viewmode\tzoom to: text, boundingbox, page\n");
+	printf("\t\t-f direction\tfit: horizontally, vertically, both\n");
 	printf("\t\t-w minwidth\tminimal width, determine maximal zoom\n");
-	printf("keys: 'k'=help 'g'=go to page 'q'=quit ");
-	printf("'m'=change view mode\n");
+	printf("keys:\t'h'=help 'g'=go to page 'q'=quit\n");
+	printf("\t'm'=change view mode 'f'=change fit direction\n");
+}
+
+/*
+ * index of a character in a string
+ */
+int optindex(char arg, char *all) {
+	char *pos;
+	pos = index(all, arg);
+	if (pos == NULL)
+		return -1;
+	return pos - all;
 }
 
 /*
@@ -615,14 +636,23 @@ int main(int argn, char *argv[]) {
 				/* arguments */
 
 	output.viewmode = 0;
+	output.fit = 1;
 	output.minwidth = -1;
 
-	while (-1 != (opt = getopt(argn, argv, "m:w:h")))
+	while (-1 != (opt = getopt(argn, argv, "m:f:w:h")))
 		switch (opt) {
 		case 'm':
-			output.viewmode = atoi(optarg);
-			if (output.viewmode < 0 || output.viewmode >= 3) {
+			output.viewmode = optindex(optarg[0], "tbp");
+			if (output.viewmode == -1) {
 				printf("unsupported mode: %s\n", optarg);
+				usage();
+				exit(EXIT_FAILURE);
+			}
+			break;
+		case 'f':
+			output.fit = optindex(optarg[0], "bhv");
+			if (output.fit == -1) {
+				printf("unsupported fit mode: %s\n", optarg);
 				usage();
 				exit(EXIT_FAILURE);
 			}
