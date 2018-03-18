@@ -27,10 +27,38 @@
  * - history of positions
  * - set output->redraw to FALSE when not moving
  * - note that horizontal fitting is intended for horizontal scripts,
- *   but the program also supports vertical fitting
+ *   but the program also supports vertical fitting; yet, it only supports
+ *   vertical scrolling
  * - order of rectangles for right-to-left and top-to-bottom scripts
  *   (generalize sorting function in pdfrects.c)
  * - i18n
+ */
+
+/*
+ * how the document is mapped onto the screen
+ * ------------------------------------------
+ *
+ * position->textarea->rect[position->box]
+ *	the region of the page that is the current "focus"
+ *	(the rectangle drawn in light blue)
+ *
+ * position->viewbox
+ *	the above rectangle, possibly enlarged to ensure the minimal width
+ *
+ * output->dest
+ *	the area of the screen to use (all of it but for a thin margin)
+ *
+ * the cairo transformation matrix is initially set so that position->viewbox
+ * (rectangle in the document) is mapped onto output->dest (rectangle in the
+ * screen), fitted by width and aligned to the top
+ *
+ * position->scrolly
+ *	the shift applied to the document;
+ *	used to move the viewbox up and down
+ *
+ * shifting by the scroll is done last; since transformations work as if
+ * applied to the source in reverse order, this is like first scrolling the
+ * document and then mapping position->viewbox onto the top of output->dest
  */
 
 #include <stdlib.h>
