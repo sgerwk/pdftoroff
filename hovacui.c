@@ -469,6 +469,8 @@ char *helptext[] = {
 	"End        bottom of page",
 	"m          rotate among view modes:",
 	"           textarea, boundingbox, page",
+	"f          change fitting direction:",
+	"           horizontal, vertical, both",
 	"w/W        + or - minimal viewbox width",
 	"           (determines the maximal zoom)",
 	"g          go to page",
@@ -486,7 +488,7 @@ int help(int c, struct position *position, struct output *output) {
 	double percent = 0.8, prop = (1 - percent) / 2;
 	double marginx = (output->dest.x2 - output->dest.x1) * prop;
 	double marginy = (output->dest.y2 - output->dest.y1) * prop;
-	double fontsize = 18.0;
+	double fontsize = 16.0;
 	unsigned l;
 
 	if (c != KEY_INIT) {
