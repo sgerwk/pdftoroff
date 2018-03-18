@@ -6,8 +6,6 @@
  * todo:
  * - man page
  * - vt switching
- * - minwidth should affects height when fit orientation is vertical;
- *   both when orientation is both (minsize?)
  * - console clean on exit
  * - improve column-sorting rectangles (to be done in pdfrects.c)
  * - briefly show the page number in a corner when changing page
@@ -28,8 +26,10 @@
  *	  set scrolly so that the string is at the center
  * - history of positions
  * - set output->redraw to FALSE when not moving
- * - note that horizontal fitting is intended for horizontal text,
+ * - note that horizontal fitting is intended for horizontal scripts,
  *   but the program also supports vertical fitting
+ * - order of rectangles for right-to-left and top-to-bottom scripts
+ *   (generalize sorting function in pdfrects.c)
  * - i18n
  */
 
@@ -210,12 +210,21 @@ void adjustscroll(struct position *position, struct output *output) {
 void adjustviewbox(struct position *position, struct output *output) {
 	double d;
 	PopplerRectangle *viewbox;
+	int fitmode;
 
+	fitmode = output->fit == 0 ? 3 : output->fit;
 	viewbox = position->viewbox;
-	if (viewbox->x2 - viewbox->x1 < output->minwidth) {
+
+	if ((fitmode & 1) && viewbox->x2 - viewbox->x1 < output->minwidth) {
 		d = output->minwidth - viewbox->x2 + viewbox->x1;
 		viewbox->x1 -= d / 2;
 		viewbox->x2 += d / 2;
+	}
+
+	if ((fitmode & 2) && viewbox->y2 - viewbox->y1 < output->minwidth) {
+		d = output->minwidth - viewbox->y2 + viewbox->y1;
+		viewbox->y1 -= d / 2;
+		viewbox->y2 += d / 2;
 	}
 }
 
@@ -229,11 +238,10 @@ void moveto(struct position *position, struct output *output) {
 	position->viewbox = poppler_rectangle_copy
 		(&position->textarea->rect[position->box]);
 	adjustviewbox(position, output);
-	
 	rectangle_map_to_cairo(output->cr, &output->dest, position->viewbox,
 		output->fit & 0x1, output->fit & 0x2, TRUE, TRUE);
-	adjustscroll(position, output);
 
+	adjustscroll(position, output);
 	cairo_translate(output->cr, 0, -position->scrolly);
 }
 
@@ -271,7 +279,7 @@ int nextpage(struct position *position, struct output *output) {
  */
 int scrolldown(struct position *position, struct output *output) {
 	moveto(position, output);
-	if (doctoscreen(output, position->viewbox->y2) >
+	if (doctoscreen(output, position->textarea->rect[position->box].y2) >
 	    output->dest.y2 + 0.01) {
 		position->scrolly += output->scroll;
 		return 0;
@@ -322,7 +330,7 @@ int prevpage(struct position *position, struct output *output) {
  */
 int scrollup(struct position *position, struct output *output) {
 	moveto(position, output);
-	if (doctoscreen(output, position->viewbox->y1) <
+	if (doctoscreen(output, position->textarea->rect[position->box].y1) <
 	    output->dest.y1 - 0.01) {
 		position->scrolly -= output->scroll;
 		return 0;
