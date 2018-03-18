@@ -278,6 +278,8 @@ void adjustviewbox(struct position *position, struct output *output) {
 void moveto(struct position *position, struct output *output) {
 	cairo_identity_matrix(output->cr);
 
+	// cairo_scale(output->cr, 1.0, 5.0 / 6.0);
+
 	poppler_rectangle_free(position->viewbox);
 	position->viewbox = poppler_rectangle_copy
 		(&position->textarea->rect[position->box]);
