@@ -6,7 +6,8 @@
  * todo:
  * - man page
  * - vt switching
- * - fb device parametric (ex. -d /dev/fb1)
+ * - minwidth should affects height when fit orientation is vertical;
+ *   both when orientation is both (minsize?)
  * - console clean on exit
  * - improve column-sorting rectangles (to be done in pdfrects.c)
  * - briefly show the page number in a corner when changing page
@@ -598,10 +599,11 @@ void draw(struct cairofb *cairofb,
 void usage() {
 	printf("fbdev pdf viewer with automatic zoom to text\n");
 	printf("usage:\n\thovacui [-m viewmode] [-f direction] ");
-	printf("[-w minwidth] file.pdf\n");
+	printf("[-w minwidth] [-d device] file.pdf\n");
 	printf("\t\t-m viewmode\tzoom to: text, boundingbox, page\n");
 	printf("\t\t-f direction\tfit: horizontally, vertically, both\n");
 	printf("\t\t-w minwidth\tminimal width, determine maximal zoom\n");
+	printf("\t\t-d device\tfbdev device, default /dev/fb0\n");
 	printf("keys:\t'h'=help 'g'=go to page 'q'=quit\n");
 	printf("\t'm'=change view mode 'f'=change fit direction\n");
 }
@@ -622,7 +624,7 @@ int optindex(char arg, char *all) {
  */
 int main(int argn, char *argv[]) {
 	char *filename, *uri;
-	char *devname = "/dev/fb0";
+	char *fbdev = "/dev/fb0";
 	struct cairofb *cairofb;
 	double margin = 10.0;
 	struct position position;
@@ -639,7 +641,7 @@ int main(int argn, char *argv[]) {
 	output.fit = 1;
 	output.minwidth = -1;
 
-	while (-1 != (opt = getopt(argn, argv, "m:f:w:h")))
+	while (-1 != (opt = getopt(argn, argv, "m:f:w:d:h")))
 		switch (opt) {
 		case 'm':
 			output.viewmode = optindex(optarg[0], "tbp");
@@ -663,6 +665,9 @@ int main(int argn, char *argv[]) {
 				printf("error: negative minimal width\n");
 				exit(EXIT_FAILURE);
 			}
+			break;
+		case 'd':
+			fbdev = optarg;
 			break;
 		case 'h':
 			usage();
@@ -697,9 +702,9 @@ int main(int argn, char *argv[]) {
 
 				/* open fbdev as cairo */
 
-	cairofb = cairofb_init(devname, 1);
+	cairofb = cairofb_init(fbdev, 1);
 	if (cairofb == NULL) {
-		printf("cannot open %s as a cairo terminal\n", devname);
+		printf("cannot open %s as a cairo surface\n", fbdev);
 		free(cairofb);
 		exit(EXIT_FAILURE);
 	}
