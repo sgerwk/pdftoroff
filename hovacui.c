@@ -15,6 +15,7 @@
  * - save last position(s) to $(HOME)/.pdfpositions
  * - include images (in pdfrects.c)
  * - change output.distance by option (-t) and by keys ('t'/'T')
+ * - non-square pixels
  * - utf8 in dialog()
  * - turn help() into a generic text viewer window
  * - 'W' stops when the page (or the boundingbox) is all inside the screen
@@ -157,6 +158,18 @@ void initposition(struct position *position) {
 }
 
 /*
+ * a rectangle as large as the whole page
+ */
+PopplerRectangle *pagerectangle(PopplerPage *page) {
+	PopplerRectangle *r;
+	r = poppler_rectangle_new();
+	r->x1 = 0;
+	r->y1 = 0;
+	poppler_page_get_size(page, &r->x2, &r->y2);
+	return r;
+}
+
+/*
  * read the current page
  */
 int readpage(struct position *position, struct output *output) {
@@ -171,6 +184,12 @@ int readpage(struct position *position, struct output *output) {
 		position->textarea =
 			rectanglelist_textarea_distance(position->page,
 				output->distance);
+		if (position->textarea->num == 0) {
+			rectanglelist_free(position->textarea);
+			position->textarea = NULL;
+			position->boundingbox = NULL;
+			break;
+		}
 		rectanglelist_sort(position->textarea);
 		position->boundingbox =
 			rectanglelist_joinall(position->textarea);
@@ -181,15 +200,12 @@ int readpage(struct position *position, struct output *output) {
 		position->textarea = NULL;
 		break;
 	case 2:
-		position->boundingbox = poppler_rectangle_new();
-		position->boundingbox->x1 = 0;
-		position->boundingbox->y1 = 0;
-		poppler_page_get_size(position->page,
-			&position->boundingbox->x2,
-			&position->boundingbox->y2);
+		position->boundingbox = pagerectangle(position->page);
 		position->textarea = NULL;
 		break;
 	}
+	if (position->boundingbox == NULL)
+		position->boundingbox = pagerectangle(position->page);
 	if (position->textarea == NULL) {
 		position->textarea = rectanglelist_new(1);
 		rectanglelist_add(position->textarea, position->boundingbox);
