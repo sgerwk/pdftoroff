@@ -439,6 +439,7 @@ int document(int c, struct position *position, struct output *output) {
 		break;
 	case 'f':
 		output->fit = (output->fit + 1) % 3;
+		position->scrolly = 0;
 		break;
 	default:
 		;
