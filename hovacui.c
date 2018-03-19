@@ -320,9 +320,9 @@ void moveto(struct position *position, struct output *output) {
 }
 
 /*
- * go to the top of current viewbox
+ * go to the top of current textbox
  */
-int topviewbox(struct position *position, struct output *output) {
+int toptextbox(struct position *position, struct output *output) {
 	(void) output;
 	position->scrollx = 0;
 	position->scrolly = 0;
@@ -330,11 +330,11 @@ int topviewbox(struct position *position, struct output *output) {
 }
 
 /*
- * go to the top of the first viewbox of the page
+ * go to the top of the first textbox of the page
  */
-int firstviewbox(struct position *position, struct output *output) {
+int firsttextbox(struct position *position, struct output *output) {
 	position->box = 0;
-	return topviewbox(position, output);
+	return toptextbox(position, output);
 }
 
 /*
@@ -346,7 +346,18 @@ int nextpage(struct position *position, struct output *output) {
 
 	position->npage++;
 	readpage(position, output);
-	return firstviewbox(position, output);
+	return firsttextbox(position, output);
+}
+
+/*
+ * move the top of the next textbox
+ */
+int nexttextbox(struct position *position, struct output *output) {
+	if (position->box + 1 >= position->textarea->num)
+		return nextpage(position, output);
+
+	position->box++;
+	return toptextbox(position, output);
 }
 
 /*
@@ -354,18 +365,12 @@ int nextpage(struct position *position, struct output *output) {
  */
 int scrolldown(struct position *position, struct output *output) {
 	moveto(position, output);
-	if (ydoctoscreen(output, position->textarea->rect[position->box].y2) >
-	    output->dest.y2 + 0.01) {
-		position->scrolly += output->scroll;
-		return 0;
-	}
+	if (ydoctoscreen(output, position->textarea->rect[position->box].y2) <=
+	    output->dest.y2 + 0.01)
+		return nexttextbox(position, output);
 
-	if (position->box + 1 < position->textarea->num) {
-		position->box++;
-		return topviewbox(position, output);
-	}
-
-	return nextpage(position, output);
+	position->scrolly += output->scroll;
+	return 0;
 }
 
 /*
@@ -373,24 +378,18 @@ int scrolldown(struct position *position, struct output *output) {
  */
 int scrollright(struct position *position, struct output *output) {
 	moveto(position, output);
-	if (xdoctoscreen(output, position->textarea->rect[position->box].x2) >
-	    output->dest.x2 + 0.01) {
-		position->scrollx += output->scroll;
-		return 0;
-	}
+	if (xdoctoscreen(output, position->textarea->rect[position->box].x2) <=
+	    output->dest.x2 + 0.01) 
+		return nexttextbox(position, output);
 
-	if (position->box + 1 < position->textarea->num) {
-		position->box++;
-		return topviewbox(position, output);
-	}
-
-	return nextpage(position, output);
+	position->scrollx += output->scroll;
+	return 0;
 }
 
 /*
  * move to the bottom of the current viewbox
  */
-int bottomviewbox(struct position *position, struct output *output) {
+int bottomtextbox(struct position *position, struct output *output) {
 	position->scrollx = 0;
 	position->scrolly = 0;
 	moveto(position, output);
@@ -404,11 +403,11 @@ int bottomviewbox(struct position *position, struct output *output) {
 }
 
 /*
- * go to the bottom of the last viewbox in the page
+ * go to the bottom of the last textbox in the page
  */
-int lastviewbox(struct position *position, struct output *output) {
+int lasttextbox(struct position *position, struct output *output) {
 	position->box = position->textarea->num - 1;
-	return bottomviewbox(position, output);
+	return bottomtextbox(position, output);
 }
 
 /*
@@ -420,7 +419,18 @@ int prevpage(struct position *position, struct output *output) {
 
 	position->npage--;
 	readpage(position, output);
-	return lastviewbox(position, output);
+	return lasttextbox(position, output);
+}
+
+/*
+ * move to the bottom of previous textbox
+ */
+int prevtextbox(struct position *position, struct output *output) {
+	if (position->box - 1 < 0)
+		return prevpage(position, output);
+
+	position->box--;
+	return bottomtextbox(position, output);
 }
 
 /*
@@ -428,18 +438,12 @@ int prevpage(struct position *position, struct output *output) {
  */
 int scrollup(struct position *position, struct output *output) {
 	moveto(position, output);
-	if (ydoctoscreen(output, position->textarea->rect[position->box].y1) <
-	    output->dest.y1 - 0.01) {
-		position->scrolly -= output->scroll;
-		return 0;
-	}
+	if (ydoctoscreen(output, position->textarea->rect[position->box].y1) >=
+	    output->dest.y1 - 0.01)
+		return prevtextbox(position, output);
 
-	if (position->box - 1 >= 0) {
-		position->box--;
-		return bottomviewbox(position, output);
-	}
-
-	return prevpage(position, output);
+	position->scrolly -= output->scroll;
+	return 0;
 }
 
 /*
@@ -447,18 +451,12 @@ int scrollup(struct position *position, struct output *output) {
  */
 int scrollleft(struct position *position, struct output *output) {
 	moveto(position, output);
-	if (xdoctoscreen(output, position->textarea->rect[position->box].x1) <
-	    output->dest.x1 - 0.01) {
-		position->scrollx -= output->scroll;
-		return 0;
-	}
+	if (xdoctoscreen(output, position->textarea->rect[position->box].x1) >=
+	    output->dest.x1 - 0.01)
+		return prevtextbox(position, output);
 
-	if (position->box - 1 >= 0) {
-		position->box--;
-		return bottomviewbox(position, output);
-	}
-
-	return prevpage(position, output);
+	position->scrollx -= output->scroll;
+	return 0;
 }
 
 /*
@@ -493,10 +491,10 @@ int document(int c, struct position *position, struct output *output) {
 		scrollright(position, output);
 		break;
 	case KEY_HOME:
-		firstviewbox(position, output);
+		firsttextbox(position, output);
 		break;
 	case KEY_END:
-		lastviewbox(position, output);
+		lasttextbox(position, output);
 		break;
 	case KEY_NPAGE:
 		nextpage(position, output);
@@ -691,7 +689,7 @@ int gotopage(int c, struct position *position, struct output *output) {
 
 	position->npage = n - 1;
 	readpage(position, output);
-	firstviewbox(position, output);
+	firsttextbox(position, output);
 	gotostring[0] = '\0';
 	return WINDOW_DOCUMENT;
 }
@@ -810,7 +808,7 @@ int main(int argn, char *argv[]) {
 			exit(EXIT_SUCCESS);
 			break;
 		}
-	
+
 	if (argn - 1 < optind) {
 		printf("file name missing\n");
 		usage();
