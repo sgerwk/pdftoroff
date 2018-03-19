@@ -250,7 +250,7 @@ int main(int argc, char *argv[]) {
 			wholepage ? &psize : boundingbox,
 			FALSE, FALSE,
 			ratio,
-			individual && n == npages - 1);
+			individual && n == npages - 1, FALSE);
 		poppler_page_render_for_printing(page, cr);
 
 		if (drawbb)

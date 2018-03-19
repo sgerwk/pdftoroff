@@ -134,7 +134,7 @@ void rectanglelist_draw(cairo_t *, RectangleList *,
 void rectangle_map_to_cairo(cairo_t *cr,
 		PopplerRectangle *dst, PopplerRectangle *src,
 		gboolean horizontal, gboolean vertical,
-		gboolean ratio, gboolean topalign);
+		gboolean ratio, gboolean topalign, gboolean leftalign);
 
 /* from name to paper size (pointer to statically allocated structure) */
 PopplerRectangle *get_papersize(char *name);

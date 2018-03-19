@@ -745,7 +745,7 @@ void rectanglelist_draw(cairo_t *cr, RectangleList *rl,
 void rectangle_map_to_cairo(cairo_t *cr,
 		PopplerRectangle *dst, PopplerRectangle *src,
 		gboolean horizontal, gboolean vertical,
-		gboolean ratio, gboolean topalign) {
+		gboolean ratio, gboolean topalign, gboolean leftalign) {
 	gdouble srcw, srch;
 	gdouble dstw, dsth;
 	gdouble scalex, scaley;
@@ -778,6 +778,8 @@ void rectangle_map_to_cairo(cairo_t *cr,
 	marginy = dst->y1 + (dsth - srch * scaley) / 2;
 	if (topalign)
 		marginy = dst->y1;
+	if (leftalign)
+		marginx = dst->x1;
 
 	/* transformations work like a stack:
 	 * the last added is applied first */

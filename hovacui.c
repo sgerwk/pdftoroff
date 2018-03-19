@@ -7,6 +7,9 @@
  * - man page
  * - vt switching
  * - console clean on exit
+ * - position->scrollx, functions scrollleft() scrollright()
+ *   keys <- ->; also used for moving to the next textarea is fit=horizontal
+ *   (in the same way 'up' and 'down' do when fit=vertical)
  * - improve column-sorting rectangles (to be done in pdfrects.c)
  * - briefly show the page number in a corner when changing page
  * - briefly show the new mode after 'm' or 'f'
@@ -285,7 +288,7 @@ void moveto(struct position *position, struct output *output) {
 		(&position->textarea->rect[position->box]);
 	adjustviewbox(position, output);
 	rectangle_map_to_cairo(output->cr, &output->dest, position->viewbox,
-		output->fit & 0x1, output->fit & 0x2, TRUE, TRUE);
+		output->fit & 0x1, output->fit & 0x2, TRUE, TRUE, TRUE);
 
 	adjustscroll(position, output);
 	cairo_translate(output->cr, 0, -position->scrolly);
