@@ -63,6 +63,8 @@
  * shifting by the scroll is done last; since transformations work as if
  * applied to the source in reverse order, this is like first scrolling the
  * document and then mapping position->viewbox onto the top of output->dest
+ *
+ * the same for position->scrollx
  */
 
 #include <stdlib.h>
@@ -143,7 +145,8 @@ struct position {
 	int box;
 	PopplerRectangle *viewbox;
 
-	/* the vertical scroll within the rectangle currently viewed */
+	/* the scroll within the rectangle currently viewed */
+	double scrollx;
 	double scrolly;
 };
 
@@ -157,6 +160,7 @@ void initposition(struct position *position) {
 	position->textarea = NULL;
 	position->box = 0;
 	position->viewbox = NULL;
+	position->scrollx = 0;
 	position->scrolly = 0;
 }
 
@@ -218,35 +222,57 @@ int readpage(struct position *position, struct output *output) {
 }
 
 /*
- * translate y from viewbox coordinates to screen coordinates and back
+ * translate from viewbox coordinates to screen coordinates and back
  */
-double doctoscreen(struct output *output, double y) {
+double doctoscreenx(struct output *output, double x) {
+	double xx = x, yy = 0.0;
+	cairo_user_to_device(output->cr, &xx, &yy);
+	return xx;
+}
+double screentodocx(struct output *output, double x) {
+	double xx = x, yy = 0.0;
+	cairo_device_to_user(output->cr, &xx, &yy);
+	return xx;
+}
+double doctoscreeny(struct output *output, double y) {
 	double xx = 0.0, yy = y;
 	cairo_user_to_device(output->cr, &xx, &yy);
 	return yy;
 }
-double screentodoc(struct output *output, double y) {
+double screentodocy(struct output *output, double y) {
 	double xx = 0.0, yy = y;
 	cairo_device_to_user(output->cr, &xx, &yy);
 	return yy;
 }
 
 /*
- * change scrolly to avoid empty space atop or below (prefer empty space below)
+ * change scrollx and scrolly to avoid empty space around
  */
 void adjustscroll(struct position *position, struct output *output) {
 
+	/* empty space at the right of the bounding box */
+	if (doctoscreenx(output, position->boundingbox->x2 - position->scrollx)
+	    < output->dest.x2)
+		position->scrollx = position->boundingbox->x2 -
+			screentodocx(output, output->dest.x2);
+
+	/* empty space at the left of the bounding box */
+	if (doctoscreenx(output, position->boundingbox->x1 - position->scrollx)
+	    > output->dest.x1)
+		position->scrollx = position->boundingbox->x1 -
+			screentodocx(output, output->dest.x1);
+
 	/* bottom of bounding box mapped to the screen over bottom of screen */
-	if (doctoscreen(output, position->boundingbox->y2 - position->scrolly)
+	if (doctoscreeny(output, position->boundingbox->y2 - position->scrolly)
 	    < output->dest.y2)
 		position->scrolly = position->boundingbox->y2 -
-			screentodoc(output, output->dest.y2);
+			screentodocy(output, output->dest.y2);
 
 	/* top of bounding box mapped to the screen below top of screen */
-	if (doctoscreen(output, position->boundingbox->y1 - position->scrolly)
+	if (doctoscreeny(output, position->boundingbox->y1 - position->scrolly)
 	    > output->dest.y1)
 		position->scrolly = position->boundingbox->y1 -
-			screentodoc(output, output->dest.y1);
+			screentodocy(output, output->dest.y1);
 
 	return;
 }
@@ -291,7 +317,7 @@ void moveto(struct position *position, struct output *output) {
 		output->fit & 0x1, output->fit & 0x2, TRUE, TRUE, TRUE);
 
 	adjustscroll(position, output);
-	cairo_translate(output->cr, 0, -position->scrolly);
+	cairo_translate(output->cr, -position->scrollx, -position->scrolly);
 }
 
 /*
@@ -299,6 +325,7 @@ void moveto(struct position *position, struct output *output) {
  */
 int topviewbox(struct position *position, struct output *output) {
 	(void) output;
+	position->scrollx = 0;
 	position->scrolly = 0;
 	return 0;
 }
@@ -328,7 +355,7 @@ int nextpage(struct position *position, struct output *output) {
  */
 int scrolldown(struct position *position, struct output *output) {
 	moveto(position, output);
-	if (doctoscreen(output, position->textarea->rect[position->box].y2) >
+	if (doctoscreeny(output, position->textarea->rect[position->box].y2) >
 	    output->dest.y2 + 0.01) {
 		position->scrolly += output->scroll;
 		return 0;
@@ -346,11 +373,12 @@ int scrolldown(struct position *position, struct output *output) {
  * move to the bottom of the current viewbox
  */
 int bottomviewbox(struct position *position, struct output *output) {
+	position->scrollx = 0;
 	position->scrolly = 0;
 	moveto(position, output);
 	position->scrolly =
 		MAX(0, position->viewbox->y2 -
-			screentodoc(output, output->dest.y2));
+			screentodocy(output, output->dest.y2));
 	return 0;
 }
 
@@ -379,7 +407,7 @@ int prevpage(struct position *position, struct output *output) {
  */
 int scrollup(struct position *position, struct output *output) {
 	moveto(position, output);
-	if (doctoscreen(output, position->textarea->rect[position->box].y1) <
+	if (doctoscreeny(output, position->textarea->rect[position->box].y1) <
 	    output->dest.y1 - 0.01) {
 		position->scrolly -= output->scroll;
 		return 0;
@@ -433,6 +461,7 @@ int document(int c, struct position *position, struct output *output) {
 	case 'm':
 		output->viewmode = (output->viewmode + 1) % 3;
 		position->box = 0;
+		position->scrollx = 0;
 		position->scrolly = 0;
 		readpage(position, output);
 		break;
@@ -444,6 +473,7 @@ int document(int c, struct position *position, struct output *output) {
 		break;
 	case 'f':
 		output->fit = (output->fit + 1) % 3;
+		position->scrollx = 0;
 		position->scrolly = 0;
 		break;
 	default:
