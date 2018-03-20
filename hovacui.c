@@ -42,8 +42,8 @@
  * ------------------------------------------
  *
  * position->textarea->rect[position->box]
- *	the region of the page that is the current "focus"
- *	(the rectangle drawn in light blue)
+ *	the current textbox: the text-enclosing rectangle that is "focused"
+ *	(drawn in light blue)
  *
  * position->viewbox
  *	the above rectangle, possibly enlarged to ensure the minimal width
@@ -221,7 +221,7 @@ int readpage(struct position *position, struct output *output) {
 }
 
 /*
- * translate from viewbox coordinates to screen coordinates and back
+ * translate from textbox coordinates to screen coordinates and back
  */
 double xdoctoscreen(struct output *output, double x) {
 	double xx = x, yy = 0.0;
@@ -350,7 +350,7 @@ int nextpage(struct position *position, struct output *output) {
 }
 
 /*
- * move the top of the next textbox
+ * move to the top of the next textbox
  */
 int nexttextbox(struct position *position, struct output *output) {
 	if (position->box + 1 >= position->textarea->num)
@@ -379,7 +379,7 @@ int scrolldown(struct position *position, struct output *output) {
 int scrollright(struct position *position, struct output *output) {
 	moveto(position, output);
 	if (xdoctoscreen(output, position->textarea->rect[position->box].x2) <=
-	    output->dest.x2 + 0.01) 
+	    output->dest.x2 + 0.01)
 		return nexttextbox(position, output);
 
 	position->scrollx += output->scroll;
@@ -387,7 +387,7 @@ int scrollright(struct position *position, struct output *output) {
 }
 
 /*
- * move to the bottom of the current viewbox
+ * move to the bottom of the current textbox
  */
 int bottomtextbox(struct position *position, struct output *output) {
 	position->scrollx = 0;
