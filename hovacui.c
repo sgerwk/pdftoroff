@@ -8,6 +8,8 @@
  * - vt switching
  * - config file (./config/hovaqui/hovaqui.conf)
  * - console clean on exit
+ * - separate file for gui stuff
+ * - ensure that output->scroll never skips content (may happen at high zoom)
  * - improve column-sorting rectangles (to be done in pdfrects.c)
  * - briefly show the page number in a corner when changing page
  * - briefly show the new mode after 'm' or 'f'
@@ -16,7 +18,6 @@
  * - save last position(s) to $(HOME)/.pdfpositions
  * - include images (in pdfrects.c)
  * - change output.distance by option (-t) and by keys ('t'/'T')
- * - non-square pixels
  * - utf8 in dialog()
  * - 'W' stops when the page (or the boundingbox) is all inside the screen
  * - key to reset viewmode and fit direction to initial values
@@ -104,6 +105,9 @@ struct output {
 
 	/* the destination rectangle */
 	PopplerRectangle dest;
+
+	/* the pixel aspect */
+	double aspect;
 
 	/* the minimal textbox-to-textbox distance */
 	double distance;
@@ -306,7 +310,10 @@ void adjustviewbox(struct position *position, struct output *output) {
 void moveto(struct position *position, struct output *output) {
 	cairo_identity_matrix(output->cr);
 
-	// cairo_scale(output->cr, 1.0, 5.0 / 6.0);
+	if (output->fit & 0x1)
+		cairo_scale(output->cr, 1.0, output->aspect);
+	else
+		cairo_scale(output->cr, 1 / output->aspect, 1.0);
 
 	poppler_rectangle_free(position->viewbox);
 	position->viewbox = poppler_rectangle_copy
@@ -790,12 +797,13 @@ void draw(struct cairofb *cairofb,
  */
 void usage() {
 	printf("fbdev pdf viewer with automatic zoom to text\n");
-	printf("usage:\n\thovacui [-m viewmode] [-f direction] ");
-	printf("[-w minwidth] [-d device] file.pdf\n");
+	printf("usage:\n\thovacui\t[-m viewmode] [-f direction] ");
+	printf("[-w minwidth] [-d device]\n\t\t[-s aspect] file.pdf\n");
 	printf("\t\t-m viewmode\tzoom to: text, boundingbox, page\n");
 	printf("\t\t-f direction\tfit: horizontally, vertically, both\n");
 	printf("\t\t-w minwidth\tminimal width, determine maximal zoom\n");
 	printf("\t\t-d device\tfbdev device, default /dev/fb0\n");
+	printf("\t\t-s aspect\tthe screen aspect (e.g., 4:3)\n");
 	printf("keys:\t'h'=help 'g'=go to page 'q'=quit\n");
 	printf("\t'm'=change view mode 'f'=change fit direction\n");
 }
@@ -812,6 +820,18 @@ int optindex(char arg, char *all) {
 }
 
 /*
+ * scan an aspect ratio w:h
+ */
+double aspect(char *arg) {
+	char *col;
+	col = index(arg, ':');
+	if (col == NULL)
+		return atof(arg);
+	*col = '\0';
+	return atof(arg) / atof(col + 1);
+}
+
+/*
  * main
  */
 int main(int argn, char *argv[]) {
@@ -821,6 +841,7 @@ int main(int argn, char *argv[]) {
 	double margin = 10.0;
 	struct position position;
 	struct output output;
+	double screenaspect;
 	int opt;
 
 	WINDOW *w;
@@ -832,8 +853,9 @@ int main(int argn, char *argv[]) {
 	output.viewmode = 0;
 	output.fit = 1;
 	output.minwidth = -1;
+	screenaspect = -1;
 
-	while (-1 != (opt = getopt(argn, argv, "m:f:w:d:h")))
+	while (-1 != (opt = getopt(argn, argv, "m:f:w:d:s:h")))
 		switch (opt) {
 		case 'm':
 			output.viewmode = optindex(optarg[0], "tbp");
@@ -860,6 +882,9 @@ int main(int argn, char *argv[]) {
 			break;
 		case 'd':
 			fbdev = optarg;
+			break;
+		case 's':
+			screenaspect = aspect(optarg);
 			break;
 		case 'h':
 			usage();
@@ -924,6 +949,9 @@ int main(int argn, char *argv[]) {
 	output.dest.y1 = margin;
 	output.dest.x2 = cairofb->width - margin;
 	output.dest.y2 = cairofb->height - margin;
+
+	output.aspect = screenaspect == -1 ?
+		1 : screenaspect * cairofb->height / cairofb->width;
 
 	if (output.minwidth == -1)
 		output.minwidth = (cairofb->width - 2 * margin) / 2;
