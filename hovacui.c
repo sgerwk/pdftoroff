@@ -835,7 +835,10 @@ double aspect(char *arg) {
  * main
  */
 int main(int argn, char *argv[]) {
+	char configfile[4096], configline[1000], s[1000];
+	FILE *config;
 	char *filename, *uri;
+	double d;
 	char *fbdev = "/dev/fb0";
 	struct cairofb *cairofb;
 	double margin = 10.0;
@@ -848,12 +851,35 @@ int main(int argn, char *argv[]) {
 	int c;
 	int window, next;
 
-				/* arguments */
+				/* defaults */
 
 	output.viewmode = 0;
 	output.fit = 1;
 	output.minwidth = -1;
 	screenaspect = -1;
+
+				/* config file */
+
+	snprintf(configfile, 4096, "%s/.config/hovacui/hovacui.conf",
+		getenv("HOME"));
+	config = fopen(configfile, "r");
+	if (config != NULL)
+		while (fgets(configline, 900, config)) {
+			if (configline[0] == '#')
+				continue;
+			if (sscanf(configline, "mode %s", s) == 1)
+				output.viewmode = optindex(optarg[0], "tbp");
+			if (sscanf(configline, "fit %s", s) == 1)
+				output.fit = optindex(optarg[0], "bhv");
+			if (sscanf(configline, "minwidth %lg", &d) == 1)
+				output.minwidth = d;
+			if (sscanf(configline, "aspect %s", s) == 1)
+				screenaspect = aspect(s);
+			if (sscanf(configline, "device %s", s) == 1)
+				fbdev = strdup(s);
+		}
+
+				/* cmdline arguments */
 
 	while (-1 != (opt = getopt(argn, argv, "m:f:w:d:s:h")))
 		switch (opt) {
