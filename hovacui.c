@@ -6,6 +6,7 @@
  * todo:
  * - man page
  * - vt switching
+ * - config file (./config/hovaqui/hovaqui.conf)
  * - console clean on exit
  * - improve column-sorting rectangles (to be done in pdfrects.c)
  * - briefly show the page number in a corner when changing page
@@ -18,6 +19,7 @@
  * - non-square pixels
  * - utf8 in dialog()
  * - turn help() into a generic text viewer window
+ *   call with number of lines scrolled up, use cairo_translate and clip
  * - 'W' stops when the page (or the boundingbox) is all inside the screen
  * - key to reset viewmode and fit direction to initial values
  * - search:
