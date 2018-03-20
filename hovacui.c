@@ -18,8 +18,6 @@
  * - change output.distance by option (-t) and by keys ('t'/'T')
  * - non-square pixels
  * - utf8 in dialog()
- * - turn help() into a generic text viewer window
- *   call with number of lines scrolled up, use cairo_translate and clip
  * - 'W' stops when the page (or the boundingbox) is all inside the screen
  * - key to reset viewmode and fit direction to initial values
  * - search:
@@ -544,48 +542,51 @@ void printline(cairo_t *cr, char *string, int advance) {
 }
 
 /*
- * help text
+ * show some text
  */
-char *helptext[] = {
-	"hovacui - pdf viewer with autozoom to text",
-	"------------------------------------------",
-	"PageUp     previous page",
-	"PageDown   next page",
-	"Home       top of page",
-	"End        bottom of page",
-	"m          rotate among view modes:",
-	"           textarea, boundingbox, page",
-	"f          change fitting direction:",
-	"           horizontal, vertical, both",
-	"w/W        + or - minimal viewbox width",
-	"           (determines the maximal zoom)",
-	"g          go to page",
-	"h          help",
-	"q          quit",
-	"",
-	"any key to continue"
-};
-
-/*
- * help
- */
-int help(int c, struct position *position, struct output *output) {
-	(void) position;
-	double percent = 0.8, prop = (1 - percent) / 2;
-	double marginx = (output->dest.x2 - output->dest.x1) * prop;
-	double marginy = (output->dest.y2 - output->dest.y1) * prop;
+int text(int c, struct output *output, char *viewtext[], int *line) {
+	double percent = 0.8;
+	double width = output->dest.x2 - output->dest.x1;
+	double height = output->dest.y2 - output->dest.y1;
+	double marginx = width * (1 - percent) / 2;
+	double marginy = height * (1 - percent) / 2;
+	double borderx = 10.0;
+	double bordery = 10.0;
+	double textheight;
 	double fontsize = 16.0;
-	unsigned l;
+	cairo_font_extents_t extents;
+	int n, l;
 
-	if (c != KEY_INIT) {
-		output->redraw = TRUE;
-		return WINDOW_DOCUMENT;
+	for (n = 0; viewtext[n] != NULL; n++) {
 	}
 
 	cairo_identity_matrix(output->cr);
 	cairo_select_font_face(output->cr, "mono",
 	                CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
 	cairo_set_font_size(output->cr, fontsize);
+	cairo_font_extents(output->cr, &extents);
+	textheight = (int) (height * percent - bordery * 2) /
+			(int) extents.height * (int) extents.height;
+
+	switch (c) {
+	case KEY_DOWN:
+		if (*line <= -n + textheight / extents.height)
+			return 0;
+		(*line)--;
+		output->redraw = TRUE;
+		break;
+	case KEY_UP:
+		if (*line >= 0)
+			return 0;
+		(*line)++;
+		output->redraw = TRUE;
+		break;
+	case KEY_INIT:
+		break;
+	default:
+		output->redraw = TRUE;
+		return -1;
+	}
 
 	cairo_set_source_rgb(output->cr, 0.8, 0.8, 0.8);
 	cairo_rectangle(output->cr,
@@ -594,18 +595,59 @@ int help(int c, struct position *position, struct output *output) {
 		output->dest.x2 - output->dest.x1 - marginx * 2,
 		output->dest.y2 - output->dest.y1 - marginy * 2);
 	cairo_fill(output->cr);
+	cairo_stroke(output->cr);
 
+	cairo_save(output->cr);
+	cairo_rectangle(output->cr,
+		output->dest.x1 + marginx + borderx,
+		output->dest.y1 + marginy + bordery,
+		output->dest.x2 - output->dest.x1 - marginx * 2 - 20.0,
+		textheight);
+	cairo_clip(output->cr);
+	cairo_translate(output->cr, 0.0, extents.height * *line);
 	cairo_set_source_rgb(output->cr, 0.0, 0.0, 0.0);
 	cairo_move_to(output->cr,
-		output->dest.x1 + marginx + 10.0,
-		output->dest.y1 + marginy + 10.0 + fontsize);
-	for (l = 0; l < sizeof(helptext) / sizeof(char *); l++)
-		printline(output->cr, helptext[l], fontsize);
+		output->dest.x1 + marginx + borderx,
+		output->dest.y1 + marginy + bordery + extents.ascent);
+	for (l = 0; viewtext[l] != NULL; l++)
+		printline(output->cr, viewtext[l], extents.height);
 	cairo_stroke(output->cr);
+	cairo_restore(output->cr);
 
 	output->redraw = FALSE;
 	output->flush = TRUE;
-	return WINDOW_HELP;
+	return 0;
+}
+
+/*
+ * help
+ */
+int help(int c, struct position *position, struct output *output) {
+	static char *helptext[] = {
+		"hovacui - pdf viewer with autozoom to text",
+		"------------------------------------------",
+		"PageUp     previous page",
+		"PageDown   next page",
+		"Home       top of page",
+		"End        bottom of page",
+		"m          rotate among view modes:",
+		"           textarea, boundingbox, page",
+		"f          change fitting direction:",
+		"           horizontal, vertical, both",
+		"w/W        + or - minimal viewbox width",
+		"           (determines the maximal zoom)",
+		"g          go to page",
+		"h          help",
+		"q          quit",
+		"",
+		"any key to continue",
+		NULL
+	};
+	static int line = 0;
+	(void) position;
+
+	return text(c, output, helptext, &line) == 0 ?
+		WINDOW_HELP : WINDOW_DOCUMENT;
 }
 
 /*
@@ -638,7 +680,6 @@ void dialog(int c, struct output *output,
 	cairo_select_font_face(output->cr, "mono",
 	                CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
 	cairo_set_font_size(output->cr, fontsize);
-
 	cairo_font_extents(output->cr, &extents);
 
 	cairo_set_source_rgb(output->cr, 0.8, 0.8, 0.8);
