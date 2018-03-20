@@ -9,7 +9,7 @@
  * - config file (./config/hovaqui/hovaqui.conf)
  * - console clean on exit
  * - separate file for gui stuff
- * - ensure that output->scroll never skips content (may happen at high zoom)
+ * - at high zoom output->scroll may be too large (skips content)
  * - improve column-sorting rectangles (to be done in pdfrects.c)
  * - briefly show the page number in a corner when changing page
  * - briefly show the new mode after 'm' or 'f'
