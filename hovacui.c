@@ -555,7 +555,7 @@ int text(int c, struct output *output, char *viewtext[], int *line) {
 	double textheight;
 	double fontsize = 16.0;
 	cairo_font_extents_t extents;
-	int n, l;
+	int n, l, lines;
 
 	for (n = 0; viewtext[n] != NULL; n++) {
 	}
@@ -565,12 +565,12 @@ int text(int c, struct output *output, char *viewtext[], int *line) {
 	                CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
 	cairo_set_font_size(output->cr, fontsize);
 	cairo_font_extents(output->cr, &extents);
-	textheight = (int) (height * percent - bordery * 2) /
-			(int) extents.height * (int) extents.height;
+	lines = (int) (height * percent - bordery * 2) / (int) extents.height;
+	textheight = lines * extents.height;
 
 	switch (c) {
 	case KEY_DOWN:
-		if (*line <= -n + textheight / extents.height)
+		if (*line <= -n + lines)
 			return 0;
 		(*line)--;
 		output->redraw = TRUE;
@@ -597,15 +597,15 @@ int text(int c, struct output *output, char *viewtext[], int *line) {
 	cairo_fill(output->cr);
 	cairo_stroke(output->cr);
 
+	cairo_set_source_rgb(output->cr, 0.0, 0.0, 0.0);
 	cairo_save(output->cr);
 	cairo_rectangle(output->cr,
 		output->dest.x1 + marginx + borderx,
 		output->dest.y1 + marginy + bordery,
-		output->dest.x2 - output->dest.x1 - marginx * 2 - 20.0,
+		output->dest.x2 - output->dest.x1 - marginx * 2 - borderx * 2,
 		textheight);
 	cairo_clip(output->cr);
 	cairo_translate(output->cr, 0.0, extents.height * *line);
-	cairo_set_source_rgb(output->cr, 0.0, 0.0, 0.0);
 	cairo_move_to(output->cr,
 		output->dest.x1 + marginx + borderx,
 		output->dest.y1 + marginy + bordery + extents.ascent);
@@ -613,6 +613,17 @@ int text(int c, struct output *output, char *viewtext[], int *line) {
 		printline(output->cr, viewtext[l], extents.height);
 	cairo_stroke(output->cr);
 	cairo_restore(output->cr);
+
+	if (lines < n) {
+		cairo_rectangle(output->cr,
+			output->dest.x2 - marginx - borderx,
+			output->dest.y1 + marginy +
+				(- *line / (double) n) * height * percent,
+			borderx,
+			(lines / (double) n) * height * percent);
+		cairo_fill(output->cr);
+		cairo_stroke(output->cr);
+	}
 
 	output->redraw = FALSE;
 	output->flush = TRUE;
