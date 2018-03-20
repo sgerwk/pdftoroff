@@ -245,29 +245,29 @@ double yscreentodoc(struct output *output, double y) {
 }
 
 /*
- * change scrollx and scrolly to avoid empty space around
+ * change scrollx and scrolly to avoid space outside boundingbox being shown
  */
 void adjustscroll(struct position *position, struct output *output) {
 
-	/* empty space at the right of the bounding box */
+	/* some space at the right of the bounding box is shown */
 	if (xdoctoscreen(output, position->boundingbox->x2 - position->scrollx)
 	    < output->dest.x2)
 		position->scrollx = position->boundingbox->x2 -
 			xscreentodoc(output, output->dest.x2);
 
-	/* empty space at the left of the bounding box */
+	/* some space at the left of the bounding box is shown */
 	if (xdoctoscreen(output, position->boundingbox->x1 - position->scrollx)
 	    > output->dest.x1)
 		position->scrollx = position->boundingbox->x1 -
 			xscreentodoc(output, output->dest.x1);
 
-	/* bottom of bounding box mapped to the screen over bottom of screen */
+	/* some space below the bounding box is shown */
 	if (ydoctoscreen(output, position->boundingbox->y2 - position->scrolly)
 	    < output->dest.y2)
 		position->scrolly = position->boundingbox->y2 -
 			yscreentodoc(output, output->dest.y2);
 
-	/* top of bounding box mapped to the screen below top of screen */
+	/* some space over the bounding box is shown */
 	if (ydoctoscreen(output, position->boundingbox->y1 - position->scrolly)
 	    > output->dest.y1)
 		position->scrolly = position->boundingbox->y1 -
