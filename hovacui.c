@@ -365,6 +365,7 @@ int nexttextbox(struct position *position, struct output *output) {
  */
 int scrolldown(struct position *position, struct output *output) {
 	moveto(position, output);
+	/* bottom of textbox already within the destination rectangle */
 	if (ydoctoscreen(output, position->textarea->rect[position->box].y2) <=
 	    output->dest.y2 + 0.01)
 		return nexttextbox(position, output);
@@ -378,6 +379,7 @@ int scrolldown(struct position *position, struct output *output) {
  */
 int scrollright(struct position *position, struct output *output) {
 	moveto(position, output);
+	/* right edge of textbox already within the destination rectangle */
 	if (xdoctoscreen(output, position->textarea->rect[position->box].x2) <=
 	    output->dest.x2 + 0.01)
 		return nexttextbox(position, output);
@@ -387,7 +389,7 @@ int scrollright(struct position *position, struct output *output) {
 }
 
 /*
- * move to the bottom of the current textbox
+ * move to the bottom/right of the current textbox
  */
 int bottomtextbox(struct position *position, struct output *output) {
 	position->scrollx = 0;
@@ -438,6 +440,7 @@ int prevtextbox(struct position *position, struct output *output) {
  */
 int scrollup(struct position *position, struct output *output) {
 	moveto(position, output);
+	/* top of current textbox already within the destination rectangle */
 	if (ydoctoscreen(output, position->textarea->rect[position->box].y1) >=
 	    output->dest.y1 - 0.01)
 		return prevtextbox(position, output);
@@ -451,6 +454,7 @@ int scrollup(struct position *position, struct output *output) {
  */
 int scrollleft(struct position *position, struct output *output) {
 	moveto(position, output);
+	/* left edge of the textbox already within the destination rectangle */
 	if (xdoctoscreen(output, position->textarea->rect[position->box].x1) >=
 	    output->dest.x1 - 0.01)
 		return prevtextbox(position, output);
