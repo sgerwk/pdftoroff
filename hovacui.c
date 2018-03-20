@@ -403,11 +403,9 @@ int bottomtextbox(struct position *position, struct output *output) {
 	position->scrolly = 0;
 	moveto(position, output);
 	position->scrollx =
-		MAX(0, position->viewbox->x2 -
-			xscreentodoc(output, output->dest.x2));
+		position->viewbox->x2 - xscreentodoc(output, output->dest.x2);
 	position->scrolly =
-		MAX(0, position->viewbox->y2 -
-			yscreentodoc(output, output->dest.y2));
+		position->viewbox->y2 - yscreentodoc(output, output->dest.y2);
 	return 0;
 }
 
