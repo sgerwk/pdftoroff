@@ -8,7 +8,6 @@
  * - vt switching
  * - console clean on exit
  * - separate file for gui stuff
- * - at high zoom output->scroll may be too large (skips content)
  * - improve column-sorting rectangles (to be done in pdfrects.c)
  * - briefly show the page number in a corner when changing page
  * - briefly show the new mode after 'm' or 'f'
@@ -119,8 +118,8 @@ struct output {
 	/* fit horizontally (1), vertically (2) or both (0) */
 	int fit;
 
-	/* how much to scroll */
-	int scroll;
+	/* scroll distance, as a fraction of the screen size */
+	double scroll;
 
 	/* whether the document has to be redrawn */
 	int redraw;
@@ -243,6 +242,20 @@ double ydoctoscreen(struct output *output, double y) {
 double yscreentodoc(struct output *output, double y) {
 	double xx = 0.0, yy = y;
 	cairo_device_to_user(output->cr, &xx, &yy);
+	return yy;
+}
+
+/*
+ * translate distances from screen coordinates to textbox coordinates
+ */
+double xscreentodocdistance(struct output *output, double x) {
+	double xx = x, yy = 0.0;
+	cairo_device_to_user_distance(output->cr, &xx, &yy);
+	return xx;
+}
+double yscreentodocdistance(struct output *output, double y) {
+	double xx = 0.0, yy = y;
+	cairo_device_to_user_distance(output->cr, &xx, &yy);
 	return yy;
 }
 
@@ -387,7 +400,8 @@ int scrolldown(struct position *position, struct output *output) {
 	    output->dest.y2 + 0.01)
 		return nexttextbox(position, output);
 
-	position->scrolly += output->scroll;
+	position->scrolly += yscreentodocdistance(output,
+		(output->dest.y2 - output->dest.y1) * output->scroll);
 	return 0;
 }
 
@@ -401,7 +415,8 @@ int scrollright(struct position *position, struct output *output) {
 	    output->dest.x2 + 0.01)
 		return nexttextbox(position, output);
 
-	position->scrollx += output->scroll;
+	position->scrollx += xscreentodocdistance(output,
+		(output->dest.x2 - output->dest.x1) * output->scroll);
 	return 0;
 }
 
@@ -460,7 +475,8 @@ int scrollup(struct position *position, struct output *output) {
 	    output->dest.y1 - 0.01)
 		return prevtextbox(position, output);
 
-	position->scrolly -= output->scroll;
+	position->scrolly -= yscreentodocdistance(output,
+		(output->dest.y2 - output->dest.y1) * output->scroll);
 	return 0;
 }
 
@@ -474,7 +490,8 @@ int scrollleft(struct position *position, struct output *output) {
 	    output->dest.x1 - 0.01)
 		return prevtextbox(position, output);
 
-	position->scrollx -= output->scroll;
+	position->scrollx -= xscreentodocdistance(output,
+		(output->dest.x2 - output->dest.x1) * output->scroll);
 	return 0;
 }
 
@@ -993,7 +1010,7 @@ int main(int argn, char *argv[]) {
 	initposition(&position);
 
 	output.cr = cairofb->cr;
-	output.scroll = 50.0;
+	output.scroll = 0.25;
 
 	output.redraw = 1;
 
