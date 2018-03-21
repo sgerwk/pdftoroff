@@ -16,7 +16,6 @@
  * - cache the textarea list of pages already scanned
  * - save last position(s) to $(HOME)/.pdfpositions
  * - include images (in pdfrects.c)
- * - change output.distance by option (-t) and by keys ('t'/'T')
  * - utf8 in dialog()
  * - 'W' stops when the page (or the boundingbox) is all inside the screen
  * - key to reset viewmode and fit direction to initial values
@@ -535,6 +534,14 @@ int document(int c, struct position *position, struct output *output) {
 	case 'W':
 		output->minwidth += 10;
 		break;
+	case 't':
+	case 'T':
+		output->distance += c == 't' ? -1 : 1;
+		position->box = 0;
+		position->scrollx = 0;
+		position->scrolly = 0;
+		readpage(position, output);
+		break;
 	case 'f':
 		output->fit = (output->fit + 1) % 3;
 		position->scrollx = 0;
@@ -866,6 +873,7 @@ int main(int argn, char *argv[]) {
 	output.viewmode = 0;
 	output.fit = 1;
 	output.minwidth = -1;
+	output.distance = 15.0;
 	screenaspect = -1;
 
 				/* config file */
@@ -893,7 +901,7 @@ int main(int argn, char *argv[]) {
 
 				/* cmdline arguments */
 
-	while (-1 != (opt = getopt(argn, argv, "m:f:w:d:s:h")))
+	while (-1 != (opt = getopt(argn, argv, "m:f:w:t:d:s:h")))
 		switch (opt) {
 		case 'm':
 			output.viewmode = optindex(optarg[0], "tbp");
@@ -915,6 +923,13 @@ int main(int argn, char *argv[]) {
 			output.minwidth = atof(optarg);
 			if (output.minwidth < 0) {
 				printf("error: negative minimal width\n");
+				exit(EXIT_FAILURE);
+			}
+			break;
+		case 't':
+			output.distance = atof(optarg);
+			if (output.distance < 0) {
+				printf("error: negative text distance\n");
 				exit(EXIT_FAILURE);
 			}
 			break;
@@ -978,7 +993,6 @@ int main(int argn, char *argv[]) {
 	initposition(&position);
 
 	output.cr = cairofb->cr;
-	output.distance = 15.0;
 	output.scroll = 50.0;
 
 	output.redraw = 1;
