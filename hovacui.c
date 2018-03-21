@@ -859,8 +859,11 @@ int optindex(char arg, char *all) {
 double aspect(char *arg) {
 	char *col;
 	col = index(arg, ':');
-	if (col == NULL)
-		return atof(arg);
+	if (col == NULL) {
+		col = index(arg, '/');
+		if (col == NULL)
+			return atof(arg);
+	}
 	*col = '\0';
 	return atof(arg) / atof(col + 1);
 }
