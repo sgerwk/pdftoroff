@@ -894,6 +894,7 @@ int main(int argn, char *argv[]) {
 	output.fit = 1;
 	output.minwidth = -1;
 	output.distance = 15.0;
+	output.scroll = 1 / 4;
 	screenaspect = -1;
 
 				/* config file */
@@ -913,6 +914,8 @@ int main(int argn, char *argv[]) {
 				output.minwidth = d;
 			if (sscanf(configline, "aspect %s", s) == 1)
 				screenaspect = aspect(s);
+			if (sscanf(configline, "scroll %s", s) == 1)
+				output.scroll = aspect(s);
 			if (sscanf(configline, "device %s", s) == 1)
 				fbdev = strdup(s);
 		}
@@ -1013,7 +1016,6 @@ int main(int argn, char *argv[]) {
 	initposition(&position);
 
 	output.cr = cairofb->cr;
-	output.scroll = 0.25;
 
 	output.redraw = 1;
 
