@@ -6,9 +6,9 @@
  * todo:
  * - man page
  * - vt switching
- * - config file (./config/hovaqui/hovaqui.conf)
  * - console clean on exit
  * - separate file for gui stuff
+ * - fix scrollup with non-square pixels
  * - at high zoom output->scroll may be too large (skips content)
  * - improve column-sorting rectangles (to be done in pdfrects.c)
  * - briefly show the page number in a corner when changing page
