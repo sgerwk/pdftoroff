@@ -8,7 +8,6 @@
  * - vt switching
  * - console clean on exit
  * - separate file for gui stuff
- * - fix scrollup with non-square pixels
  * - at high zoom output->scroll may be too large (skips content)
  * - improve column-sorting rectangles (to be done in pdfrects.c)
  * - briefly show the page number in a corner when changing page
@@ -50,7 +49,7 @@
  *	the above rectangle, possibly enlarged to ensure the minimal width
  *
  * output->dest
- *	the area of the screen to use (all of it but for a thin margin)
+ *	the area of the screen to use (all of it but a thin margin)
  *
  * the cairo transformation matrix is initially set so that position->viewbox
  * (rectangle in the document) is mapped onto output->dest (rectangle in the
@@ -308,18 +307,30 @@ void adjustviewbox(struct position *position, struct output *output) {
  * move to position
  */
 void moveto(struct position *position, struct output *output) {
+	PopplerRectangle scaled;
+
 	cairo_identity_matrix(output->cr);
 
-	if (output->fit & 0x1)
+	/* scale to match the screen aspect; also scale the destination
+	 * rectangle in the opposite way, so that position->viewbox is still
+	 * mapped to output->dest in spite of the scaling */
+	scaled = output->dest;
+	if (output->fit & 0x1) {
 		cairo_scale(output->cr, 1.0, output->aspect);
-	else
-		cairo_scale(output->cr, 1 / output->aspect, 1.0);
+		scaled.y1 = scaled.y1 / output->aspect;
+		scaled.y2 = scaled.y2 / output->aspect;
+	}
+	else {
+		cairo_scale(output->cr, 1.0 / output->aspect, 1.0);
+		scaled.x1 = scaled.x1 * output->aspect;
+		scaled.x2 = scaled.x2 * output->aspect;
+	}
 
 	poppler_rectangle_free(position->viewbox);
 	position->viewbox = poppler_rectangle_copy
 		(&position->textarea->rect[position->box]);
 	adjustviewbox(position, output);
-	rectangle_map_to_cairo(output->cr, &output->dest, position->viewbox,
+	rectangle_map_to_cairo(output->cr, &scaled, position->viewbox,
 		output->fit & 0x1, output->fit & 0x2, TRUE, TRUE, TRUE);
 
 	adjustscroll(position, output);
