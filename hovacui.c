@@ -583,6 +583,7 @@ int text(int c, struct output *output, char *viewtext[], int *line) {
 	cairo_font_extents(output->cr, &extents);
 	lines = (int) (height * percent - bordery * 2) / (int) extents.height;
 	textheight = lines * extents.height;
+	height = textheight + 2 * bordery;
 
 	switch (c) {
 	case KEY_DOWN:
@@ -609,7 +610,7 @@ int text(int c, struct output *output, char *viewtext[], int *line) {
 		output->dest.x1 + marginx,
 		output->dest.y1 + marginy,
 		output->dest.x2 - output->dest.x1 - marginx * 2,
-		output->dest.y2 - output->dest.y1 - marginy * 2);
+		height);
 	cairo_fill(output->cr);
 	cairo_stroke(output->cr);
 
@@ -634,9 +635,9 @@ int text(int c, struct output *output, char *viewtext[], int *line) {
 		cairo_rectangle(output->cr,
 			output->dest.x2 - marginx - borderx,
 			output->dest.y1 + marginy +
-				(- *line / (double) n) * height * percent,
+				(- *line / (double) n) * height,
 			borderx,
-			(lines / (double) n) * height * percent);
+			(lines / (double) n) * height);
 		cairo_fill(output->cr);
 		cairo_stroke(output->cr);
 	}
