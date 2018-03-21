@@ -16,7 +16,6 @@
  * - save last position(s) to $(HOME)/.pdfpositions
  * - include images (in pdfrects.c)
  * - utf8 in dialog()
- * - 'W' stops when the page (or the boundingbox) is all inside the screen
  * - key to reset viewmode and fit direction to initial values
  * - search:
  *	+ dialog (+paste)
@@ -496,6 +495,19 @@ int scrollleft(struct position *position, struct output *output) {
 }
 
 /*
+ * check whether the bounding box is all in the screen
+ */
+int boundingboxinscreen(struct position *position, struct output *output) {
+	if (position->boundingbox->x2 - position->boundingbox->x1 >
+	    xscreentodocdistance(output, output->dest.x2 - output->dest.x1))
+		return FALSE;
+	if (position->boundingbox->y2 - position->boundingbox->y1 >
+	    yscreentodocdistance(output, output->dest.y2 - output->dest.y1))
+		return FALSE;
+	return TRUE;
+}
+
+/*
  * document window
  */
 int document(int c, struct position *position, struct output *output) {
@@ -546,9 +558,12 @@ int document(int c, struct position *position, struct output *output) {
 		readpage(position, output);
 		break;
 	case 'w':
-		output->minwidth -= 10;
+		if (output->minwidth > 0)
+			output->minwidth -= 10;
 		break;
 	case 'W':
+		if (boundingboxinscreen(position, output))
+			break;
 		output->minwidth += 10;
 		break;
 	case 't':
