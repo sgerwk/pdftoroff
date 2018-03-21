@@ -909,7 +909,7 @@ int main(int argn, char *argv[]) {
 	output.fit = 1;
 	output.minwidth = -1;
 	output.distance = 15.0;
-	output.scroll = 1 / 4;
+	output.scroll = 1.0 / 4.0;
 	screenaspect = -1;
 
 				/* config file */
