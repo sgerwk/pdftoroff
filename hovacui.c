@@ -587,15 +587,15 @@ int text(int c, struct output *output, char *viewtext[], int *line) {
 
 	switch (c) {
 	case KEY_DOWN:
-		if (*line <= -n + lines)
+		if (*line >= n - lines)
 			return 0;
-		(*line)--;
+		(*line)++;
 		output->redraw = TRUE;
 		break;
 	case KEY_UP:
-		if (*line >= 0)
+		if (*line <= 0)
 			return 0;
-		(*line)++;
+		(*line)--;
 		output->redraw = TRUE;
 		break;
 	case KEY_INIT:
@@ -622,7 +622,7 @@ int text(int c, struct output *output, char *viewtext[], int *line) {
 		output->dest.x2 - output->dest.x1 - marginx * 2 - borderx * 2,
 		textheight);
 	cairo_clip(output->cr);
-	cairo_translate(output->cr, 0.0, extents.height * *line);
+	cairo_translate(output->cr, 0.0, - extents.height * *line);
 	cairo_move_to(output->cr,
 		output->dest.x1 + marginx + borderx,
 		output->dest.y1 + marginy + bordery + extents.ascent);
@@ -635,9 +635,9 @@ int text(int c, struct output *output, char *viewtext[], int *line) {
 		cairo_rectangle(output->cr,
 			output->dest.x2 - marginx - borderx,
 			output->dest.y1 + marginy +
-				(- *line / (double) n) * height,
+				*line / (double) n * height,
 			borderx,
-			(lines / (double) n) * height);
+			lines / (double) n * height);
 		cairo_fill(output->cr);
 		cairo_stroke(output->cr);
 	}
