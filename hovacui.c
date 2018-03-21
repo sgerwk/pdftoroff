@@ -873,7 +873,7 @@ int main(int argn, char *argv[]) {
 	snprintf(configfile, 4096, "%s/.config/hovacui/hovacui.conf",
 		getenv("HOME"));
 	config = fopen(configfile, "r");
-	if (config != NULL)
+	if (config != NULL) {
 		while (fgets(configline, 900, config)) {
 			if (configline[0] == '#')
 				continue;
@@ -888,6 +888,8 @@ int main(int argn, char *argv[]) {
 			if (sscanf(configline, "device %s", s) == 1)
 				fbdev = strdup(s);
 		}
+		fclose(config);
+	}
 
 				/* cmdline arguments */
 
