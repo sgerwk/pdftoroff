@@ -848,9 +848,21 @@ void draw(struct cairofb *cairofb,
  * read a character from input
  */
 int input() {
-	int c;
-	c = getch();
-	return c;
+	fd_set fds;
+	int max, ret;
+
+	FD_ZERO(&fds);
+	FD_SET(STDIN_FILENO, &fds);
+	max = STDIN_FILENO;
+
+	ret = select(max + 1, &fds, NULL, NULL, NULL);
+	if (ret == -1)
+		return KEY_REDRAW;
+
+	if (FD_ISSET(STDIN_FILENO, &fds))
+		return getch();
+
+	return KEY_REDRAW;
 }
 
 /*
