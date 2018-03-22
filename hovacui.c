@@ -7,7 +7,6 @@
  * - man page
  * - separate file for gui stuff
  * - improve column-sorting rectangles (to be done in pdfrects.c)
- * - briefly show the page number in a corner when changing page
  * - briefly show the new mode after 'm' or 'f'
  * - key to move to next/previous block of text
  * - cache the textarea list of pages already scanned
@@ -127,6 +126,12 @@ struct output {
 
 	/* whether the output is to be flushed */
 	int flush;
+
+	/* stop input on timeout and return KEY_TIMEOUT */
+	int timeout;
+
+	/* decorations */
+	int pagenumber;
 };
 
 /*
@@ -582,6 +587,9 @@ int document(int c, struct position *position, struct output *output) {
 		position->scrollx = 0;
 		position->scrolly = 0;
 		break;
+	case 'l':
+		output->pagenumber = TRUE;
+		break;
 	default:
 		;
 	}
@@ -642,6 +650,7 @@ int text(int c, struct output *output, char *viewtext[], int *line) {
 		break;
 	case KEY_INIT:
 	case KEY_REDRAW:
+	case KEY_TIMEOUT:
 		break;
 	default:
 		output->redraw = TRUE;
@@ -785,6 +794,7 @@ int gotopage(int c, struct position *position, struct output *output) {
 	   (c != 'e' || gotostring[0] != '\0')) {
 		dialog(c, output, "go to page: ", gotostring, "");
 		output->flush = TRUE;
+		output->pagenumber = TRUE;
 		return WINDOW_GOTOPAGE;
 	}
 
@@ -832,31 +842,89 @@ int selectwindow(int window, int c,
 }
 
 /*
- * draw the document
+ * show an arbitrary label
+ */
+void label(struct output *output, char *string, double bottom) {
+	double fontsize = 18.0;
+	cairo_font_extents_t extents;
+	double width, x, y;
+
+	cairo_identity_matrix(output->cr);
+
+	cairo_select_font_face(output->cr, "mono",
+	                CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+	cairo_set_font_size(output->cr, fontsize);
+	cairo_font_extents(output->cr, &extents);
+
+	width = strlen(string) * extents.max_x_advance;
+	x = (output->dest.x2 + output->dest.x1) / 2 - width / 2;
+	y = output->dest.y2 - bottom - extents.height;
+
+	cairo_set_source_rgb(output->cr, 0, 0, 0);
+	cairo_rectangle(output->cr,
+		x - 10.0, y - 20.0, width + 20.0, extents.height + 20.0);
+	cairo_fill(output->cr);
+
+	cairo_set_source_rgb(output->cr, 0.8, 0.8, 0.8);
+	cairo_move_to(output->cr, x, y - 10.0 + extents.ascent);
+	cairo_show_text(output->cr, string);
+
+	cairo_stroke(output->cr);
+}
+
+/*
+ * show the current page number
+ */
+void pagenumber(struct position *position, struct output *output) {
+	static int prev = -1;
+	char pagenum[100];
+
+	if (position->npage == prev && ! output->pagenumber)
+		return;
+
+	sprintf(pagenum, "page %d", position->npage + 1);
+	label(output, pagenum, 20.0);
+
+	output->timeout = TRUE;
+	output->pagenumber = FALSE;
+	prev = position->npage;
+}
+
+/*
+ * draw the document with the decorations on top
  */
 void draw(struct cairofb *cairofb,
 		struct position *position, struct output *output) {
-	cairofb_clear(cairofb, 1.0, 1.0, 1.0);
-	moveto(position, output);
-	poppler_page_render(position->page, output->cr);
-	rectangle_draw(output->cr,
-		&position->textarea->rect[position->box],
-		FALSE, FALSE, TRUE);
+	if (vt_suspend)
+		return;
+
+	if (output->redraw) {
+		cairofb_clear(cairofb, 1.0, 1.0, 1.0);
+		moveto(position, output);
+		poppler_page_render(position->page, output->cr);
+		rectangle_draw(output->cr,
+			&position->textarea->rect[position->box],
+			FALSE, FALSE, TRUE);
+	}
+
+	pagenumber(position, output);
+
 	cairofb_flush(cairofb);
 }
 
 /*
  * read a character from input
  */
-int input() {
+int input(int timeout) {
 	fd_set fds;
 	int max, ret;
+	struct timeval tv = {1, 400};
 
 	FD_ZERO(&fds);
 	FD_SET(STDIN_FILENO, &fds);
 	max = STDIN_FILENO;
 
-	ret = select(max + 1, &fds, NULL, NULL, NULL);
+	ret = select(max + 1, &fds, NULL, NULL, timeout ? &tv : NULL);
 
 	if (ret == -1) {
 		if (vt_redraw) {
@@ -1084,6 +1152,9 @@ int main(int argn, char *argv[]) {
 	if (output.minwidth == -1)
 		output.minwidth = (cairofb->width - 2 * margin) / 2;
 
+	output.timeout = TRUE;
+	output.pagenumber = TRUE;
+
 				/* event loop */
 
 	window = document(KEY_INIT, &position, &output);
@@ -1092,15 +1163,14 @@ int main(int argn, char *argv[]) {
 
 					/* draw the document */
 
-		if (output.redraw && ! vt_suspend)
-			draw(cairofb, &position, &output);
+		draw(cairofb, &position, &output);
 
 					/* read input */
 
-		c = input();
+		c = input(output.timeout);
 		if (vt_suspend || c == KEY_SIGNAL)
 			continue;
-		if (c == KEY_REDRAW)
+		if (c == KEY_REDRAW || c == KEY_TIMEOUT)
 			draw(cairofb, &position, &output);
 
 					/* pass input to window */
