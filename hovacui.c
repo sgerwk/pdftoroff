@@ -87,10 +87,12 @@ enum window {
 };
 
 /*
- * special keys that tells a window to initalize itself or redraw
+ * imaginary keys
  */
-#define KEY_INIT 0
-#define KEY_REDRAW 1
+#define KEY_INIT	((KEY_MAX) + 1)
+#define KEY_REDRAW	((KEY_MAX) + 2)
+#define KEY_TIMEOUT	((KEY_MAX) + 3)
+#define KEY_SIGNAL	((KEY_MAX) + 4)
 
 /*
  * output parameters
@@ -856,14 +858,19 @@ int input() {
 
 	ret = select(max + 1, &fds, NULL, NULL, NULL);
 
-	if (ret != -1 && FD_ISSET(STDIN_FILENO, &fds))
+	if (ret == -1) {
+		if (vt_redraw) {
+			vt_redraw = FALSE;
+			return KEY_REDRAW;
+		}
+		else
+			return KEY_SIGNAL;
+	}
+
+	if (FD_ISSET(STDIN_FILENO, &fds))
 		return getch();
 
-	if (vt_redraw) {
-		vt_redraw = FALSE;
-		return KEY_REDRAW;
-	}
-	return -1;
+	return KEY_TIMEOUT;
 }
 
 /*
@@ -1064,7 +1071,7 @@ int main(int argn, char *argv[]) {
 
 	output.cr = cairofb->cr;
 
-	output.redraw = 1;
+	output.redraw = TRUE;
 
 	output.dest.x1 = margin;
 	output.dest.y1 = margin;
@@ -1091,7 +1098,7 @@ int main(int argn, char *argv[]) {
 					/* read input */
 
 		c = input();
-		if (vt_suspend || c == -1)
+		if (vt_suspend || c == KEY_SIGNAL)
 			continue;
 		if (c == KEY_REDRAW)
 			draw(cairofb, &position, &output);
