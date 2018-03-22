@@ -14,7 +14,7 @@ install: all
 pdftoroff: pdftext.o
 pdfrects: pdfrects-main.o
 pdftoroff pdffit pdfrects hovacui: pdfrects.o
-hovacui: cairofb.o
+hovacui: cairofb.o vt.o
 
 clean:
 	rm -f *.o ${PROGS}

@@ -5,7 +5,6 @@
  *
  * todo:
  * - man page
- * - vt switching
  * - console clean on exit
  * - separate file for gui stuff
  * - improve column-sorting rectangles (to be done in pdfrects.c)
@@ -73,6 +72,7 @@
 #include <cairo-pdf.h>
 #include "cairofb.h"
 #include "pdfrects.h"
+#include "vt.h"
 
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
 
@@ -856,13 +856,15 @@ int input() {
 	max = STDIN_FILENO;
 
 	ret = select(max + 1, &fds, NULL, NULL, NULL);
-	if (ret == -1)
-		return KEY_REDRAW;
 
-	if (FD_ISSET(STDIN_FILENO, &fds))
+	if (ret != -1 && FD_ISSET(STDIN_FILENO, &fds))
 		return getch();
 
-	return KEY_REDRAW;
+	if (vt_redraw) {
+		vt_redraw = FALSE;
+		return KEY_REDRAW;
+	}
+	return -1;
 }
 
 /*
@@ -1045,7 +1047,7 @@ int main(int argn, char *argv[]) {
 		exit(EXIT_FAILURE);
 	}
 
-				/* init ncurses */
+				/* setup terminal */
 
 	w = initscr();
 	cbreak();
@@ -1053,6 +1055,9 @@ int main(int argn, char *argv[]) {
 	noecho();
 	curs_set(0);
 	ungetch(KEY_INIT);
+	getch();
+
+	vt_setup();
 
 				/* initialize position and output */
 
@@ -1081,12 +1086,19 @@ int main(int argn, char *argv[]) {
 
 					/* draw the document */
 
-		if (output.redraw)
+		if (output.redraw && ! vt_suspend)
 			draw(cairofb, &position, &output);
 
-					/* process input */
+					/* read input */
 
 		c = input();
+		if (vt_suspend || c == -1)
+			continue;
+		if (c == KEY_REDRAW)
+			draw(cairofb, &position, &output);
+
+					/* pass input to window */
+
 		next = selectwindow(window, c, &position, &output);
 		if (next != window) {
 			window = next;
