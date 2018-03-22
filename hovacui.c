@@ -745,7 +745,7 @@ void dialog(int c, struct output *output,
 		current[l - 1] = '\0';
 	}
 	else if (c >= '0' && c <= '9') {
-		if (l > 50)
+		if (l > 30)
 			return;
 		current[l] = c;
 		current[l + 1] = '\0';
