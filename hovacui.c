@@ -132,6 +132,9 @@ struct output {
 
 	/* decorations */
 	int pagenumber;
+
+	/* size of font */
+	cairo_font_extents_t extents;
 };
 
 /*
@@ -619,20 +622,15 @@ int text(int c, struct output *output, char *viewtext[], int *line) {
 	double borderx = 10.0;
 	double bordery = 10.0;
 	double textheight;
-	double fontsize = 16.0;
-	cairo_font_extents_t extents;
 	int n, l, lines;
 
 	for (n = 0; viewtext[n] != NULL; n++) {
 	}
 
 	cairo_identity_matrix(output->cr);
-	cairo_select_font_face(output->cr, "mono",
-	                CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
-	cairo_set_font_size(output->cr, fontsize);
-	cairo_font_extents(output->cr, &extents);
-	lines = (int) (height * percent - bordery * 2) / (int) extents.height;
-	textheight = lines * extents.height;
+	lines = (int) (height * percent - bordery * 2) /
+		(int) output->extents.height;
+	textheight = lines * output->extents.height;
 	height = textheight + 2 * bordery;
 
 	switch (c) {
@@ -674,12 +672,13 @@ int text(int c, struct output *output, char *viewtext[], int *line) {
 		output->dest.x2 - output->dest.x1 - marginx * 2 - borderx * 2,
 		textheight);
 	cairo_clip(output->cr);
-	cairo_translate(output->cr, 0.0, - extents.height * *line);
+
+	cairo_translate(output->cr, 0.0, - output->extents.height * *line);
 	cairo_move_to(output->cr,
 		output->dest.x1 + marginx + borderx,
-		output->dest.y1 + marginy + bordery + extents.ascent);
+		output->dest.y1 + marginy + bordery + output->extents.ascent);
 	for (l = 0; viewtext[l] != NULL; l++)
-		printline(output->cr, viewtext[l], extents.height);
+		printline(output->cr, viewtext[l], output->extents.height);
 	cairo_stroke(output->cr);
 	cairo_restore(output->cr);
 
@@ -737,8 +736,6 @@ void dialog(int c, struct output *output,
 		char *label, char *current, char *error) {
 	double percent = 0.8, prop = (1 - percent) / 2;
 	double marginx = (output->dest.x2 - output->dest.x1) * prop;
-	double fontsize = 18.0;
-	cairo_font_extents_t extents;
 	int l;
 
 	l = strlen(current);
@@ -757,23 +754,19 @@ void dialog(int c, struct output *output,
 		return;
 
 	cairo_identity_matrix(output->cr);
-	cairo_select_font_face(output->cr, "mono",
-	                CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
-	cairo_set_font_size(output->cr, fontsize);
-	cairo_font_extents(output->cr, &extents);
 
 	cairo_set_source_rgb(output->cr, 0.8, 0.8, 0.8);
 	cairo_rectangle(output->cr,
 		output->dest.x1 + marginx,
 		output->dest.y1 + 20,
 		output->dest.x2 - output->dest.x1 - marginx * 2,
-		extents.height + 10);
+		output->extents.height + 10);
 	cairo_fill(output->cr);
 
 	cairo_set_source_rgb(output->cr, 0.0, 0.0, 0.0);
 	cairo_move_to(output->cr,
-		output->dest.x1 + marginx + fontsize / 2,
-		output->dest.y1 + 20 + 5 + extents.ascent);
+		output->dest.x1 + marginx + output->extents.height / 2,
+		output->dest.y1 + 20 + 5 + output->extents.ascent);
 	cairo_show_text(output->cr, label);
 	cairo_show_text(output->cr, current);
 	cairo_show_text(output->cr, "_ ");
@@ -845,28 +838,22 @@ int selectwindow(int window, int c,
  * show an arbitrary label
  */
 void label(struct output *output, char *string, double bottom) {
-	double fontsize = 18.0;
-	cairo_font_extents_t extents;
 	double width, x, y;
 
 	cairo_identity_matrix(output->cr);
 
-	cairo_select_font_face(output->cr, "mono",
-	                CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
-	cairo_set_font_size(output->cr, fontsize);
-	cairo_font_extents(output->cr, &extents);
-
-	width = strlen(string) * extents.max_x_advance;
+	width = strlen(string) * output->extents.max_x_advance;
 	x = (output->dest.x2 + output->dest.x1) / 2 - width / 2;
-	y = output->dest.y2 - bottom - extents.height;
+	y = output->dest.y2 - bottom - output->extents.height;
 
 	cairo_set_source_rgb(output->cr, 0, 0, 0);
 	cairo_rectangle(output->cr,
-		x - 10.0, y - 20.0, width + 20.0, extents.height + 20.0);
+		x - 10.0, y - 20.0,
+		width + 20.0, output->extents.height + 20.0);
 	cairo_fill(output->cr);
 
 	cairo_set_source_rgb(output->cr, 0.8, 0.8, 0.8);
-	cairo_move_to(output->cr, x, y - 10.0 + extents.ascent);
+	cairo_move_to(output->cr, x, y - 10.0 + output->extents.ascent);
 	cairo_show_text(output->cr, string);
 
 	cairo_stroke(output->cr);
@@ -996,6 +983,7 @@ int main(int argn, char *argv[]) {
 	char *fbdev = "/dev/fb0";
 	struct cairofb *cairofb;
 	double margin = 10.0;
+	double fontsize = 16.0;
 	struct position position;
 	struct output output;
 	double screenaspect;
@@ -1154,6 +1142,11 @@ int main(int argn, char *argv[]) {
 
 	output.timeout = TRUE;
 	output.pagenumber = TRUE;
+
+	cairo_select_font_face(output.cr, "mono",
+	                CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+	cairo_set_font_size(output.cr, fontsize);
+	cairo_font_extents(output.cr, &output.extents);
 
 				/* event loop */
 
