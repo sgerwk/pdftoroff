@@ -929,6 +929,8 @@ int main(int argn, char *argv[]) {
 				output.fit = optindex(optarg[0], "bhv");
 			if (sscanf(configline, "minwidth %lg", &d) == 1)
 				output.minwidth = d;
+			if (sscanf(configline, "distance %lg", &d) == 1)
+				output.distance = d;
 			if (sscanf(configline, "aspect %s", s) == 1)
 				screenaspect = aspect(s);
 			if (sscanf(configline, "scroll %s", s) == 1)
