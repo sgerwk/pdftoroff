@@ -88,9 +88,10 @@ enum window {
 };
 
 /*
- * special key that tells a window to initalize itself
+ * special keys that tells a window to initalize itself or redraw
  */
 #define KEY_INIT 0
+#define KEY_REDRAW 1
 
 /*
  * output parameters
@@ -515,6 +516,7 @@ int document(int c, struct position *position, struct output *output) {
 
 	switch (c) {
 	case KEY_INIT:
+	case KEY_REDRAW:
 	case 'r':
 		readpage(position, output);
 		break;
@@ -638,6 +640,7 @@ int text(int c, struct output *output, char *viewtext[], int *line) {
 		output->redraw = TRUE;
 		break;
 	case KEY_INIT:
+	case KEY_REDRAW:
 		break;
 	default:
 		output->redraw = TRUE;
@@ -740,7 +743,7 @@ void dialog(int c, struct output *output,
 		current[l] = c;
 		current[l + 1] = '\0';
 	}
-	else if (c != KEY_INIT)
+	else if (c != KEY_INIT && c != KEY_REDRAW)
 		return;
 
 	cairo_identity_matrix(output->cr);
@@ -1028,7 +1031,7 @@ int main(int argn, char *argv[]) {
 	keypad(w, TRUE);
 	noecho();
 	curs_set(0);
-	ungetch(0);
+	ungetch(KEY_INIT);
 
 				/* initialize position and output */
 
