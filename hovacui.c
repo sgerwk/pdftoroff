@@ -5,7 +5,6 @@
  *
  * todo:
  * - man page
- * - console clean on exit
  * - separate file for gui stuff
  * - improve column-sorting rectangles (to be done in pdfrects.c)
  * - briefly show the page number in a corner when changing page
@@ -1114,6 +1113,8 @@ int main(int argn, char *argv[]) {
 				/* close */
 
 	cairofb_finish(cairofb);
+	clear();
+	refresh();
 	endwin();
 	return EXIT_SUCCESS;
 }
