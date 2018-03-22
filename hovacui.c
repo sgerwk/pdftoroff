@@ -898,14 +898,14 @@ double aspect(char *arg) {
 void usage() {
 	printf("fbdev pdf viewer with automatic zoom to text\n");
 	printf("usage:\n\thovacui\t[-m viewmode] [-f direction] ");
-	printf("[-w minwidth] [-d device]\n");
-	printf("\t\t[-s aspect] [-t distance] file.pdf\n");
+	printf("[-w minwidth] [-t distance]\n");
+	printf("\t\t[-s aspect] [-d device] file.pdf\n");
 	printf("\t\t-m viewmode\tzoom to: text, boundingbox, page\n");
 	printf("\t\t-f direction\tfit: horizontally, vertically, both\n");
 	printf("\t\t-w minwidth\tminimal width, determine maximal zoom\n");
-	printf("\t\t-d device\tfbdev device, default /dev/fb0\n");
-	printf("\t\t-s aspect\tthe screen aspect (e.g., 4:3)\n");
 	printf("\t\t-t distance\tminimal text distance\n");
+	printf("\t\t-s aspect\tthe screen aspect (e.g., 4:3)\n");
+	printf("\t\t-d device\tfbdev device, default /dev/fb0\n");
 	printf("keys:\t'h'=help 'g'=go to page 'q'=quit\n");
 	printf("\t'm'=change view mode 'f'=change fit direction\n");
 }
