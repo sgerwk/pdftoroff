@@ -845,6 +845,15 @@ void draw(struct cairofb *cairofb,
 }
 
 /*
+ * read a character from input
+ */
+int input() {
+	int c;
+	c = getch();
+	return c;
+}
+
+/*
  * index of a character in a string
  */
 int optindex(char arg, char *all) {
@@ -1065,7 +1074,7 @@ int main(int argn, char *argv[]) {
 
 					/* process input */
 
-		c = getch();
+		c = input();
 		next = selectwindow(window, c, &position, &output);
 		if (next != window) {
 			window = next;
