@@ -136,6 +136,7 @@ struct output {
 	int showmode;
 	int showfit;
 	int filename;
+	char help[50];
 
 	/* size of font */
 	cairo_font_extents_t extents;
@@ -805,18 +806,22 @@ int keynumeric(int c) {
 int gotopage(int c, struct position *position, struct output *output) {
 	static char gotostring[100] = "";
 	char *prompt = "go to page: ";
-	// char *helpstart =   "c: current, e: end";
-	// char *help = "c: current";
+	char *helplabel = "c: current, e: end";
 	char *nopage = "[no such page]";
 	int n;
 
 	if (c == '\033' || c == 'q')
 		return WINDOW_DOCUMENT;
 
-	if (c != KEY_ENTER && c != '\n' &&
-	   (c != 'e' || gotostring[0] != '\0')) {
+	if (c != KEY_ENTER && c != '\n') {
+		strncpy(output->help, helplabel, 40);
+
 		if (c == 'c') {
 			sprintf(gotostring, "%d", position->npage + 1);
+			c = KEY_REDRAW;
+		}
+		else if (c == 'e') {
+			sprintf(gotostring, "%d", position->totpages);
 			c = KEY_REDRAW;
 		}
 		else if (! keynumeric(c))
@@ -893,6 +898,22 @@ void label(struct output *output, char *string, int bottom) {
 	cairo_show_text(output->cr, string);
 
 	cairo_stroke(output->cr);
+}
+
+/*
+ * show some help
+ */
+void helplabel(struct position *position, struct output *output) {
+	(void) position;
+
+	if (output->help[0] == '\0')
+		return;
+
+	label(output, output->help, 1);
+
+	if (output->timeout == 0)
+		output->timeout = 1200;
+	output->help[0] = '\0';
 }
 
 /*
@@ -975,7 +996,6 @@ void filename(struct position *position, struct output *output) {
 	output->filename = FALSE;
 }
 
-
 /*
  * draw the document with the decorations on top
  */
@@ -993,6 +1013,7 @@ void draw(struct cairofb *cairofb,
 			FALSE, FALSE, TRUE);
 	}
 
+	helplabel(position, output);
 	pagenumber(position, output);
 	showmode(position, output);
 	showfit(position, output);
@@ -1250,6 +1271,7 @@ int main(int argn, char *argv[]) {
 	output.showmode = TRUE;
 	output.showfit = TRUE;
 	output.filename = TRUE;
+	output.help[0] = '\0';
 
 	cairo_select_font_face(output.cr, "mono",
 	                CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
