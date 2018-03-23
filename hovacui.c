@@ -852,7 +852,7 @@ int gotopage(int c, struct position *position, struct output *output) {
 
 	n = atoi(gotostring) - 1;
 
-	if (n == position->npage) {
+	if (n == position->npage || gotostring[0] == '\0') {
 		gotostring[0] = '\0';
 		return WINDOW_DOCUMENT;
 	}
