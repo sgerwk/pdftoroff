@@ -244,7 +244,9 @@ int readpage(struct position *position, struct output *output) {
 	}
 
 	freeglistrectangles(output->found);
-	output->found = poppler_page_find_text(position->page, output->search);
+	if (output->search[0] != '\0')
+		output->found =
+			poppler_page_find_text(position->page, output->search);
 
 	return 0;
 }
