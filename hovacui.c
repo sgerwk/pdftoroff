@@ -14,9 +14,8 @@
  * - key to reset viewmode and fit direction to initial values
  * - search:
  *	+ dialog (+paste)
- *	+ poppler_page_find_text()
- *	+ move to the textblock that contains the string,
- *	  set scrolly so that the string is at the center
+ *	+ move to the textblock that contains the next rectangle in
+ *	  output->found and set scrollx/y so that the string is at the center
  * - history of positions
  * - set output->redraw to FALSE when not moving
  * - note that horizontal fitting is intended for horizontal scripts,
@@ -137,6 +136,10 @@ struct output {
 
 	/* size of font */
 	cairo_font_extents_t extents;
+
+	/* search */
+	char search[100];
+	GList *found;
 };
 
 /*
@@ -189,6 +192,16 @@ PopplerRectangle *pagerectangle(PopplerPage *page) {
 }
 
 /*
+ * free a glist of rectangles
+ */
+void freeglistrectangles(GList *list) {
+	GList *l;
+	for (l = list; l != NULL; l = l->next)
+		poppler_rectangle_free((PopplerRectangle *) l->data);
+	g_list_free(list);
+}
+
+/*
  * read the current page
  */
 int readpage(struct position *position, struct output *output) {
@@ -229,6 +242,9 @@ int readpage(struct position *position, struct output *output) {
 		position->textarea = rectanglelist_new(1);
 		rectanglelist_add(position->textarea, position->boundingbox);
 	}
+
+	freeglistrectangles(output->found);
+	output->found = poppler_page_find_text(position->page, output->search);
 
 	return 0;
 }
@@ -1011,6 +1027,30 @@ void filename(struct position *position, struct output *output) {
 }
 
 /*
+ * draw a list of rectangles in pdf points
+ */
+void selection(struct position *position, struct output *output, GList *s) {
+	double width, height;
+	GList *l;
+	PopplerRectangle *r;
+
+	cairo_save(output->cr);
+	cairo_scale(output->cr, 1, -1);
+	poppler_page_get_size(position->page, &width, &height);
+	cairo_translate(output->cr, 0, -height);
+	cairo_set_source_rgb(output->cr, 0.3, 0.0, 0.3);
+	cairo_set_operator(output->cr, CAIRO_OPERATOR_DIFFERENCE);
+	for (l = s; l != NULL; l = l->next) {
+		r = (PopplerRectangle *) l->data;
+		cairo_rectangle(output->cr,
+			r->x1, r->y1, r->x2 - r->x1, r->y2 - r->y1);
+		cairo_fill(output->cr);
+	}
+	cairo_stroke(output->cr);
+	cairo_restore(output->cr);
+}
+
+/*
  * draw the document with the decorations on top
  */
 void draw(struct cairofb *cairofb,
@@ -1025,6 +1065,7 @@ void draw(struct cairofb *cairofb,
 		rectangle_draw(output->cr,
 			&position->textarea->rect[position->box],
 			FALSE, FALSE, TRUE);
+		selection(position, output, output->found);
 	}
 
 	helplabel(position, output);
@@ -1287,6 +1328,8 @@ int main(int argn, char *argv[]) {
 	output.filename = TRUE;
 	strncpy(output.help, "press 'h' for help", 79);
 	output.help[79] = '\0';
+	strcpy(output.search, ""); // "they"
+	output.found = NULL;
 
 	cairo_select_font_face(output.cr, "mono",
 	                CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
