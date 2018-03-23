@@ -8,6 +8,7 @@
  * - separate file for gui stuff
  * - improve column-sorting rectangles (to be done in pdfrects.c)
  * - document keys 'e' and 'c' in goto page dialog
+ * - gotopage dialog: keyup and down for increase/decrease, page for +-10
  * - help as a decoration, with string(s) in output->help
  * - decoration for filename, shown only at start and with 'l'
  * - cache the textarea list of pages already scanned
@@ -870,14 +871,14 @@ int selectwindow(int window, int c,
 /*
  * show an arbitrary label
  */
-void label(struct output *output, char *string, double bottom) {
+void label(struct output *output, char *string, int bottom) {
 	double width, x, y;
 
 	cairo_identity_matrix(output->cr);
 
 	width = strlen(string) * output->extents.max_x_advance;
 	x = (output->dest.x2 + output->dest.x1) / 2 - width / 2;
-	y = output->dest.y2 - bottom - output->extents.height;
+	y = output->dest.y2 - bottom * (output->extents.height + 20.0 + 2.0);
 
 	cairo_set_source_rgb(output->cr, 0, 0, 0);
 	cairo_rectangle(output->cr,
@@ -903,7 +904,7 @@ void pagenumber(struct position *position, struct output *output) {
 		return;
 
 	sprintf(s, "page %d", position->npage + 1);
-	label(output, s, 20.0);
+	label(output, s, 2);
 
 	if (output->timeout == 0)
 		output->timeout = 1200;
@@ -925,7 +926,7 @@ void showmode(struct position *position, struct output *output) {
 		return;
 
 	sprintf(s, "viewmode: %s", modes[output->viewmode]);
-	label(output, s, 60.0);
+	label(output, s, 3);
 
 	if (output->timeout == 0)
 		output->timeout = 1200;
@@ -947,7 +948,7 @@ void showfit(struct position *position, struct output *output) {
 		return;
 
 	sprintf(s, "fit: %s", fits[output->fit]);
-	label(output, s, 100.0);
+	label(output, s, 4);
 
 	if (output->timeout == 0)
 		output->timeout = 1200;
