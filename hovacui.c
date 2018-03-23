@@ -10,7 +10,6 @@
  * - document keys 'e' and 'c' in goto page dialog
  * - gotopage dialog: keyup and down for increase/decrease, page for +-10
  * - help as a decoration, with string(s) in output->help
- * - decoration for filename, shown only at start and with 'l'
  * - cache the textarea list of pages already scanned
  * - save last position(s) to $(HOME)/.pdfpositions
  * - include images (in pdfrects.c)
@@ -136,6 +135,7 @@ struct output {
 	int pagenumber;
 	int showmode;
 	int showfit;
+	int filename;
 
 	/* size of font */
 	cairo_font_extents_t extents;
@@ -146,6 +146,7 @@ struct output {
  */
 struct position {
 	/* the poppler document */
+	char *filename;
 	PopplerDocument *doc;
 
 	/* the current page, its bounding box, the total number of pages */
@@ -599,6 +600,7 @@ int document(int c, struct position *position, struct output *output) {
 		output->pagenumber = TRUE;
 		output->showmode = TRUE;
 		output->showfit = TRUE;
+		output->filename = TRUE;
 		break;
 	default:
 		;
@@ -957,6 +959,24 @@ void showfit(struct position *position, struct output *output) {
 }
 
 /*
+ * show the filename
+ */
+void filename(struct position *position, struct output *output) {
+	char s[100];
+
+	if (! output->filename)
+		return;
+
+	sprintf(s, "%s", position->filename);
+	label(output, s, 5);
+
+	if (output->timeout == 0)
+		output->timeout = 1200;
+	output->filename = FALSE;
+}
+
+
+/*
  * draw the document with the decorations on top
  */
 void draw(struct cairofb *cairofb,
@@ -976,6 +996,7 @@ void draw(struct cairofb *cairofb,
 	pagenumber(position, output);
 	showmode(position, output);
 	showfit(position, output);
+	filename(position, output);
 
 	cairofb_flush(cairofb);
 }
@@ -1062,7 +1083,7 @@ void usage() {
 int main(int argn, char *argv[]) {
 	char configfile[4096], configline[1000], s[1000];
 	FILE *config;
-	char *filename, *uri;
+	char *uri;
 	double d;
 	char *fbdev = "/dev/fb0";
 	struct cairofb *cairofb;
@@ -1164,11 +1185,11 @@ int main(int argn, char *argv[]) {
 		usage();
 		exit(EXIT_FAILURE);
 	}
-	filename = argv[optind];
+	position.filename = argv[optind];
 
 				/* open input file */
 
-	uri = filenametouri(filename);
+	uri = filenametouri(position.filename);
 	if (uri == NULL)
 		exit(EXIT_FAILURE);
 	position.doc = poppler_document_new_from_file(uri, NULL, NULL);
@@ -1228,6 +1249,7 @@ int main(int argn, char *argv[]) {
 	output.pagenumber = TRUE;
 	output.showmode = TRUE;
 	output.showfit = TRUE;
+	output.filename = TRUE;
 
 	cairo_select_font_face(output.cr, "mono",
 	                CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
