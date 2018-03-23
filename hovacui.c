@@ -8,6 +8,8 @@
  * - separate file for gui stuff
  * - improve column-sorting rectangles (to be done in pdfrects.c)
  * - document keys 'e' and 'c' in goto page dialog
+ * - help as a decoration, with string(s) in output->help
+ * - decoration for filename, shown only at start and with 'l'
  * - cache the textarea list of pages already scanned
  * - save last position(s) to $(HOME)/.pdfpositions
  * - include images (in pdfrects.c)
