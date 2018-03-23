@@ -7,7 +7,7 @@
  * - man page
  * - separate file for gui stuff
  * - improve column-sorting rectangles (to be done in pdfrects.c)
- * - key for filling the gotopage label with current page
+ * - document keys 'e' and 'c' in goto page dialog
  * - cache the textarea list of pages already scanned
  * - save last position(s) to $(HOME)/.pdfpositions
  * - include images (in pdfrects.c)
@@ -789,6 +789,10 @@ int gotopage(int c, struct position *position, struct output *output) {
 
 	if (c != KEY_ENTER && c != '\n' &&
 	   (c != 'e' || gotostring[0] != '\0')) {
+		if (c == 'c') {
+			sprintf(gotostring, "%d", position->npage + 1);
+			c = KEY_REDRAW;
+		}
 		dialog(c, output, "go to page: ", gotostring, "");
 		output->flush = TRUE;
 		output->pagenumber = TRUE;
