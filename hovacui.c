@@ -12,10 +12,12 @@
  * - include images (in pdfrects.c)
  * - utf8 in dialog()
  * - key to reset viewmode and fit direction to initial values
- * - search:
- *	+ dialog (+paste)
- *	+ move to the textblock that contains the next rectangle in
- *	  output->found and set scrollx/y so that the string is at the center
+ * - search(): utf8, paste, go the next occurrence
+ * - functions for moving to the next/previous match of a search:
+ *   find the textbox that contains the next rectangle in output->found and set
+ *   scrollx/y so that the string is at the center; if output->found is NULL,
+ *   move to the next page; stop when coming back to the same page
+ * - keys 'n' and 'p ' for moving to the next/previous match
  * - history of positions
  * - set output->redraw to FALSE when not moving
  * - note that horizontal fitting is intended for horizontal scripts,
@@ -244,9 +246,8 @@ int readpage(struct position *position, struct output *output) {
 	}
 
 	freeglistrectangles(output->found);
-	if (output->search[0] != '\0')
-		output->found =
-			poppler_page_find_text(position->page, output->search);
+	output->found = output->search[0] == '\0' ?
+		NULL : poppler_page_find_text(position->page, output->search);
 
 	return 0;
 }
@@ -558,6 +559,9 @@ int document(int c, struct position *position, struct output *output) {
 	case 'g':
 		output->redraw = FALSE;
 		return WINDOW_GOTOPAGE;
+	case '/':
+		output->redraw = FALSE;
+		return WINDOW_SEARCH;
 	case KEY_DOWN:
 		scrolldown(position, output);
 		break;
@@ -825,7 +829,7 @@ int gotopage(int c, struct position *position, struct output *output) {
 	char *nopage = "[no such page]";
 	int n;
 
-	if (c == '\033' || c == 'q') {
+	if (c == '\033' || c == KEY_EXIT || c == 'q') {
 		gotostring[0] = '\0';
 		return WINDOW_DOCUMENT;
 	}
@@ -889,6 +893,33 @@ int gotopage(int c, struct position *position, struct output *output) {
 }
 
 /*
+ * dialog for a search keyword
+ */
+int search(int c, struct position *position, struct output *output) {
+	static char searchstring[100] = "";
+	char *prompt = "find: ";
+
+	(void) position;
+
+	if (c == '\033' || c == KEY_EXIT) {
+		searchstring[0] = '\0';
+		strcpy(output->search, searchstring);
+		return WINDOW_DOCUMENT;
+	}
+
+	if (c == KEY_ENTER || c == '\n') {
+		strcpy(output->search, searchstring);
+		searchstring[0] = '\0';
+		return WINDOW_DOCUMENT;
+	}
+
+	dialog(c, output, prompt, searchstring, "", NULL);
+	output->flush = TRUE;
+	output->pagenumber = TRUE;
+	return WINDOW_SEARCH;
+}
+
+/*
  * window selector
  */
 int selectwindow(int window, int c,
@@ -901,7 +932,7 @@ int selectwindow(int window, int c,
 	case WINDOW_GOTOPAGE:
 		return gotopage(c, position, output);
 	case WINDOW_SEARCH:
-		return WINDOW_DOCUMENT;
+		return search(c, position, output);
 	default:
 		return WINDOW_DOCUMENT;
 	}
