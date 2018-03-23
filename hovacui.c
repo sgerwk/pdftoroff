@@ -748,14 +748,12 @@ void dialog(int c, struct output *output,
 			return;
 		current[l - 1] = '\0';
 	}
-	else if (c >= '0' && c <= '9') {
+	else if (c != KEY_INIT && c != KEY_REDRAW) {
 		if (l > 30)
 			return;
 		current[l] = c;
 		current[l + 1] = '\0';
 	}
-	else if (c != KEY_INIT && c != KEY_REDRAW)
-		return;
 
 	cairo_identity_matrix(output->cr);
 
@@ -778,6 +776,21 @@ void dialog(int c, struct output *output,
 }
 
 /*
+ * keys always allowed for a dialog
+ */
+int keydialog(int c) {
+	return c == KEY_INIT || c == KEY_REDRAW ||
+		c == KEY_BACKSPACE || c == KEY_DC;
+}
+
+/*
+ * allowed input for a numeric dialog
+ */
+int keynumeric(int c) {
+	return (c >= '0' && c <= '9') || keydialog(c);
+}
+
+/*
  * dialog for a page number
  */
 int gotopage(int c, struct position *position, struct output *output) {
@@ -793,6 +806,9 @@ int gotopage(int c, struct position *position, struct output *output) {
 			sprintf(gotostring, "%d", position->npage + 1);
 			c = KEY_REDRAW;
 		}
+		else if (! keynumeric(c))
+			return WINDOW_GOTOPAGE;
+
 		dialog(c, output, "go to page: ", gotostring, "");
 		output->flush = TRUE;
 		output->pagenumber = TRUE;
