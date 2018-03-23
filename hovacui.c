@@ -7,8 +7,7 @@
  * - man page
  * - separate file for gui stuff
  * - improve column-sorting rectangles (to be done in pdfrects.c)
- * - briefly show the new mode after 'm' or 'f'
- * - key to move to next/previous block of text
+ * - key for filling the gotopage label with current page
  * - cache the textarea list of pages already scanned
  * - save last position(s) to $(HOME)/.pdfpositions
  * - include images (in pdfrects.c)
@@ -132,6 +131,8 @@ struct output {
 
 	/* decorations */
 	int pagenumber;
+	int showmode;
+	int showfit;
 
 	/* size of font */
 	cairo_font_extents_t extents;
@@ -591,7 +592,10 @@ int document(int c, struct position *position, struct output *output) {
 		position->scrolly = 0;
 		break;
 	case 'l':
+		output->timeout = 3000;
 		output->pagenumber = TRUE;
+		output->showmode = TRUE;
+		output->showfit = TRUE;
 		break;
 	default:
 		;
@@ -864,17 +868,62 @@ void label(struct output *output, char *string, double bottom) {
  */
 void pagenumber(struct position *position, struct output *output) {
 	static int prev = -1;
-	char pagenum[100];
+	char s[100];
 
 	if (position->npage == prev && ! output->pagenumber)
 		return;
 
-	sprintf(pagenum, "page %d", position->npage + 1);
-	label(output, pagenum, 20.0);
+	sprintf(s, "page %d", position->npage + 1);
+	label(output, s, 20.0);
 
-	output->timeout = TRUE;
+	if (output->timeout == 0)
+		output->timeout = 1200;
 	output->pagenumber = FALSE;
 	prev = position->npage;
+}
+
+/*
+ * show the current mode
+ */
+void showmode(struct position *position, struct output *output) {
+	static int prev = -1;
+	char s[100];
+	char *modes[] = {"textarea", "boundingbox", "page"};
+
+	(void) position;
+
+	if (output->viewmode == prev && ! output->showmode)
+		return;
+
+	sprintf(s, "viewmode: %s", modes[output->viewmode]);
+	label(output, s, 60.0);
+
+	if (output->timeout == 0)
+		output->timeout = 1200;
+	output->showmode = FALSE;
+	prev = output->viewmode;
+}
+
+/*
+ * show the current fit direction
+ */
+void showfit(struct position *position, struct output *output) {
+	static int prev = -1;
+	char s[100];
+	char *fits[] = {"both", "horizontal", "vertical"};
+
+	(void) position;
+
+	if (output->fit == prev && ! output->showfit)
+		return;
+
+	sprintf(s, "fit: %s", fits[output->fit]);
+	label(output, s, 100.0);
+
+	if (output->timeout == 0)
+		output->timeout = 1200;
+	output->showfit = FALSE;
+	prev = output->fit;
 }
 
 /*
@@ -895,6 +944,8 @@ void draw(struct cairofb *cairofb,
 	}
 
 	pagenumber(position, output);
+	showmode(position, output);
+	showfit(position, output);
 
 	cairofb_flush(cairofb);
 }
@@ -905,13 +956,16 @@ void draw(struct cairofb *cairofb,
 int input(int timeout) {
 	fd_set fds;
 	int max, ret;
-	struct timeval tv = {1, 400};
+	struct timeval tv;
 
 	FD_ZERO(&fds);
 	FD_SET(STDIN_FILENO, &fds);
 	max = STDIN_FILENO;
 
-	ret = select(max + 1, &fds, NULL, NULL, timeout ? &tv : NULL);
+	tv.tv_sec = timeout / 1000;
+	tv.tv_usec = timeout % 1000;
+
+	ret = select(max + 1, &fds, NULL, NULL, timeout != 0 ? &tv : NULL);
 
 	if (ret == -1) {
 		if (vt_redraw) {
@@ -1140,8 +1194,10 @@ int main(int argn, char *argv[]) {
 	if (output.minwidth == -1)
 		output.minwidth = (cairofb->width - 2 * margin) / 2;
 
-	output.timeout = TRUE;
+	output.timeout = 2000;
 	output.pagenumber = TRUE;
+	output.showmode = TRUE;
+	output.showfit = TRUE;
 
 	cairo_select_font_face(output.cr, "mono",
 	                CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
@@ -1161,6 +1217,7 @@ int main(int argn, char *argv[]) {
 					/* read input */
 
 		c = input(output.timeout);
+		output.timeout = 0;
 		if (vt_suspend || c == KEY_SIGNAL)
 			continue;
 		if (c == KEY_REDRAW || c == KEY_TIMEOUT)
