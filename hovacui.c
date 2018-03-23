@@ -7,9 +7,6 @@
  * - man page
  * - separate file for gui stuff
  * - improve column-sorting rectangles (to be done in pdfrects.c)
- * - document keys 'e' and 'c' in goto page dialog
- * - gotopage dialog: keyup and down for increase/decrease, page for +-10
- * - help as a decoration, with string(s) in output->help
  * - cache the textarea list of pages already scanned
  * - save last position(s) to $(HOME)/.pdfpositions
  * - include images (in pdfrects.c)
@@ -136,7 +133,7 @@ struct output {
 	int showmode;
 	int showfit;
 	int filename;
-	char help[50];
+	char help[80];
 
 	/* size of font */
 	cairo_font_extents_t extents;
@@ -806,26 +803,46 @@ int keynumeric(int c) {
 int gotopage(int c, struct position *position, struct output *output) {
 	static char gotostring[100] = "";
 	char *prompt = "go to page: ";
-	char *helplabel = "c: current, e: end";
+	char *helplabel = "c=current e=end up=previous down=next enter=go";
 	char *nopage = "[no such page]";
 	int n;
 
-	if (c == '\033' || c == 'q')
+	if (c == '\033' || c == 'q') {
+		gotostring[0] = '\0';
 		return WINDOW_DOCUMENT;
+	}
 
 	if (c != KEY_ENTER && c != '\n') {
-		strncpy(output->help, helplabel, 40);
+		strncpy(output->help, helplabel, 79);
 
-		if (c == 'c') {
+		switch (c) {
+		case 'c':
 			sprintf(gotostring, "%d", position->npage + 1);
 			c = KEY_REDRAW;
-		}
-		else if (c == 'e') {
+			break;
+		case 'e':
 			sprintf(gotostring, "%d", position->totpages);
 			c = KEY_REDRAW;
+			break;
+		case KEY_DOWN:
+		case KEY_UP:
+		case KEY_NPAGE:
+		case KEY_PPAGE:
+			n = gotostring[0] == '\0' ?
+				position->npage : atoi(gotostring) - 1;
+			n += c == KEY_UP ? -1 : c == KEY_DOWN ? +1 :
+			     c == KEY_PPAGE ? -10 : +10;
+			if (n < 0)
+				n = 0;
+			if (n >= position->totpages)
+				n = position->totpages - 1;
+			sprintf(gotostring, "%d", n + 1);
+			c = KEY_REDRAW;
+			break;
+		default:
+			if (! keynumeric(c))
+				return WINDOW_GOTOPAGE;
 		}
-		else if (! keynumeric(c))
-			return WINDOW_GOTOPAGE;
 
 		dialog(c, output, prompt, gotostring, "", NULL);
 		output->flush = TRUE;
@@ -833,23 +850,20 @@ int gotopage(int c, struct position *position, struct output *output) {
 		return WINDOW_GOTOPAGE;
 	}
 
-	if (c != 'e' && gotostring[0] == '\0')
-		return WINDOW_DOCUMENT;
+	n = atoi(gotostring) - 1;
 
-	n = c == 'e' ? position->totpages : atoi(gotostring);
-
-	if (n == position->npage + 1) {
+	if (n == position->npage) {
 		gotostring[0] = '\0';
 		return WINDOW_DOCUMENT;
 	}
 
-	if (n < 1 || n > position->totpages) {
-		dialog(KEY_INIT, output, prompt, gotostring, nopage, NULL);
+	if (n < 0 || n >= position->totpages) {
+		dialog(KEY_REDRAW, output, prompt, gotostring, nopage, NULL);
 		output->flush = TRUE;
 		return WINDOW_GOTOPAGE;
 	}
 
-	position->npage = n - 1;
+	position->npage = n;
 	readpage(position, output);
 	firsttextbox(position, output);
 	gotostring[0] = '\0';
@@ -1272,6 +1286,7 @@ int main(int argn, char *argv[]) {
 	output.showfit = TRUE;
 	output.filename = TRUE;
 	output.help[0] = '\0';
+	output.help[79] = '\0';
 
 	cairo_select_font_face(output.cr, "mono",
 	                CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
