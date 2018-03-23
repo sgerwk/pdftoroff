@@ -1285,7 +1285,7 @@ int main(int argn, char *argv[]) {
 	output.showmode = TRUE;
 	output.showfit = TRUE;
 	output.filename = TRUE;
-	output.help[0] = '\0';
+	strncpy(output.help, "press 'h' for help", 79);
 	output.help[79] = '\0';
 
 	cairo_select_font_face(output.cr, "mono",
