@@ -12,12 +12,8 @@
  * - include images (in pdfrects.c)
  * - utf8 in dialog()
  * - key to reset viewmode and fit direction to initial values
- * - search(): utf8, paste, go the next occurrence
- * - functions for moving to the next/previous match of a search:
- *   find the textbox that contains the next rectangle in output->found and set
- *   scrollx/y so that the string is at the center; if output->found is NULL,
- *   move to the next page; stop when coming back to the same page
- * - keys 'n' and 'p ' for moving to the next/previous match
+ * - search(): utf8, paste
+ * - key 'p' for moving to the previous match
  * - history of positions
  * - set output->redraw to FALSE when not moving
  * - note that horizontal fitting is intended for horizontal scripts,
@@ -204,12 +200,23 @@ void freeglistrectangles(GList *list) {
 }
 
 /*
- * read the current page
+ * read the current page without its textarea
  */
-int readpage(struct position *position, struct output *output) {
+int readpageraw(struct position *position, struct output *output) {
 	position->page =
 		poppler_document_get_page(position->doc, position->npage);
 
+	freeglistrectangles(output->found);
+	output->found = output->search[0] == '\0' ?
+		NULL : poppler_page_find_text(position->page, output->search);
+
+	return 0;
+}
+
+/*
+ * determine the textarea of the current page
+ */
+int textarea(struct position *position, struct output *output) {
 	rectanglelist_free(position->textarea);
 	poppler_rectangle_free(position->boundingbox);
 
@@ -245,10 +252,15 @@ int readpage(struct position *position, struct output *output) {
 		rectanglelist_add(position->textarea, position->boundingbox);
 	}
 
-	freeglistrectangles(output->found);
-	output->found = output->search[0] == '\0' ?
-		NULL : poppler_page_find_text(position->page, output->search);
+	return 0;
+}
 
+/*
+ * read the current page
+ */
+int readpage(struct position *position, struct output *output) {
+	readpageraw(position, output);
+	textarea(position, output);
 	return 0;
 }
 
@@ -527,6 +539,87 @@ int scrollleft(struct position *position, struct output *output) {
 }
 
 /*
+ * go to the next match in the page, if any
+ */
+int nextpagematch(struct position *position, struct output *output,
+		gboolean inscreen) {
+	int b;
+	double width, height, prev;
+	PopplerRectangle *t, *r;
+	GList *l;
+
+	if (output->found == NULL)
+		return -1;
+
+	poppler_page_get_size(position->page, &width, &height);
+	for (b = position->box; b < position->textarea->num; b++) {
+		t = &position->textarea->rect[b];
+		for (l = output->found; l != NULL; l = l->next) {
+			r = poppler_rectangle_copy(l->data);
+			prev = r->y1;
+			r->y1 = height - r->y2;
+			r->y2 = height - prev;
+			if (rectangle_contain(t, r) &&
+			    (inscreen ||
+			     xdoctoscreen(output, r->x1) > output->dest.x2 ||
+			     ydoctoscreen(output, r->y1) > output->dest.y2)) {
+				poppler_rectangle_free(r);
+
+				position->box = b;
+				toptextbox(position, output);
+				moveto(position, output);
+				if (output->fit & 0x2)
+					position->scrollx = r->x1 - t->x1;
+				if (output->fit & 0x1)
+					position->scrolly = r->y1 - t->y1;
+				adjustscroll(position, output);
+				return 0;
+			}
+			poppler_rectangle_free(r);
+		}
+		inscreen = TRUE;
+	}
+
+	return -1;
+}
+
+/*
+ * go to the next match, if any
+ */
+int nextmatch(struct position *position, struct output *output) {
+	int n;
+	struct position scan;
+	gboolean inscreen;
+
+	freeglistrectangles(output->found);
+	output->found = NULL;
+	if (output->search[0] == '\0')
+		return -2;
+
+	moveto(position, output);
+	inscreen = FALSE;
+
+	scan = *position;
+	output->found = poppler_page_find_text(scan.page, output->search);
+	for (n = 0; n < scan.totpages + 1; n++) {
+		if (! nextpagematch(&scan, output, inscreen)) {
+			*position = scan;
+			return 0;
+		}
+		inscreen = TRUE;
+		scan.npage = (scan.npage + 1) % scan.totpages;
+		readpageraw(&scan, output);
+		if (output->found == NULL)
+			continue;
+		scan.textarea = NULL; // otherwise position->textarea is freed
+		textarea(&scan, output);
+		scan.box = 0;
+	}
+
+	return -1;
+}
+
+/*
  * check whether the bounding box is all in the screen
  */
 int boundingboxinscreen(struct position *position, struct output *output) {
@@ -562,6 +655,9 @@ int document(int c, struct position *position, struct output *output) {
 	case '/':
 		output->redraw = FALSE;
 		return WINDOW_SEARCH;
+	case 'n':
+		nextmatch(position, output);
+		break;
 	case KEY_DOWN:
 		scrolldown(position, output);
 		break;
@@ -899,8 +995,6 @@ int search(int c, struct position *position, struct output *output) {
 	static char searchstring[100] = "";
 	char *prompt = "find: ";
 
-	(void) position;
-
 	if (c == '\033' || c == KEY_EXIT) {
 		searchstring[0] = '\0';
 		strcpy(output->search, searchstring);
@@ -910,12 +1004,13 @@ int search(int c, struct position *position, struct output *output) {
 	if (c == KEY_ENTER || c == '\n') {
 		strcpy(output->search, searchstring);
 		searchstring[0] = '\0';
+		if (nextmatch(position, output) == -1)
+			strcpy(output->help, "no match");
 		return WINDOW_DOCUMENT;
 	}
 
 	dialog(c, output, prompt, searchstring, "", NULL);
 	output->flush = TRUE;
-	output->pagenumber = TRUE;
 	return WINDOW_SEARCH;
 }
 
