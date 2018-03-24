@@ -1003,6 +1003,7 @@ int gotopage(int c, struct position *position, struct output *output) {
 int search(int c, struct position *position, struct output *output) {
 	static char searchstring[100] = "";
 	char *prompt = "find: ";
+	char *error = NULL;
 
 	if (c == '\033' || c == KEY_EXIT) {
 		searchstring[0] = '\0';
@@ -1012,14 +1013,15 @@ int search(int c, struct position *position, struct output *output) {
 
 	if (c == KEY_ENTER || c == '\n') {
 		strcpy(output->search, searchstring);
-		searchstring[0] = '\0';
-		if (firstmatch(position, output) == -1)
-			strcpy(output->help, "no match");
-		return WINDOW_DOCUMENT;
+		if (firstmatch(position, output) != -1) {
+			searchstring[0] = '\0';
+			return WINDOW_DOCUMENT;
+		}
+		c = KEY_REDRAW;
+		error = "[no match]";
 	}
 
-	dialog(c, output, prompt, searchstring, "", NULL);
-	output->flush = TRUE;
+	dialog(c, output, prompt, searchstring, error, NULL);
 	return WINDOW_SEARCH;
 }
 
