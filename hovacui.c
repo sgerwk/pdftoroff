@@ -24,6 +24,9 @@
  * - man: KEY_LEFT and KEY_RIGHT work as next/prev box in horizontal fit, but
  *   they are regular scroll keys in vertical fit; and the other way around
  * - i18n
+ * - annotations and links
+ * - x11
+ * - avoid repeated operations (finding textarea, drawing, flushing)
  */
 
 /*
