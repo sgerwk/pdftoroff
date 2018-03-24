@@ -569,9 +569,9 @@ int nextpagematch(struct position *position, struct output *output,
 				toptextbox(position, output);
 				moveto(position, output);
 				if (output->fit & 0x2)
-					position->scrollx = r->x1 - t->x1;
+					position->scrollx = r->x1 - t->x1 - 40;
 				if (output->fit & 0x1)
-					position->scrolly = r->y1 - t->y1;
+					position->scrolly = r->y1 - t->y1 - 40;
 				adjustscroll(position, output);
 				return 0;
 			}
@@ -584,12 +584,12 @@ int nextpagematch(struct position *position, struct output *output,
 }
 
 /*
- * go to the next match, if any
+ * go to the first match in or outside the part of the textbox in the screen
  */
-int nextmatch(struct position *position, struct output *output) {
+int gotomatch(struct position *position, struct output *output,
+		gboolean inscreen) {
 	int n;
 	struct position scan;
-	gboolean inscreen;
 
 	freeglistrectangles(output->found);
 	output->found = NULL;
@@ -597,7 +597,6 @@ int nextmatch(struct position *position, struct output *output) {
 		return -2;
 
 	moveto(position, output);
-	inscreen = FALSE;
 
 	scan = *position;
 	output->found = poppler_page_find_text(scan.page, output->search);
@@ -617,6 +616,16 @@ int nextmatch(struct position *position, struct output *output) {
 	}
 
 	return -1;
+}
+
+/*
+ * go to the first or the next match, if any
+ */
+int firstmatch(struct position *position, struct output *output) {
+	return gotomatch(position, output, TRUE);
+}
+int nextmatch(struct position *position, struct output *output) {
+	return gotomatch(position, output, FALSE);
 }
 
 /*
@@ -1004,7 +1013,7 @@ int search(int c, struct position *position, struct output *output) {
 	if (c == KEY_ENTER || c == '\n') {
 		strcpy(output->search, searchstring);
 		searchstring[0] = '\0';
-		if (nextmatch(position, output) == -1)
+		if (firstmatch(position, output) == -1)
 			strcpy(output->help, "no match");
 		return WINDOW_DOCUMENT;
 	}
