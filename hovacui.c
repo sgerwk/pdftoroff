@@ -13,7 +13,6 @@
  * - utf8 in dialog()
  * - key to reset viewmode and fit direction to initial values
  * - search(): utf8, paste
- * - key 'p' for moving to the previous match
  * - history of positions
  * - set output->redraw to FALSE when not moving
  * - note that horizontal fitting is intended for horizontal scripts,
@@ -140,6 +139,7 @@ struct output {
 
 	/* search */
 	char search[100];
+	gboolean forward;
 	GList *found;
 };
 
@@ -303,6 +303,16 @@ double yscreentodocdistance(struct output *output, double y) {
 	double xx = 0.0, yy = y;
 	cairo_device_to_user_distance(output->cr, &xx, &yy);
 	return yy;
+}
+
+/*
+ * size of destination rectangle translated to document coordinates
+ */
+double xdestsizetodoc(struct output *output) {
+	return xscreentodocdistance(output, output->dest.x2 - output->dest.x1);
+}
+double ydestsizetodoc(struct output *output) {
+	return yscreentodocdistance(output, output->dest.y2 - output->dest.y1);
 }
 
 /*
@@ -542,47 +552,94 @@ int scrollleft(struct position *position, struct output *output) {
 }
 
 /*
+ * check whether a rectangle is before/after the screen
+ */
+int outscreen(struct output *output, PopplerRectangle *r, gboolean after) {
+	if (after)
+		return xdoctoscreen(output, r->x1) > output->dest.x2 ||
+		       ydoctoscreen(output, r->y1) > output->dest.y2;
+	else
+		return xdoctoscreen(output, r->x2) < output->dest.x1 ||
+		       ydoctoscreen(output, r->y2) < output->dest.y1;
+}
+
+/*
+ * position a rectangle in the current textbox at the top or bottom of screen
+ */
+void scrolltorectangle(struct position *position, struct output *output,
+		PopplerRectangle *r, gboolean top) {
+	PopplerRectangle *t;
+
+	t = &position->textarea->rect[position->box];
+	toptextbox(position, output);
+	moveto(position, output);
+	if (output->fit & 0x2)
+		position->scrollx = top ?
+			r->x1 - t->x1 - 40 :
+			r->x2 - t->x1 + 40 - xdestsizetodoc(output);
+	if (output->fit & 0x1)
+		position->scrolly = top ?
+			r->y1 - t->y1 - 40 :
+			r->y2 - t->y1 + 40 - ydestsizetodoc(output);
+	adjustscroll(position, output);
+}
+
+/*
  * go to the next match in the page, if any
  */
 int nextpagematch(struct position *position, struct output *output,
 		gboolean inscreen) {
+	gboolean forward;
 	int b;
+	int end, step;
 	double width, height, prev;
 	PopplerRectangle *t, *r;
-	GList *l;
+	GList *o, *l;
 
 	if (output->found == NULL)
 		return -1;
 
+	forward = output->forward;
+	end = forward ? position->textarea->num : -1;
+	step = forward ? +1 : -1;
+
+	if (forward)
+		o = output->found;
+	else {
+		o = g_list_copy(output->found);
+		o = g_list_reverse(o);
+	}
+
 	poppler_page_get_size(position->page, &width, &height);
-	for (b = position->box; b < position->textarea->num; b++) {
+	r = NULL;
+	for (b = position->box; b != end; b += step) {
 		t = &position->textarea->rect[b];
-		for (l = output->found; l != NULL; l = l->next) {
+		for (l = o; l != NULL; l = l->next) {
+			poppler_rectangle_free(r);
 			r = poppler_rectangle_copy(l->data);
 			prev = r->y1;
 			r->y1 = height - r->y2;
 			r->y2 = height - prev;
-			if (rectangle_contain(t, r) &&
-			    (inscreen ||
-			     xdoctoscreen(output, r->x1) > output->dest.x2 ||
-			     ydoctoscreen(output, r->y1) > output->dest.y2)) {
-				poppler_rectangle_free(r);
 
-				position->box = b;
-				toptextbox(position, output);
-				moveto(position, output);
-				if (output->fit & 0x2)
-					position->scrollx = r->x1 - t->x1 - 40;
-				if (output->fit & 0x1)
-					position->scrolly = r->y1 - t->y1 - 40;
-				adjustscroll(position, output);
-				return 0;
-			}
+			if (! rectangle_contain(t, r))
+				continue;
+			if (! inscreen && ! outscreen(output, r, forward))
+				continue;
+
+			position->box = b;
+			scrolltorectangle(position, output, r, forward);
+
 			poppler_rectangle_free(r);
+			if (! forward)
+				g_list_free(o);
+			return 0;
 		}
 		inscreen = TRUE;
 	}
 
+	poppler_rectangle_free(r);
+	if (! forward)
+		g_list_free(o);
 	return -1;
 }
 
@@ -609,20 +666,23 @@ int gotomatch(struct position *position, struct output *output,
 			return 0;
 		}
 		inscreen = TRUE;
-		scan.npage = (scan.npage + 1) % scan.totpages;
+		scan.npage = (scan.npage + (output->forward ? 1 : -1)) %
+				scan.totpages;
+		if (scan.npage == -1)
+			scan.npage = scan.totpages - 1;
 		readpageraw(&scan, output);
 		if (output->found == NULL)
 			continue;
 		scan.textarea = NULL; // otherwise position->textarea is freed
 		textarea(&scan, output);
-		scan.box = 0;
+		scan.box = output->forward ? 0 : (scan.textarea->num - 1);
 	}
 
 	return -1;
 }
 
 /*
- * go to the first or the next match, if any
+ * go to the first or next match, if any
  */
 int firstmatch(struct position *position, struct output *output) {
 	return gotomatch(position, output, TRUE);
@@ -636,10 +696,10 @@ int nextmatch(struct position *position, struct output *output) {
  */
 int boundingboxinscreen(struct position *position, struct output *output) {
 	if (position->boundingbox->x2 - position->boundingbox->x1 >
-	    xscreentodocdistance(output, output->dest.x2 - output->dest.x1))
+	    xdestsizetodoc(output))
 		return FALSE;
 	if (position->boundingbox->y2 - position->boundingbox->y1 >
-	    yscreentodocdistance(output, output->dest.y2 - output->dest.y1))
+	    ydestsizetodoc(output))
 		return FALSE;
 	return TRUE;
 }
@@ -665,9 +725,13 @@ int document(int c, struct position *position, struct output *output) {
 		output->redraw = FALSE;
 		return WINDOW_GOTOPAGE;
 	case '/':
+	case '?':
+		output->forward = c == '/';
 		output->redraw = FALSE;
 		return WINDOW_SEARCH;
 	case 'n':
+	case 'p':
+		output->forward = c == 'n';
 		nextmatch(position, output);
 		break;
 	case KEY_DOWN:
@@ -850,9 +914,11 @@ int help(int c, struct position *position, struct output *output) {
 		"           textarea, boundingbox, page",
 		"f          change fitting direction:",
 		"           horizontal, vertical, both",
-		"w/W        + or - minimal viewbox width",
+		"w W        + or - minimal viewbox width",
 		"           (determines the maximal zoom)",
 		"g          go to page",
+		"/ ?        search forward or backward",
+		"n p        next or previous search match",
 		"h          help",
 		"q          quit",
 		"",
