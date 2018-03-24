@@ -54,7 +54,12 @@
  * applied to the source in reverse order, this is like first scrolling the
  * document and then mapping position->viewbox onto the top of output->dest
  *
- * the same for position->scrollx
+ * both position->scrollx and position->scrolly are adjusted to avoid parts
+ * outside of the bounding box being displayed, wasting screen space
+ *
+ * all of this is for horizontal fitting mode: vertical fitting mode fits the
+ * viewbox by height, but is otherwise the same; note that the scroll is
+ * relative to the origin of the current textbox
  */
 
 #include <stdlib.h>
