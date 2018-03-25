@@ -81,11 +81,11 @@
  * current textbox to the last of the page, and then in the next page until
  * coming back to the original page
  *
- * matches that are in the current textbox but before its displayed area are
+ * matches that are in the current textbox but before its displayed part are
  * ignored
  *
- * the next match is the same but the scan excludes also matches that are
- * inside the part of the current textbox currently shown
+ * the next match is the same but also excludes matches that are inside the
+ * displayed part of the current textbox
  */
 
 #include <stdlib.h>
@@ -583,15 +583,28 @@ int scrollleft(struct position *position, struct output *output) {
 }
 
 /*
- * check whether a rectangle is before/after the screen
+ * check whether a rectangle is before/after the top/bottom of the screen
  */
-int outscreen(struct output *output, PopplerRectangle *r, gboolean after) {
-	if (after)
-		return xdoctoscreen(output, r->x1) > output->dest.x2 ||
-		       ydoctoscreen(output, r->y1) > output->dest.y2;
-	else
-		return xdoctoscreen(output, r->x2) < output->dest.x1 ||
-		       ydoctoscreen(output, r->y2) < output->dest.y1;
+int relativescreen(struct output *output, PopplerRectangle *r,
+		gboolean inscreen, gboolean after) {
+	double x, y;
+
+	if (after) {
+		x = xdoctoscreen(output, r->x1);
+		y = ydoctoscreen(output, r->y1);
+		if (inscreen)
+			return x >= output->dest.x1 && y >= output->dest.y1;
+		else
+			return x > output->dest.x2 || y > output->dest.y2;
+	}
+	else {
+		x = xdoctoscreen(output, r->x2);
+		y = ydoctoscreen(output, r->y2);
+		if (inscreen)
+			return x <= output->dest.x2 && y <= output->dest.y2;
+		else
+			return x < output->dest.x1 || y < output->dest.y1;
+	}
 }
 
 /*
@@ -619,12 +632,12 @@ void scrolltorectangle(struct position *position, struct output *output,
  * go to the next match in the page, if any
  */
 int nextpagematch(struct position *position, struct output *output,
-		gboolean inscreen) {
+		gboolean inscreen, gboolean first) {
 	gboolean forward;
 	int b;
 	int end, step;
 	double width, height, prev;
-	PopplerRectangle *t, *r;
+	PopplerRectangle *t, r;
 	GList *o, *l;
 
 	if (output->found == NULL)
@@ -642,43 +655,42 @@ int nextpagematch(struct position *position, struct output *output,
 	}
 
 	poppler_page_get_size(position->page, &width, &height);
-	r = NULL;
 	for (b = position->box; b != end; b += step) {
 		t = &position->textarea->rect[b];
 		for (l = o; l != NULL; l = l->next) {
-			poppler_rectangle_free(r);
-			r = poppler_rectangle_copy(l->data);
-			prev = r->y1;
-			r->y1 = height - r->y2;
-			r->y2 = height - prev;
+			r = * (PopplerRectangle *) l->data;
+			prev = r.y1;
+			r.y1 = height - r.y2;
+			r.y2 = height - prev;
 
-			if (! rectangle_contain(t, r))
+			if (! rectangle_contain(t, &r))
 				continue;
-			if (! inscreen && ! outscreen(output, r, forward))
+			if (first &&
+			    ! relativescreen(output, &r, inscreen, forward))
 				continue;
 
 			position->box = b;
-			scrolltorectangle(position, output, r, forward);
+			scrolltorectangle(position, output, &r, forward);
 
-			poppler_rectangle_free(r);
 			if (! forward)
 				g_list_free(o);
 			return 0;
 		}
 		inscreen = TRUE;
+		first = FALSE;
 	}
 
-	poppler_rectangle_free(r);
 	if (! forward)
 		g_list_free(o);
 	return -1;
 }
 
 /*
- * go to the first match in or outside the part of the textbox in the screen
+ * go to the next match, from/after the displayed area of the current textbox
  */
 int gotomatch(struct position *position, struct output *output,
 		gboolean inscreen) {
+	gboolean first;
 	int n;
 	struct position scan;
 
@@ -689,14 +701,16 @@ int gotomatch(struct position *position, struct output *output,
 
 	moveto(position, output);
 
+	first = TRUE;
 	scan = *position;
 	output->found = poppler_page_find_text(scan.page, output->search);
 	for (n = 0; n < scan.totpages + 1; n++) {
-		if (! nextpagematch(&scan, output, inscreen)) {
+		if (! nextpagematch(&scan, output, inscreen, first)) {
 			*position = scan;
 			return 0;
 		}
 		inscreen = TRUE;
+		first = FALSE;
 		scan.npage = (scan.npage + (output->forward ? 1 : -1)) %
 				scan.totpages;
 		if (scan.npage == -1)
