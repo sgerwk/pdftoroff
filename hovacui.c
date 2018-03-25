@@ -84,12 +84,12 @@
  * output->found
  *	the list of rectangles of the search matches in the current page
  *
- * when going to the first match, a scan for the document starts: from the
- * current textbox to the last of the page, and then in the next page until
- * coming back to the original page
+ * the first match is located by scanning the document from the current textbox
+ * to the last of the page, then in the following pages until coming back to
+ * the original page
  *
- * matches that are in the current textbox but before its displayed part are
- * ignored
+ * matches that are in the current textbox but fall before the part of it that
+ * is currently displayed on the screen are ignored
  *
  * the next match is the same but also excludes matches that are inside the
  * displayed part of the current textbox
