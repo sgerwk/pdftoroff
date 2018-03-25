@@ -23,7 +23,13 @@
  * - man: KEY_LEFT and KEY_RIGHT work as next/prev box in horizontal fit, but
  *   they are regular scroll keys in vertical fit; and the other way around
  * - i18n
- * - annotations and links; document difference with search
+ * - annotations and links:
+ *   allow switching to anchor navigation mode, where keyup/keydown move to the
+ *   next anchor (annotation or link) in the current textbox (if any, otherwise
+ *   they scroll as usual); this requires storing the current anchor both for
+ *   its attribute (the text or the target) and for moving to the next; it was
+ *   not needed for search, where the next match is just the first outside the
+ *   area of the current textbox that is currently displayed
  * - how the gui works
  * - x11
  * - avoid repeated operations (finding textarea, drawing, flushing)
