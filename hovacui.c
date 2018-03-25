@@ -23,7 +23,8 @@
  * - man: KEY_LEFT and KEY_RIGHT work as next/prev box in horizontal fit, but
  *   they are regular scroll keys in vertical fit; and the other way around
  * - i18n
- * - annotations and links
+ * - annotations and links; document difference with search
+ * - how the gui works
  * - x11
  * - avoid repeated operations (finding textarea, drawing, flushing)
  */
@@ -58,8 +59,33 @@
  * outside of the bounding box being displayed, wasting screen space
  *
  * all of this is for horizontal fitting mode: vertical fitting mode fits the
- * viewbox by height, but is otherwise the same; note that the scroll is
+ * viewbox by height, but is otherwise the same; in both modes, the scroll is 
  * relative to the origin of the current textbox
+ */
+
+/*
+ * search
+ * ------
+ *
+ * output->search
+ *	the last searched string;
+ *	needed to highlight the matches when switching pages
+ *
+ * output->forward
+ *	whether to move forward or backward between search matches
+ *
+ * output->found
+ *	the list of rectangles of the search matches in the current page
+ *
+ * when going to the first match, a scan for the document starts: from the
+ * current textbox to the last of the page, and then in the next page until
+ * coming back to the original page
+ *
+ * matches that are in the current textbox but before its displayed area are
+ * ignored
+ *
+ * the next match is the same but the scan excludes also matches that are
+ * inside the part of the current textbox currently shown
  */
 
 #include <stdlib.h>
