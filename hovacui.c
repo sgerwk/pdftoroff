@@ -838,7 +838,7 @@ int document(int c, struct position *position, struct output *output) {
 		position->scrollx = 0;
 		position->scrolly = 0;
 		break;
-	case 'l':
+	case 's':
 		output->timeout = 3000;
 		output->pagenumber = TRUE;
 		output->showmode = TRUE;
@@ -970,6 +970,7 @@ int help(int c, struct position *position, struct output *output) {
 		"g          go to page",
 		"/ ?        search forward or backward",
 		"n p        next or previous search match",
+		"s          show current mode and page",
 		"h          help",
 		"q          quit",
 		"",
