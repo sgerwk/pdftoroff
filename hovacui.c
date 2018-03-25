@@ -5,6 +5,7 @@
  *
  * todo:
  * - man page
+ * - optionally show page as "page x of y"
  * - separate file for gui stuff
  * - improve column-sorting rectangles (to be done in pdfrects.c)
  * - cache the textarea list of pages already scanned
