@@ -147,8 +147,6 @@
 #include "pdfrects.h"
 #include "vt.h"
 
-#define MAX(a,b) (((a) > (b)) ? (a) : (b))
-
 /*
  * the windows
  */
