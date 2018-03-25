@@ -31,7 +31,6 @@
  *   moving to the next; it was not needed for search, where the next match is
  *   just the first outside the area of the current textbox that is currently
  *   displayed
- * - how the gui works
  * - x11
  * - avoid repeated operations (finding textarea, drawing, flushing)
  */
@@ -66,7 +65,7 @@
  * outside of the bounding box being displayed, wasting screen space
  *
  * all of this is for horizontal fitting mode: vertical fitting mode fits the
- * viewbox by height, but is otherwise the same; in both modes, the scroll is 
+ * viewbox by height, but is otherwise the same; in both modes, the scroll is
  * relative to the origin of the current textbox
  */
 
@@ -93,6 +92,40 @@
  *
  * the next match is the same but also excludes matches that are inside the
  * displayed part of the current textbox
+ */
+
+/*
+ * user interface
+ * --------------
+ *
+ * a simple user interface is implemented: windows receive input, labels do
+ * not; both are functions with state stored as static variables or fields in
+ * the output structure
+ *
+ * int windowname(int c, struct position *position, struct output *output);
+ *	the given window is activated (if not already) and receive input c:
+ *	- input is a key, but can also be KEY_INIT or KEY_REDRAW
+ *	- output is the next window to become active
+ *
+ * void label(struct position *position, struct output *output);
+ *	all label functions are called at each step; they have to decide by
+ *	themselves whether to draw something; they choose based on the content
+ *	of the output structure; for example, output->pagenumber makes the
+ *	pagenumber() label draw the page number
+ *
+ * both windows and label draw themselves
+ *
+ * a particular window is document(), which draws nothing and deal with normal
+ * input (when no other window is active)
+ *
+ * for each input (or at input timeout, if output->timeout is true), the active
+ * window is called, then the document is (re)drawn if output->redraw is true,
+ * then the label functions are all called (each decide by itself whether to
+ * draw something)
+ *
+ * this sequence allows for a window to draw itself over the document without
+ * the need to redraw the document first; it however disallows for example to
+ * move the document or to show/remove a label while the window is active
  */
 
 #include <stdlib.h>
@@ -165,7 +198,7 @@ struct output {
 	/* stop input on timeout and return KEY_TIMEOUT */
 	int timeout;
 
-	/* decorations */
+	/* labels */
 	int pagenumber;
 	int showmode;
 	int showfit;
@@ -1312,7 +1345,7 @@ void selection(struct position *position, struct output *output, GList *s) {
 }
 
 /*
- * draw the document with the decorations on top
+ * draw the document with the labels on top
  */
 void draw(struct cairofb *cairofb,
 		struct position *position, struct output *output) {
