@@ -4,6 +4,12 @@
  * view a pdf document, autozooming to the text
  *
  * todo:
+ * - short tutorial at startup: 
+ *   just the concept that zooming is automatic and navigation is via up/down
+ *   and pageup/pagedown, not by left/right; and that 'normal' viewing is by
+ *   pressing 'm' (two more for coming back), and that 'h' is for help on keys;
+ *   space quits the tutorial; it is not shown if the config file contains
+ *   'tutorial 0'
  * - man page
  * - optionally show page as "page x of y"
  * - separate file for gui stuff
