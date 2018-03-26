@@ -4,14 +4,10 @@
  * view a pdf document, autozooming to the text
  *
  * todo:
- * - short tutorial at startup: 
- *   just the concept that zooming is automatic and navigation is via up/down
- *   and pageup/pagedown, not by left/right; and that 'normal' viewing is by
- *   pressing 'm' (two more for coming back), and that 'h' is for help on keys;
- *   space quits the tutorial; it is not shown if the config file contains
- *   'tutorial 0'
  * - man page
  * - optionally show page as "page x of y"
+ * - tutorial at startup:
+ *   replace up/down with left/right if starting in vertical fit mode
  * - separate file for gui stuff
  * - improve column-sorting rectangles (to be done in pdfrects.c)
  * - cache the textarea list of pages already scanned
@@ -159,6 +155,7 @@
 enum window {
 	WINDOW_DOCUMENT,
 	WINDOW_HELP,
+	WINDOW_TUTORIAL,
 	WINDOW_GOTOPAGE,
 	WINDOW_SEARCH,
 	WINDOW_EXIT
@@ -1030,6 +1027,36 @@ int help(int c, struct position *position, struct output *output) {
 }
 
 /*
+ * tutorial
+ */
+int tutorial(int c, struct position *position, struct output *output) {
+	static char *tutorialtext[] = {
+		"hovacui displays a block of text at time",
+		"the current block is bordered in blue",
+		"",
+		"zoom is automatic",
+		"navigate by cursor Up/Down",
+		"switch page by PageUp/PageDown",
+		"",
+		"key h for help",
+		"key m for the whole page",
+		"",
+		"to remove these instructions at startup:",
+		"add \"notutorial\" to file",
+		"$HOME/.config/hovacui/hovacui.conf",
+		"",
+		"space bar to view document",
+		NULL
+	};
+	static int line = 0;
+	(void) position;
+
+	return c == 'h' ? WINDOW_HELP :
+		text(c, output, tutorialtext, &line) == 0 ?
+			WINDOW_TUTORIAL : WINDOW_DOCUMENT;
+}
+
+/*
  * generic textfield 
  */
 void textfield(int c, struct output *output,
@@ -1202,6 +1229,8 @@ int selectwindow(int window, int c,
 		return document(c, position, output);
 	case WINDOW_HELP:
 		return help(c, position, output);
+	case WINDOW_TUTORIAL:
+		return tutorial(c, position, output);
 	case WINDOW_GOTOPAGE:
 		return gotopage(c, position, output);
 	case WINDOW_SEARCH:
@@ -1475,6 +1504,7 @@ int main(int argn, char *argv[]) {
 	struct output output;
 	double screenaspect;
 	int opt;
+	gboolean starttutorial;
 
 	WINDOW *w;
 	int c;
@@ -1488,6 +1518,7 @@ int main(int argn, char *argv[]) {
 	output.distance = 15.0;
 	output.scroll = 1.0 / 4.0;
 	screenaspect = -1;
+	starttutorial = TRUE;
 
 				/* config file */
 
@@ -1512,6 +1543,9 @@ int main(int argn, char *argv[]) {
 				output.scroll = aspect(s);
 			if (sscanf(configline, "device %s", s) == 1)
 				fbdev = strdup(s);
+			if (sscanf(configline, "%s", s) == 1 &&
+			    ! strcmp(s, "notutorial"))
+				starttutorial = FALSE;
 		}
 		fclose(config);
 	}
@@ -1627,13 +1661,6 @@ int main(int argn, char *argv[]) {
 	if (output.minwidth == -1)
 		output.minwidth = (cairofb->width - 2 * margin) / 2;
 
-	output.timeout = 2000;
-	output.pagenumber = TRUE;
-	output.showmode = TRUE;
-	output.showfit = TRUE;
-	output.filename = TRUE;
-	strncpy(output.help, "press 'h' for help", 79);
-	output.help[79] = '\0';
 	strcpy(output.search, "");
 	output.found = NULL;
 
@@ -1642,9 +1669,25 @@ int main(int argn, char *argv[]) {
 	cairo_set_font_size(output.cr, fontsize);
 	cairo_font_extents(output.cr, &output.extents);
 
-				/* event loop */
+				/* first window */
+
+	output.timeout = starttutorial ? 0 : 2000;
+	output.pagenumber = starttutorial ? FALSE : TRUE;
+	output.showmode = starttutorial ? FALSE : TRUE;
+	output.showfit = starttutorial ? FALSE : TRUE;
+	output.filename = starttutorial ? FALSE : TRUE;
+	output.help[0] = '\0';
+	output.help[79] = '\0';
 
 	window = document(KEY_INIT, &position, &output);
+	if (starttutorial) {
+		draw(cairofb, &position, &output);
+		window = tutorial(KEY_INIT, &position, &output);
+	}
+	else
+		strncpy(output.help, "press 'h' for help", 79);
+
+				/* event loop */
 
 	while (window != WINDOW_EXIT) {
 
