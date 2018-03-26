@@ -6,8 +6,6 @@
  * todo:
  * - man page
  * - optionally show page as "page x of y"
- * - tutorial at startup:
- *   replace up/down with left/right if starting in vertical fit mode
  * - separate file for gui stuff
  * - improve column-sorting rectangles (to be done in pdfrects.c)
  * - cache the textarea list of pages already scanned
@@ -1035,11 +1033,11 @@ int tutorial(int c, struct position *position, struct output *output) {
 		"the current block is bordered in blue",
 		"",
 		"zoom is automatic",
-		"navigate by cursor Up/Down",
+		"navigate by cursor %s",
 		"switch page by PageUp/PageDown",
 		"",
 		"key h for help",
-		"key m for the whole page",
+		"key m for whole page view",
 		"",
 		"to remove these instructions at startup:",
 		"add \"notutorial\" to file",
@@ -1048,8 +1046,17 @@ int tutorial(int c, struct position *position, struct output *output) {
 		"space bar to view document",
 		NULL
 	};
+	static char cursor[100];
 	static int line = 0;
+	int i;
 	(void) position;
+
+	for (i = 0; tutorialtext[i] != NULL; i++)
+		if (strstr(tutorialtext[i], "%s")) {
+			sprintf(cursor, tutorialtext[i],
+				output->fit == 0x1 ? "Up/Down" : "Left/Right");
+			tutorialtext[i] = cursor;
+		}
 
 	return c == 'h' ? WINDOW_HELP :
 		text(c, output, tutorialtext, &line) == 0 ?
