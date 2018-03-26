@@ -1516,7 +1516,7 @@ int main(int argn, char *argv[]) {
 	struct output output;
 	double screenaspect;
 	int opt;
-	gboolean starttutorial;
+	int firstwindow;
 
 	WINDOW *w;
 	int c;
@@ -1531,7 +1531,7 @@ int main(int argn, char *argv[]) {
 	output.distance = 15.0;
 	output.scroll = 1.0 / 4.0;
 	screenaspect = -1;
-	starttutorial = TRUE;
+	firstwindow = WINDOW_TUTORIAL;
 
 				/* config file */
 
@@ -1558,7 +1558,7 @@ int main(int argn, char *argv[]) {
 				fbdev = strdup(s);
 			if (sscanf(configline, "%s", s) == 1 &&
 			    ! strcmp(s, "notutorial"))
-				starttutorial = FALSE;
+				firstwindow = WINDOW_DOCUMENT;
 			if (sscanf(configline, "%s", s) == 1 &&
 			    ! strcmp(s, "totalpages"))
 				output.totalpages = TRUE;
@@ -1687,16 +1687,16 @@ int main(int argn, char *argv[]) {
 
 				/* first window */
 
-	output.timeout = starttutorial ? 0 : 2000;
-	output.pagenumber = starttutorial ? FALSE : TRUE;
-	output.showmode = starttutorial ? FALSE : TRUE;
-	output.showfit = starttutorial ? FALSE : TRUE;
-	output.filename = starttutorial ? FALSE : TRUE;
+	output.timeout = firstwindow == WINDOW_DOCUMENT ? 2000 : 0;
+	output.pagenumber = firstwindow == WINDOW_DOCUMENT ? TRUE : FALSE;
+	output.showmode = firstwindow == WINDOW_DOCUMENT ? TRUE : FALSE;
+	output.showfit = firstwindow == WINDOW_DOCUMENT ? TRUE : FALSE;
+	output.filename = firstwindow == WINDOW_DOCUMENT ? TRUE : FALSE;
 	output.help[0] = '\0';
 	output.help[79] = '\0';
 
 	window = document(KEY_INIT, &position, &output);
-	if (starttutorial) {
+	if (window != firstwindow) {
 		draw(cairofb, &position, &output);
 		window = tutorial(KEY_INIT, &position, &output);
 	}
