@@ -205,11 +205,11 @@ struct output {
 	int timeout;
 
 	/* labels */
-	int pagenumber;
-	int totalpages;
-	int showmode;
-	int showfit;
-	int filename;
+	gboolean pagenumber;
+	gboolean totalpages;
+	gboolean showmode;
+	gboolean showfit;
+	gboolean filename;
 	char help[80];
 
 	/* size of font */
