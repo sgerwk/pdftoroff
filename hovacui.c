@@ -11,7 +11,7 @@
  * - cache the textarea list of pages already scanned
  * - save last position(s) to $(HOME)/.pdfpositions
  * - include images (in pdfrects.c)
- * - utf8 in textfield()
+ * - utf8 in field()
  * - key to reset viewmode and fit direction to initial values
  * - search(): utf8, paste
  * - history of positions
@@ -119,8 +119,8 @@
  * each window is a specific instance of a widget: for example, gotopage() and
  * search() are both textfields; each window function calls another function
  * that collects the generic part of their logic: gotopage() and search() call
- * textfield(), which input a string; in the same way, help() calls text(),
- * which shows some text with a scrollbar if too long
+ * field(), which input a string; in the same way, help() calls text(), which
+ * shows some text with a scrollbar if too long
  *
  * a particular window is document(), which draws nothing and deal with normal
  * input (when no other window is active)
@@ -1067,7 +1067,7 @@ int tutorial(int c, struct position *position, struct output *output) {
 /*
  * generic textfield 
  */
-void textfield(int c, struct output *output,
+void field(int c, struct output *output,
 		char *label, char *current, char *error, char *help) {
 	double percent = 0.8, prop = (1 - percent) / 2;
 	double marginx = (output->dest.x2 - output->dest.x1) * prop;
@@ -1111,22 +1111,22 @@ void textfield(int c, struct output *output,
 }
 
 /*
- * keys always allowed for a textfield 
+ * keys always allowed for a field 
  */
-int keytextfield(int c) {
+int keyfield(int c) {
 	return c == KEY_INIT || c == KEY_REDRAW ||
 		c == KEY_BACKSPACE || c == KEY_DC;
 }
 
 /*
- * allowed input for a numeric textfield
+ * allowed input for a numeric field
  */
 int keynumeric(int c) {
-	return (c >= '0' && c <= '9') || keytextfield(c);
+	return (c >= '0' && c <= '9') || keyfield(c);
 }
 
 /*
- * textfield for a page number
+ * field for a page number
  */
 int gotopage(int c, struct position *position, struct output *output) {
 	static char gotostring[100] = "";
@@ -1172,7 +1172,7 @@ int gotopage(int c, struct position *position, struct output *output) {
 				return WINDOW_GOTOPAGE;
 		}
 
-		textfield(c, output, prompt, gotostring, "", NULL);
+		field(c, output, prompt, gotostring, "", NULL);
 		output->flush = TRUE;
 		output->pagenumber = TRUE;
 		return WINDOW_GOTOPAGE;
@@ -1186,7 +1186,7 @@ int gotopage(int c, struct position *position, struct output *output) {
 	}
 
 	if (n < 0 || n >= position->totpages) {
-		textfield(KEY_REDRAW, output,
+		field(KEY_REDRAW, output,
 			prompt, gotostring, nopage, NULL);
 		output->flush = TRUE;
 		return WINDOW_GOTOPAGE;
@@ -1223,7 +1223,7 @@ int search(int c, struct position *position, struct output *output) {
 		error = "[no match]";
 	}
 
-	textfield(c, output, prompt, searchstring, error, NULL);
+	field(c, output, prompt, searchstring, error, NULL);
 	return WINDOW_SEARCH;
 }
 
