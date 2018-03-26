@@ -1559,6 +1559,8 @@ int main(int argn, char *argv[]) {
 				output.scroll = aspect(s);
 			if (sscanf(configline, "fontsize %lg", &d) == 1)
 				fontsize = d;
+			if (sscanf(configline, "margin %lg", &d) == 1)
+				margin = d;
 			if (sscanf(configline, "device %s", s) == 1)
 				fbdev = strdup(s);
 			if (sscanf(configline, "%s", s) == 1 &&
