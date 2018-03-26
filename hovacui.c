@@ -5,7 +5,7 @@
  *
  * todo:
  * - man page
- * - optionally show page as "page x of y"
+ * - document notutorial and totalpages in man page
  * - separate file for gui stuff
  * - improve column-sorting rectangles (to be done in pdfrects.c)
  * - cache the textarea list of pages already scanned
@@ -206,6 +206,7 @@ struct output {
 
 	/* labels */
 	int pagenumber;
+	int totalpages;
 	int showmode;
 	int showfit;
 	int filename;
@@ -1298,7 +1299,11 @@ void pagenumber(struct position *position, struct output *output) {
 	if (position->npage == prev && ! output->pagenumber)
 		return;
 
-	sprintf(s, "page %d", position->npage + 1);
+	if (output->totalpages)
+		sprintf(s, "page %d of %d",
+			position->npage + 1, position->totpages);
+	else
+		sprintf(s, "page %d", position->npage + 1);
 	label(output, s, 2);
 
 	if (output->timeout == 0)
@@ -1520,6 +1525,7 @@ int main(int argn, char *argv[]) {
 				/* defaults */
 
 	output.viewmode = 0;
+	output.totalpages = FALSE;
 	output.fit = 1;
 	output.minwidth = -1;
 	output.distance = 15.0;
@@ -1553,6 +1559,9 @@ int main(int argn, char *argv[]) {
 			if (sscanf(configline, "%s", s) == 1 &&
 			    ! strcmp(s, "notutorial"))
 				starttutorial = FALSE;
+			if (sscanf(configline, "%s", s) == 1 &&
+			    ! strcmp(s, "totalpages"))
+				output.totalpages = TRUE;
 		}
 		fclose(config);
 	}
