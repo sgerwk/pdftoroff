@@ -1508,10 +1508,10 @@ int main(int argn, char *argv[]) {
 	FILE *config;
 	char *uri;
 	double d;
-	char *fbdev = "/dev/fb0";
+	char *fbdev;
 	struct cairofb *cairofb;
-	double margin = 10.0;
-	double fontsize = 16.0;
+	double margin;
+	double fontsize;
 	struct position position;
 	struct output output;
 	double screenaspect;
@@ -1532,6 +1532,9 @@ int main(int argn, char *argv[]) {
 	output.scroll = 1.0 / 4.0;
 	screenaspect = -1;
 	firstwindow = WINDOW_TUTORIAL;
+	margin = 10.0;
+	fontsize = 16.0;
+	fbdev = "/dev/fb0";
 
 				/* config file */
 
