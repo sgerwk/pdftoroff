@@ -24,6 +24,7 @@
  * - man: KEY_LEFT and KEY_RIGHT work as next/prev box in horizontal fit, but
  *   they are regular scroll keys in vertical fit; and the other way around
  * - i18n
+ * - text(): horizontal scrolling or wrap when lines are too long
  * - annotations and links:
  *   some key switches to anchor navigation mode, where keyup/keydown move to
  *   the next anchor (annotation or link) in displayed part of the current
