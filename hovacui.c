@@ -12,7 +12,9 @@
  * - multiple files, with list()-based window
  * - bookmarks, with field() for creating and list() for going to
  * - info(), based on text(): filename, number of pages, page format, etc.
- * - remote control
+ * - rotate
+ * - numbermode: 2 is a, 22 is b, 222 is c, etc.
+ * - remote control (via socket)
  * - separate file for gui stuff
  * - improve column-sorting rectangles (to be done in pdfrects.c)
  * - cache the textarea list of pages already scanned
