@@ -1695,11 +1695,7 @@ int main(int argn, char *argv[]) {
 
 				/* first window */
 
-	output.timeout = firstwindow == WINDOW_DOCUMENT ? 2000 : 0;
-	output.pagenumber = firstwindow == WINDOW_DOCUMENT ? TRUE : FALSE;
-	output.showmode = firstwindow == WINDOW_DOCUMENT ? TRUE : FALSE;
-	output.showfit = firstwindow == WINDOW_DOCUMENT ? TRUE : FALSE;
-	output.filename = firstwindow == WINDOW_DOCUMENT ? TRUE : FALSE;
+	output.filename = firstwindow == WINDOW_DOCUMENT;
 	output.help[0] = '\0';
 	output.help[79] = '\0';
 
@@ -1718,6 +1714,8 @@ int main(int argn, char *argv[]) {
 
 					/* draw the document */
 
+		if (output.pagenumber)
+			break;
 		draw(cairofb, &position, &output);
 
 					/* read input */
