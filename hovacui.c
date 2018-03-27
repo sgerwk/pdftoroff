@@ -1688,6 +1688,9 @@ int main(int argn, char *argv[]) {
 	strcpy(output.search, "");
 	output.found = NULL;
 
+	output.help[0] = '\0';
+	output.help[79] = '\0';
+
 	cairo_select_font_face(output.cr, "mono",
 	                CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
 	cairo_set_font_size(output.cr, fontsize);
@@ -1696,8 +1699,6 @@ int main(int argn, char *argv[]) {
 				/* first window */
 
 	output.filename = firstwindow == WINDOW_DOCUMENT;
-	output.help[0] = '\0';
-	output.help[79] = '\0';
 
 	window = document(KEY_INIT, &position, &output);
 	if (window != firstwindow) {
