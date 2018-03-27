@@ -1759,6 +1759,7 @@ int main(int argn, char *argv[]) {
 	strcpy(output.search, "");
 	output.found = NULL;
 
+	output.timeout = 0;
 	output.help[0] = '\0';
 	output.help[79] = '\0';
 
