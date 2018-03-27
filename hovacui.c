@@ -8,7 +8,6 @@
  * - document notutorial and totalpages in man page
  * - config option "nolabels" for not showing the labels at startup; not so
  *   easy as it seems, since requires the labels to initalize without drawing
- * - space bar: down or right, depending on fit direction
  * - multiple files, with list()-based window
  * - bookmarks, with field() for creating and list() for going to
  * - info(), based on text(): filename, number of pages, page format, etc.
@@ -835,6 +834,14 @@ int document(int c, struct position *position, struct output *output) {
 	case 'p':
 		output->forward = c == 'n';
 		nextmatch(position, output);
+		break;
+	case ' ':
+		if (output->fit & 0x1)
+			scrolldown(position, output);
+		else if (output->fit & 0x2)
+			scrollright(position, output);
+		else
+			nexttextbox(position, output);
 		break;
 	case KEY_DOWN:
 		scrolldown(position, output);
