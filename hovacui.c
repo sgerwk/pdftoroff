@@ -22,7 +22,7 @@
  * - include images (in pdfrects.c)
  * - utf8 in field()
  * - key to reset viewmode and fit direction to initial values
- * - search(): utf8, paste
+ * - search(): utf8
  * - history of positions
  * - set output->redraw to FALSE when not moving
  * - note that horizontal fitting is intended for horizontal scripts,
