@@ -8,9 +8,9 @@
  * - document notutorial and totalpages in man page
  * - config option "nolabels" for not showing the labels at startup; not so
  *   easy as it seems, since requires the labels to initalize without drawing
- * - multiple files, with list()-based window
+ * - multiple files, list()-based window
  * - bookmarks, with field() for creating and list() for going to
- * - info(), based on text(): filename, number of pages, page format, etc.
+ * - info(), based on list(): filename, number of pages, page format, etc.
  * - rotate
  * - numbermode: 2 is a, 22 is b, 222 is c, etc.
  * - remote control (via socket)
@@ -32,7 +32,7 @@
  * - man: KEY_LEFT and KEY_RIGHT work as next/prev box in horizontal fit, but
  *   they are regular scroll keys in vertical fit; and the other way around
  * - i18n
- * - text(): horizontal scrolling or wrap when lines are too long
+ * - function to be possibly called before list() to wrap lines too long
  * - annotations and links:
  *   some key switches to anchor navigation mode, where keyup/keydown move to
  *   the next anchor (annotation or link) in displayed part of the current
@@ -129,7 +129,7 @@
  * search() are both textfields; each window function calls another function
  * that collects the generic part of their logic: gotopage() and search() call
  * field(), which input a string; in the same way, help() and tutorial() call
- * text(), which shows some text with a scrollbar if too long
+ * list(), which shows a list of strings with a scrollbar if too long
  *
  * a particular window is document(), which draws nothing and deal with normal
  * input (when no other window is active)
@@ -921,9 +921,10 @@ void printline(cairo_t *cr, char *string, int advance) {
 }
 
 /*
- * show some text
+ * show a list of strings
  */
-int text(int c, struct output *output, char *viewtext[], int *line) {
+int list(int c, struct output *output, char *viewtext[],
+		int *line, int *selected) {
 	double percent = 0.8;
 	double width = output->dest.x2 - output->dest.x1;
 	double height = output->dest.y2 - output->dest.y1;
@@ -945,21 +946,44 @@ int text(int c, struct output *output, char *viewtext[], int *line) {
 
 	switch (c) {
 	case KEY_DOWN:
-		if (*line >= n - lines)
+		if (selected != NULL && *selected >= n - 1)
 			return 0;
-		(*line)++;
+		if (selected != NULL && *selected < *line + lines - 1)
+			(*selected)++;
+		else if (*line >= n - lines)
+			return 0;
+		else {
+			if (selected != NULL)
+				(*selected)++;
+			(*line)++;
+		}
 		output->redraw = TRUE;
 		break;
 	case KEY_UP:
-		if (*line <= 0)
+		if (selected != NULL && *selected <= 0)
 			return 0;
-		(*line)--;
+		else if(selected != NULL && *selected > *line)
+			(*selected)--;
+		else if (*line <= 0)
+			return 0;
+		else {
+			if (selected != NULL)
+				(*selected)--;
+			(*line)--;
+		}
 		output->redraw = TRUE;
 		break;
 	case KEY_INIT:
 	case KEY_REDRAW:
 	case KEY_TIMEOUT:
 		break;
+	case KEY_ENTER:
+	case '\n':
+		if (selected != NULL) {
+			return *selected;
+			break;
+		}
+		/* fallthrough */
 	default:
 		output->redraw = TRUE;
 		return -1;
@@ -987,8 +1011,11 @@ int text(int c, struct output *output, char *viewtext[], int *line) {
 	cairo_move_to(output->cr,
 		output->dest.x1 + marginx + borderx,
 		output->dest.y1 + marginy + bordery + output->extents.ascent);
-	for (l = 0; viewtext[l] != NULL; l++)
+	for (l = 0; viewtext[l] != NULL; l++) {
+		cairo_set_source_rgb(output->cr, 0.0, 0.0,
+			selected != NULL && l == *selected ? 1.0 : 0.0);
 		printline(output->cr, viewtext[l], output->extents.height);
+	}
 	cairo_stroke(output->cr);
 	cairo_restore(output->cr);
 
@@ -1038,7 +1065,7 @@ int help(int c, struct position *position, struct output *output) {
 	static int line = 0;
 	(void) position;
 
-	return text(c, output, helptext, &line) == 0 ?
+	return list(c, output, helptext, &line, NULL) == 0 ?
 		WINDOW_HELP : WINDOW_DOCUMENT;
 }
 
@@ -1077,7 +1104,7 @@ int tutorial(int c, struct position *position, struct output *output) {
 		}
 
 	return c == 'h' ? WINDOW_HELP :
-		text(c, output, tutorialtext, &line) == 0 ?
+		list(c, output, tutorialtext, &line, NULL) == 0 ?
 			WINDOW_TUTORIAL : WINDOW_DOCUMENT;
 }
 
