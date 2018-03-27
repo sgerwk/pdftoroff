@@ -1724,8 +1724,6 @@ int main(int argn, char *argv[]) {
 
 					/* draw the document */
 
-		if (output.pagenumber)
-			break;
 		draw(cairofb, &position, &output);
 
 					/* read input */
