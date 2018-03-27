@@ -1501,6 +1501,44 @@ int input(int timeout) {
 }
 
 /*
+ * open a pdf file
+ */
+struct position *openpdf(char *filename) {
+	char *uri;
+	struct position *position;
+
+	position = malloc(sizeof(struct position));
+
+	position->filename = strdup(filename);
+
+	uri = filenametouri(position->filename);
+	if (uri == NULL)
+		exit(EXIT_FAILURE);
+	position->doc = poppler_document_new_from_file(uri, NULL, NULL);
+	free(uri);
+	if (position->doc == NULL) {
+		printf("error opening pdf file\n");
+		return NULL;
+	}
+
+	position->totpages = poppler_document_get_n_pages(position->doc);
+	if (position->totpages < 1) {
+		printf("no page in document\n");
+		return NULL;
+	}
+
+	return position;
+}
+
+/*
+ * close a pdf file
+ */
+void closepdf(struct position *position) {
+	free(position->filename);
+	free(position);
+}
+
+/*
  * index of a character in a string
  */
 int optindex(char arg, char *all) {
@@ -1550,13 +1588,13 @@ void usage() {
 int main(int argn, char *argv[]) {
 	char configfile[4096], configline[1000], s[1000];
 	FILE *config;
-	char *uri;
 	double d;
 	char *fbdev;
 	struct cairofb *cairofb;
 	double margin;
 	double fontsize;
-	struct position position;
+	char *filename;
+	struct position *position;
 	struct output output;
 	double screenaspect;
 	int opt;
@@ -1668,25 +1706,13 @@ int main(int argn, char *argv[]) {
 		usage();
 		exit(EXIT_FAILURE);
 	}
-	position.filename = argv[optind];
+	filename = argv[optind];
 
 				/* open input file */
 
-	uri = filenametouri(position.filename);
-	if (uri == NULL)
+	position = openpdf(filename);
+	if (position == NULL)
 		exit(EXIT_FAILURE);
-	position.doc = poppler_document_new_from_file(uri, NULL, NULL);
-	free(uri);
-	if (position.doc == NULL) {
-		printf("error opening pdf file\n");
-		exit(EXIT_FAILURE);
-	}
-
-	position.totpages = poppler_document_get_n_pages(position.doc);
-	if (position.totpages < 1) {
-		printf("no page in document\n");
-		exit(EXIT_FAILURE);
-	}
 
 				/* open fbdev as cairo */
 
@@ -1711,7 +1737,7 @@ int main(int argn, char *argv[]) {
 
 				/* initialize position and output */
 
-	initposition(&position);
+	initposition(position);
 
 	output.cr = cairofb->cr;
 
@@ -1743,11 +1769,11 @@ int main(int argn, char *argv[]) {
 
 	output.filename = firstwindow == WINDOW_DOCUMENT;
 
-	window = document(KEY_INIT, &position, &output);
+	window = document(KEY_INIT, position, &output);
 	if (window != firstwindow) {
-		draw(cairofb, &position, &output);
+		draw(cairofb, position, &output);
 		window = selectwindow(firstwindow, KEY_INIT,
-				&position, &output);
+				position, &output);
 	}
 	else
 		strncpy(output.help, "press 'h' for help", 79);
@@ -1758,7 +1784,7 @@ int main(int argn, char *argv[]) {
 
 					/* draw the document */
 
-		draw(cairofb, &position, &output);
+		draw(cairofb, position, &output);
 
 					/* read input */
 
@@ -1767,14 +1793,14 @@ int main(int argn, char *argv[]) {
 		if (vt_suspend || c == KEY_SIGNAL)
 			continue;
 		if (c == KEY_REDRAW || c == KEY_TIMEOUT)
-			draw(cairofb, &position, &output);
+			draw(cairofb, position, &output);
 
 					/* pass input to window */
 
-		next = selectwindow(window, c, &position, &output);
+		next = selectwindow(window, c, position, &output);
 		if (next != window) {
 			window = next;
-			selectwindow(window, KEY_INIT, &position, &output);
+			selectwindow(window, KEY_INIT, position, &output);
 		}
 
 					/* flush output */
@@ -1785,6 +1811,7 @@ int main(int argn, char *argv[]) {
 
 				/* close */
 
+	closepdf(position);
 	cairofb_finish(cairofb);
 	clear();
 	refresh();
