@@ -1706,7 +1706,8 @@ int main(int argn, char *argv[]) {
 	window = document(KEY_INIT, &position, &output);
 	if (window != firstwindow) {
 		draw(cairofb, &position, &output);
-		window = tutorial(KEY_INIT, &position, &output);
+		window = selectwindow(firstwindow, KEY_INIT,
+				&position, &output);
 	}
 	else
 		strncpy(output.help, "press 'h' for help", 79);
