@@ -6,6 +6,13 @@
  * todo:
  * - man page
  * - document notutorial and totalpages in man page
+ * - config option "nolabels" for not showing the labels at startup; not so
+ *   easy as it seems, since requires the labels to initalize without drawing
+ * - space bar: down or right, depending on fit direction
+ * - multiple files, with list()-based window
+ * - bookmarks, with field() for creating and list() for going to
+ * - info(), based on text(): filename, number of pages, page format, etc.
+ * - remote control
  * - separate file for gui stuff
  * - improve column-sorting rectangles (to be done in pdfrects.c)
  * - cache the textarea list of pages already scanned
