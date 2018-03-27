@@ -8,7 +8,9 @@
  * - document notutorial and totalpages in man page
  * - config option "nolabels" for not showing the labels at startup; not so
  *   easy as it seems, since requires the labels to initalize without drawing
- * - multiple files, list()-based window
+ * - multiple files, list()-based window; return WINDOW_NEXT+n to tell main()
+ *   which file to switch to; and/or have a field in struct output for the new
+ *   file index or name
  * - bookmarks, with field() for creating and list() for going to
  * - info(), based on list(): filename, number of pages, page format, etc.
  * - rotate
