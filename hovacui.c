@@ -881,9 +881,7 @@ int document(int c, struct position *position, struct output *output) {
 		break;
 	case 'm':
 		output->viewmode = (output->viewmode + 1) % 3;
-		position->box = 0;
-		position->scrollx = 0;
-		position->scrolly = 0;
+		firsttextbox(position, output);
 		readpage(position, output);
 		break;
 	case 'w':
@@ -898,9 +896,7 @@ int document(int c, struct position *position, struct output *output) {
 	case 't':
 	case 'T':
 		output->distance += c == 't' ? -1 : 1;
-		position->box = 0;
-		position->scrollx = 0;
-		position->scrolly = 0;
+		firsttextbox(position, output);
 		readpage(position, output);
 		break;
 	case 'f':
@@ -1170,6 +1166,7 @@ int viewmode(int c, struct position *position, struct output *output) {
 	case 2:
 	case 3:
 		output->viewmode = res - 1;
+		firsttextbox(position, output);
 		/* fallthrough */
 	default:
 		selected = 1;
@@ -1204,6 +1201,7 @@ int fitdirection(int c, struct position *position, struct output *output) {
 	case 2:
 	case 3:
 		output->fit = res == 3 ? 0 : res;
+		firsttextbox(position, output);
 		/* fallthrough */
 	default:
 		selected = 1;
