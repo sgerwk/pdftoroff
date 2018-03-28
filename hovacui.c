@@ -6,6 +6,8 @@
  * todo:
  * - man page
  * - document notutorial and totalpages in man page
+ * - line of next scroll: where the top/bottom of the screen will be after
+ *   scrolling up or down
  * - when the bounding box does not fill the screen, adjustscroll() centers it
  * - reduce delay on esc: this program is supposed to be run locally because of
  *   its use of fbdev (ESCDELAY)
@@ -18,6 +20,7 @@
  * - in list(): separator, skip it when using a selected line
  * - add an optional help to the bottom of list()
  * - bookmarks, with field() for creating and list() for going to
+ * - history of searches
  * - info(), based on list(): filename, number of pages, page format, etc.
  * - rotate
  * - numbermode: 2 is a, 22 is b, 222 is c, etc.
