@@ -11,9 +11,6 @@
  * - multiple files, list()-based window; return WINDOW_NEXT+n to tell main()
  *   which file to switch to; and/or have a field in struct output for the new
  *   file index or name
- * - menu for all functions (except movements): search, gotopage, mode, fit;
- *   function WINDOW_MENU, based on list(); for the mode and fit calls 
- *   functions WINDOW_MODE and WINDOW_FIT, still based on list()
  * - non-expert mode: every unassigned key calls WINDOW_MENU
  * - in list(): separator, skip it when using a selected line
  * - bookmarks, with field() for creating and list() for going to
@@ -172,6 +169,8 @@ enum window {
 	WINDOW_TUTORIAL,
 	WINDOW_GOTOPAGE,
 	WINDOW_SEARCH,
+	WINDOW_VIEWMODE,
+	WINDOW_FITDIRECTION,
 	WINDOW_MENU,
 	WINDOW_EXIT
 };
@@ -1142,6 +1141,82 @@ int tutorial(int c, struct position *position, struct output *output) {
 }
 
 /*
+ * viewmode menu
+ */
+int viewmode(int c, struct position *position, struct output *output) {
+	static char *viewmodetext[] = {
+		"view mode",
+		"text area",
+		"boundingbox",
+		"page",
+		NULL
+	};
+	static int line = 0;
+	static int selected = 1;
+	int res;
+	(void) position;
+
+	res = list(c, output, viewmodetext, &line, &selected);
+	switch (res) {
+	case 0:
+		return WINDOW_VIEWMODE;
+	case 1:
+		output->viewmode = 0;
+		selected = 1;
+		return WINDOW_DOCUMENT;
+	case 2:
+		output->viewmode = 1;
+		selected = 1;
+		return WINDOW_DOCUMENT;
+	case 3:
+		output->viewmode = 2;
+		selected = 1;
+		return WINDOW_DOCUMENT;
+	default:
+		selected = 1;
+		return WINDOW_DOCUMENT;
+	}
+}
+
+/*
+ * fit direction menu
+ */
+int fitdirection(int c, struct position *position, struct output *output) {
+	static char *fitdirectiontext[] = {
+		"fit direction",
+		"horizontal",
+		"vertical",
+		"both",
+		NULL
+	};
+	static int line = 0;
+	static int selected = 1;
+	int res;
+	(void) position;
+
+	res = list(c, output, fitdirectiontext, &line, &selected);
+	switch (res) {
+	case 0:
+		return WINDOW_FITDIRECTION;
+	case 1:
+		output->fit = 0x1;
+		selected = 1;
+		return WINDOW_DOCUMENT;
+	case 2:
+		output->fit = 0x2;
+		selected = 1;
+		return WINDOW_DOCUMENT;
+	case 3:
+		output->fit = 0x0;
+		selected = 1;
+		return WINDOW_DOCUMENT;
+	default:
+		selected = 1;
+		return WINDOW_DOCUMENT;
+	}
+}
+
+/*
  * general menu
  */
 int menu(int c, struct position *position, struct output *output) {
@@ -1168,6 +1243,14 @@ int menu(int c, struct position *position, struct output *output) {
 		selected = 1;
 		output->redraw = TRUE;
 		return WINDOW_SEARCH;
+	case 'v':
+		selected = 1;
+		output->redraw = TRUE;
+		return WINDOW_VIEWMODE;
+	case 'f':
+		selected = 1;
+		output->redraw = TRUE;
+		return WINDOW_FITDIRECTION;
 	case 'q':
 		return WINDOW_EXIT;
 	}
@@ -1184,10 +1267,17 @@ int menu(int c, struct position *position, struct output *output) {
 		selected = 1;
 		output->redraw = TRUE;
 		return WINDOW_SEARCH;
+	case 3:
+		selected = 1;
+		output->redraw = TRUE;
+		return WINDOW_VIEWMODE;
+	case 4:
+		selected = 1;
+		output->redraw = TRUE;
+		return WINDOW_FITDIRECTION;
 	case 5:
 		return WINDOW_EXIT;
-	case 3:
-	case 4:
+	case 6:
 		strcpy(output->help, "unimplemented");
 		/* fallthrough */
 	default:
@@ -1377,6 +1467,10 @@ int selectwindow(int window, int c,
 		return gotopage(c, position, output);
 	case WINDOW_SEARCH:
 		return search(c, position, output);
+	case WINDOW_VIEWMODE:
+		return viewmode(c, position, output);
+	case WINDOW_FITDIRECTION:
+		return fitdirection(c, position, output);
 	default:
 		return WINDOW_DOCUMENT;
 	}
