@@ -132,8 +132,9 @@
  * each window is a specific instance of a widget: for example, gotopage() and
  * search() are both textfields; each window function calls another function
  * that collects the generic part of their logic: gotopage() and search() call
- * field(), which input a string; in the same way, help() and tutorial() call
- * list(), which shows a list of strings with a scrollbar if too long
+ * field(), which input a string; in the same way, help(), tutorial(), menu(),
+ * viewmode() and fitdirection() call list(), which shows a list of strings
+ * possibly with a selected element and a scrollbar if too long
  *
  * a particular window is document(), which draws nothing and deal with normal
  * input (when no other window is active)
