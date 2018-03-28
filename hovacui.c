@@ -11,6 +11,7 @@
  * - multiple files, list()-based window; return WINDOW_NEXT+n to tell main()
  *   which file to switch to; and/or have a field in struct output for the new
  *   file index or name
+ * - in list(), skip separator when using a selected line
  * - bookmarks, with field() for creating and list() for going to
  * - info(), based on list(): filename, number of pages, page format, etc.
  * - rotate
@@ -934,25 +935,29 @@ int list(int c, struct output *output, char *viewtext[],
 	double marginy = height * (1 - percent) / 2;
 	double borderx = 10.0;
 	double bordery = 10.0;
-	double textheight;
+	double titleheight = output->extents.height + 2 * bordery;
+	double textheight, listheight;
+	double startx = output->dest.x1 + marginx;
+	double starty = output->dest.y1 + marginy;
+	double startlist = starty + titleheight + bordery;
 	int n, l, lines;
 
-	for (n = 0; viewtext[n] != NULL; n++) {
+	for (n = 1; viewtext[n] != NULL; n++) {
 	}
 
 	cairo_identity_matrix(output->cr);
-	lines = (int) (height * percent - bordery * 2) /
+	lines = (int) (height * percent - titleheight - bordery * 2) /
 		(int) output->extents.height;
 	textheight = lines * output->extents.height;
-	height = textheight + 2 * bordery;
+	listheight = textheight + 2 * bordery;
 
 	switch (c) {
 	case KEY_DOWN:
 		if (selected != NULL && *selected >= n - 1)
 			return 0;
-		if (selected != NULL && *selected < *line + lines - 1)
+		if (selected != NULL && *selected < *line + lines)
 			(*selected)++;
-		else if (*line >= n - lines)
+		else if (*line >= n - lines - 1)
 			return 0;
 		else {
 			if (selected != NULL)
@@ -962,9 +967,9 @@ int list(int c, struct output *output, char *viewtext[],
 		output->redraw = TRUE;
 		break;
 	case KEY_UP:
-		if (selected != NULL && *selected <= 0)
+		if (selected != NULL && *selected <= 1)
 			return 0;
-		else if(selected != NULL && *selected > *line)
+		else if(selected != NULL && *selected > *line + 1)
 			(*selected)--;
 		else if (*line <= 0)
 			return 0;
@@ -991,43 +996,61 @@ int list(int c, struct output *output, char *viewtext[],
 		return -1;
 	}
 
+	cairo_set_source_rgb(output->cr, 0.6, 0.6, 0.8);
+	cairo_rectangle(output->cr,
+		startx, starty, width - marginx * 2, titleheight);
+	cairo_fill(output->cr);
+	cairo_set_source_rgb(output->cr, 0.0, 0.0, 0.0);
+	cairo_move_to(output->cr,
+		startx + borderx, starty + bordery + output->extents.ascent);
+	printline(output->cr, viewtext[0], output->extents.height);
+
 	cairo_set_source_rgb(output->cr, 0.8, 0.8, 0.8);
 	cairo_rectangle(output->cr,
 		output->dest.x1 + marginx,
-		output->dest.y1 + marginy,
+		output->dest.y1 + marginy + titleheight,
 		output->dest.x2 - output->dest.x1 - marginx * 2,
-		height);
+		listheight);
 	cairo_fill(output->cr);
 	cairo_stroke(output->cr);
 
 	cairo_set_source_rgb(output->cr, 0.0, 0.0, 0.0);
 	cairo_save(output->cr);
 	cairo_rectangle(output->cr,
-		output->dest.x1 + marginx + borderx,
-		output->dest.y1 + marginy + bordery,
-		output->dest.x2 - output->dest.x1 - marginx * 2 - borderx * 2,
-		textheight);
+		output->dest.x1 + marginx, startlist,
+		width - marginx * 2, textheight);
 	cairo_clip(output->cr);
 
 	cairo_translate(output->cr, 0.0, - output->extents.height * *line);
-	cairo_move_to(output->cr,
-		output->dest.x1 + marginx + borderx,
-		output->dest.y1 + marginy + bordery + output->extents.ascent);
-	for (l = 0; viewtext[l] != NULL; l++) {
-		cairo_set_source_rgb(output->cr, 0.0, 0.0,
-			selected != NULL && l == *selected ? 1.0 : 0.0);
-		printline(output->cr, viewtext[l], output->extents.height);
+	for (l = 1; viewtext[l] != NULL; l++) {
+		if (selected == NULL || l != *selected)
+			cairo_set_source_rgb(output->cr, 0.0, 0.0, 0.0);
+		else {
+			cairo_set_source_rgb(output->cr, 0.3, 0.3, 0.3);
+			cairo_rectangle(output->cr,
+				startx,
+				startlist + output->extents.height * (l - 1),
+				width - 2 * marginx,
+				output->extents.height);
+			cairo_fill(output->cr);
+			cairo_set_source_rgb(output->cr, 0.8, 0.8, 0.8);
+		}
+		cairo_move_to(output->cr,
+			startx + borderx,
+			startlist + output->extents.height * (l - 1) +
+				output->extents.ascent);
+		cairo_show_text(output->cr, viewtext[l]);
 	}
 	cairo_stroke(output->cr);
 	cairo_restore(output->cr);
 
-	if (lines < n) {
+	if (lines < n - 1) {
 		cairo_rectangle(output->cr,
 			output->dest.x2 - marginx - borderx,
-			output->dest.y1 + marginy +
-				*line / (double) n * height,
+			output->dest.y1 + marginy + titleheight +
+				*line / (double) (n - 1) * listheight,
 			borderx,
-			lines / (double) n * height);
+			lines / (double) (n - 1) * listheight);
 		cairo_fill(output->cr);
 		cairo_stroke(output->cr);
 	}
@@ -1043,7 +1066,6 @@ int list(int c, struct output *output, char *viewtext[],
 int help(int c, struct position *position, struct output *output) {
 	static char *helptext[] = {
 		"hovacui - pdf viewer with autozoom to text",
-		"------------------------------------------",
 		"PageUp     previous page",
 		"PageDown   next page",
 		"Home       top of page",
@@ -1111,7 +1133,7 @@ int tutorial(int c, struct position *position, struct output *output) {
 }
 
 /*
- * generic textfield 
+ * generic textfield
  */
 void field(int c, struct output *output,
 		char *label, char *current, char *error, char *help) {
@@ -1157,7 +1179,7 @@ void field(int c, struct output *output,
 }
 
 /*
- * keys always allowed for a field 
+ * keys always allowed for a field
  */
 int keyfield(int c) {
 	return c == KEY_INIT || c == KEY_REDRAW ||
