@@ -1079,6 +1079,7 @@ int help(int c, struct position *position, struct output *output) {
 		"PageDown   next page",
 		"Home       top of page",
 		"End        bottom of page",
+		"u          main menu",
 		"m          rotate among view modes:",
 		"           textarea, boundingbox, page",
 		"f          change fitting direction:",
