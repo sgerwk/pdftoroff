@@ -1147,17 +1147,30 @@ int tutorial(int c, struct position *position, struct output *output) {
 int menu(int c, struct position *position, struct output *output) {
 	static char *menutext[] = {
 		"hovacui - menu",
-		"go to page",
-		"search",
-		"view mode",
-		"fit direction",
-		"quit",
+		"(g) go to page",
+		"(/) search",
+		"(v) view mode",
+		"(f) fit direction",
+		"(q) quit",
 		NULL
 	};
 	static int line = 0;
 	static int selected = 1;
 	int res;
 	(void) position;
+
+	switch (c) {
+	case 'g':
+		selected = 1;
+		output->redraw = TRUE;
+		return WINDOW_GOTOPAGE;
+	case '/':
+		selected = 1;
+		output->redraw = TRUE;
+		return WINDOW_SEARCH;
+	case 'q':
+		return WINDOW_EXIT;
+	}
 
 	res = list(c, output, menutext, &line, &selected);
 	switch (res) {
