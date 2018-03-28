@@ -455,11 +455,11 @@ void adjustscroll(struct position *position, struct output *output) {
 
 	/* bounding box too short to fill the screen */
 	if (position->boundingbox->y2 - position->boundingbox->y1 <
-	    xscreentodocdistance(output, output->dest.y2 - output->dest.y1))
-		position->scrollx =
+	    yscreentodocdistance(output, output->dest.y2 - output->dest.y1))
+		position->scrolly =
 			(position->boundingbox->y1 +
 			 position->boundingbox->y2) / 2 -
-			xscreentodoc(output,
+			yscreentodoc(output,
 				(output->dest.y1 + output->dest.y2) / 2);
 
 	return;
