@@ -13,6 +13,7 @@
  *   file index or name
  * - non-expert mode: every unassigned key calls WINDOW_MENU
  * - in list(): separator, skip it when using a selected line
+ * - add an optional help to the bottom of list()
  * - bookmarks, with field() for creating and list() for going to
  * - info(), based on list(): filename, number of pages, page format, etc.
  * - rotate
