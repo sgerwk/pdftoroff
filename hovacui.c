@@ -16,6 +16,7 @@
  * - add an optional help to the bottom of list()
  * - bookmarks, with field() for creating and list() for going to
  * - info(), based on list(): filename, number of pages, page format, etc.
+ * - textfield for output->distance
  * - rotate
  * - numbermode: 2 is a, 22 is b, 222 is c, etc.
  * - remote control (via socket)
