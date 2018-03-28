@@ -1191,20 +1191,17 @@ int fitdirection(int c, struct position *position, struct output *output) {
 	int res;
 	(void) position;
 
+	if (c == KEY_INIT)
+		selected = output->fit == 0 ? 3 : output->fit;
+
 	res = list(c, output, fitdirectiontext, &line, &selected);
 	switch (res) {
 	case 0:
 		return WINDOW_FITDIRECTION;
 	case 1:
-		output->fit = 0x1;
-		selected = 1;
-		return WINDOW_DOCUMENT;
 	case 2:
-		output->fit = 0x2;
-		selected = 1;
-		return WINDOW_DOCUMENT;
 	case 3:
-		output->fit = 0x0;
+		output->fit = res == 3 ? 0 : res;
 		selected = 1;
 		return WINDOW_DOCUMENT;
 	default:
