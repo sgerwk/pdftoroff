@@ -173,6 +173,7 @@ enum window {
 	WINDOW_TUTORIAL,
 	WINDOW_GOTOPAGE,
 	WINDOW_SEARCH,
+	WINDOW_MENU,
 	WINDOW_EXIT
 };
 
@@ -830,6 +831,9 @@ int document(int c, struct position *position, struct output *output) {
 	case 'h':
 		output->redraw = FALSE;
 		return WINDOW_HELP;
+	case 'u':
+		output->redraw = FALSE;
+		return WINDOW_MENU;
 	case 'g':
 		output->redraw = FALSE;
 		return WINDOW_GOTOPAGE;
@@ -1138,6 +1142,39 @@ int tutorial(int c, struct position *position, struct output *output) {
 }
 
 /*
+ * general menu
+ */
+int menu(int c, struct position *position, struct output *output) {
+	static char *menutext[] = {
+		"hovacui - menu",
+		"go to page",
+		"search",
+		NULL
+	};
+	static int line = 0;
+	static int selected = 1;
+	int res;
+	(void) position;
+
+	res = list(c, output, menutext, &line, &selected);
+	switch (res) {
+	case 0:
+		return WINDOW_MENU;
+	case 1:
+		selected = 1;
+		output->redraw = TRUE;
+		return WINDOW_GOTOPAGE;
+	case 2:
+		selected = 1;
+		output->redraw = TRUE;
+		return WINDOW_SEARCH;
+	default:
+		selected = 1;
+		return WINDOW_DOCUMENT;
+	}
+}
+
+/*
  * generic textfield
  */
 void field(int c, struct output *output,
@@ -1312,6 +1349,8 @@ int selectwindow(int window, int c,
 		return help(c, position, output);
 	case WINDOW_TUTORIAL:
 		return tutorial(c, position, output);
+	case WINDOW_MENU:
+		return menu(c, position, output);
 	case WINDOW_GOTOPAGE:
 		return gotopage(c, position, output);
 	case WINDOW_SEARCH:
@@ -1486,6 +1525,7 @@ void draw(struct cairofb *cairofb,
 			&position->textarea->rect[position->box],
 			FALSE, FALSE, TRUE);
 		selection(position, output, output->found);
+		output->redraw = FALSE;
 	}
 
 	helplabel(position, output);
@@ -1829,6 +1869,8 @@ int main(int argn, char *argv[]) {
 
 		next = selectwindow(window, c, position, &output);
 		if (next != window) {
+			if (next != WINDOW_DOCUMENT)
+				draw(cairofb, position, &output);
 			window = next;
 			selectwindow(window, KEY_INIT, position, &output);
 		}
