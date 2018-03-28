@@ -1434,6 +1434,9 @@ int search(int c, struct position *position, struct output *output) {
 		strcpy(output->search, searchstring);
 		if (firstmatch(position, output) != -1) {
 			searchstring[0] = '\0';
+			strcpy(output->help,
+				"n=next matches p=previous matches");
+			output->timeout = 2000;
 			return WINDOW_DOCUMENT;
 		}
 		c = KEY_REDRAW;
