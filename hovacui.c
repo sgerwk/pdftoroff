@@ -1149,6 +1149,9 @@ int menu(int c, struct position *position, struct output *output) {
 		"hovacui - menu",
 		"go to page",
 		"search",
+		"view mode",
+		"fit direction",
+		"quit",
 		NULL
 	};
 	static int line = 0;
@@ -1168,6 +1171,12 @@ int menu(int c, struct position *position, struct output *output) {
 		selected = 1;
 		output->redraw = TRUE;
 		return WINDOW_SEARCH;
+	case 5:
+		return WINDOW_EXIT;
+	case 3:
+	case 4:
+		strcpy(output->help, "unimplemented");
+		/* fallthrough */
 	default:
 		selected = 1;
 		return WINDOW_DOCUMENT;
