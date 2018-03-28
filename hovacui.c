@@ -1156,20 +1156,17 @@ int viewmode(int c, struct position *position, struct output *output) {
 	int res;
 	(void) position;
 
+	if (c == KEY_INIT)
+		selected = output->viewmode + 1;
+
 	res = list(c, output, viewmodetext, &line, &selected);
 	switch (res) {
 	case 0:
 		return WINDOW_VIEWMODE;
 	case 1:
-		output->viewmode = 0;
-		selected = 1;
-		return WINDOW_DOCUMENT;
 	case 2:
-		output->viewmode = 1;
-		selected = 1;
-		return WINDOW_DOCUMENT;
 	case 3:
-		output->viewmode = 2;
+		output->viewmode = res - 1;
 		selected = 1;
 		return WINDOW_DOCUMENT;
 	default:
