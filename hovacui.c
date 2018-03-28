@@ -11,7 +11,10 @@
  * - multiple files, list()-based window; return WINDOW_NEXT+n to tell main()
  *   which file to switch to; and/or have a field in struct output for the new
  *   file index or name
- * - in list(), skip separator when using a selected line
+ * - reduce height of list() if strings are less than height
+ * - non-expert mode, where mode and fit direction are selected on a list:
+ *   functions WINDOW_MODE and WINDOW_FIT, which use list() to select mode/fit
+ * - in list(): separator, skip it when using a selected line
  * - bookmarks, with field() for creating and list() for going to
  * - info(), based on list(): filename, number of pages, page format, etc.
  * - rotate
