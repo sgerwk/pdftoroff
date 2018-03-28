@@ -8,8 +8,6 @@
  * - document notutorial and totalpages in man page
  * - line of next scroll: where the top/bottom of the screen will be after
  *   scrolling up or down
- * - reduce delay on esc: this program is supposed to be run locally because of
- *   its use of fbdev (ESCDELAY)
  * - config option "nolabels" for not showing the labels at startup; not so
  *   easy as it seems, since requires the labels to initalize without drawing
  * - multiple files, list()-based window; return WINDOW_NEXT+n to tell main()
@@ -1981,6 +1979,8 @@ int main(int argn, char *argv[]) {
 
 				/* setup terminal */
 
+	if (getenv("ESCDELAY") == NULL)
+		setenv("ESCDELAY", "200", 1);
 	w = initscr();
 	cbreak();
 	keypad(w, TRUE);
