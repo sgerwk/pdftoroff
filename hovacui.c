@@ -8,7 +8,6 @@
  * - document notutorial and totalpages in man page
  * - line of next scroll: where the top/bottom of the screen will be after
  *   scrolling up or down
- * - when the bounding box does not fill the screen, adjustscroll() centers it
  * - reduce delay on esc: this program is supposed to be run locally because of
  *   its use of fbdev (ESCDELAY)
  * - config option "nolabels" for not showing the labels at startup; not so
@@ -435,6 +434,15 @@ void adjustscroll(struct position *position, struct output *output) {
 		position->scrollx = position->boundingbox->x1 -
 			xscreentodoc(output, output->dest.x1);
 
+	/* bounding box too narrow to fill the screen */
+	if (position->boundingbox->x2 - position->boundingbox->x1 <
+	    xscreentodocdistance(output, output->dest.x2 - output->dest.x1))
+		position->scrollx =
+			(position->boundingbox->x1 +
+			 position->boundingbox->x2) / 2 -
+			xscreentodoc(output,
+				(output->dest.x1 + output->dest.x2) / 2);
+
 	/* some space below the bounding box is shown */
 	if (ydoctoscreen(output, position->boundingbox->y2 - position->scrolly)
 	    < output->dest.y2)
@@ -446,6 +454,15 @@ void adjustscroll(struct position *position, struct output *output) {
 	    > output->dest.y1)
 		position->scrolly = position->boundingbox->y1 -
 			yscreentodoc(output, output->dest.y1);
+
+	/* bounding box too short to fill the screen */
+	if (position->boundingbox->y2 - position->boundingbox->y1 <
+	    xscreentodocdistance(output, output->dest.y2 - output->dest.y1))
+		position->scrollx =
+			(position->boundingbox->y1 +
+			 position->boundingbox->y2) / 2 -
+			xscreentodoc(output,
+				(output->dest.y1 + output->dest.y2) / 2);
 
 	return;
 }
