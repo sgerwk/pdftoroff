@@ -1167,8 +1167,7 @@ int viewmode(int c, struct position *position, struct output *output) {
 	case 2:
 	case 3:
 		output->viewmode = res - 1;
-		selected = 1;
-		return WINDOW_DOCUMENT;
+		/* fallthrough */
 	default:
 		selected = 1;
 		return WINDOW_DOCUMENT;
@@ -1202,8 +1201,7 @@ int fitdirection(int c, struct position *position, struct output *output) {
 	case 2:
 	case 3:
 		output->fit = res == 3 ? 0 : res;
-		selected = 1;
-		return WINDOW_DOCUMENT;
+		/* fallthrough */
 	default:
 		selected = 1;
 		return WINDOW_DOCUMENT;
