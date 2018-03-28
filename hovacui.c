@@ -832,7 +832,7 @@ int document(int c, struct position *position, struct output *output) {
 	case 'h':
 		output->redraw = FALSE;
 		return WINDOW_HELP;
-	case 'u':
+	case 'm':
 		output->redraw = FALSE;
 		return WINDOW_MENU;
 	case 'g':
@@ -880,7 +880,7 @@ int document(int c, struct position *position, struct output *output) {
 	case KEY_PPAGE:
 		prevpage(position, output);
 		break;
-	case 'm':
+	case 'v':
 		output->viewmode = (output->viewmode + 1) % 3;
 		firsttextbox(position, output);
 		readpage(position, output);
@@ -1077,8 +1077,8 @@ int help(int c, struct position *position, struct output *output) {
 		"PageDown   next page",
 		"Home       top of page",
 		"End        bottom of page",
-		"u          main menu",
-		"m          rotate among view modes:",
+		"m          main menu",
+		"v          rotate among view modes:",
 		"           textarea, boundingbox, page",
 		"f          change fitting direction:",
 		"           horizontal, vertical, both",
