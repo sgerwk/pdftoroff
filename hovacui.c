@@ -16,7 +16,6 @@
  * - add an optional help to the bottom of list()
  * - bookmarks, with field() for creating and list() for going to
  * - info(), based on list(): filename, number of pages, page format, etc.
- * - textfield for output->distance
  * - rotate
  * - numbermode: 2 is a, 22 is b, 222 is c, etc.
  * - remote control (via socket)
@@ -175,6 +174,7 @@ enum window {
 	WINDOW_VIEWMODE,
 	WINDOW_FITDIRECTION,
 	WINDOW_MENU,
+	WINDOW_DISTANCE,
 	WINDOW_EXIT
 };
 
@@ -838,6 +838,9 @@ int document(int c, struct position *position, struct output *output) {
 	case 'g':
 		output->redraw = FALSE;
 		return WINDOW_GOTOPAGE;
+	case 't':
+		output->redraw = FALSE;
+		return WINDOW_DISTANCE;
 	case '/':
 	case '?':
 		output->forward = c == '/';
@@ -893,12 +896,6 @@ int document(int c, struct position *position, struct output *output) {
 		if (boundingboxinscreen(position, output))
 			break;
 		output->minwidth += 10;
-		break;
-	case 't':
-	case 'T':
-		output->distance += c == 't' ? -1 : 1;
-		firsttextbox(position, output);
-		readpage(position, output);
 		break;
 	case 'f':
 		output->fit = (output->fit + 1) % 3;
@@ -1084,6 +1081,7 @@ int help(int c, struct position *position, struct output *output) {
 		"           horizontal, vertical, both",
 		"w W        + or - minimal viewbox width",
 		"           (determines the maximal zoom)",
+		"t          text-to-text distance",
 		"g          go to page",
 		"/ ?        search forward or backward",
 		"n p        next or previous search match",
@@ -1220,6 +1218,7 @@ int menu(int c, struct position *position, struct output *output) {
 		"(/) search",
 		"(v) view mode",
 		"(f) fit direction",
+		"(t) text distance",
 		"(q) quit",
 		NULL
 	};
@@ -1245,6 +1244,10 @@ int menu(int c, struct position *position, struct output *output) {
 		selected = 1;
 		output->redraw = TRUE;
 		return WINDOW_FITDIRECTION;
+	case 't':
+		selected = 1;
+		output->redraw = TRUE;
+		return WINDOW_DISTANCE;
 	case 'q':
 		return WINDOW_EXIT;
 	}
@@ -1270,8 +1273,12 @@ int menu(int c, struct position *position, struct output *output) {
 		output->redraw = TRUE;
 		return WINDOW_FITDIRECTION;
 	case 5:
-		return WINDOW_EXIT;
+		selected = 1;
+		output->redraw = TRUE;
+		return WINDOW_DISTANCE;
 	case 6:
+		return WINDOW_EXIT;
+	case 7:
 		strcpy(output->help, "unimplemented");
 		/* fallthrough */
 	default:
@@ -1416,7 +1423,7 @@ int gotopage(int c, struct position *position, struct output *output) {
 }
 
 /*
- * textfield for a search keyword
+ * field for a search keyword
  */
 int search(int c, struct position *position, struct output *output) {
 	static char searchstring[100] = "";
@@ -1447,6 +1454,48 @@ int search(int c, struct position *position, struct output *output) {
 }
 
 /*
+ * field for text distance
+ */
+int textdistance(int c, struct position *position, struct output *output) {
+	static char distancestring[100] = "";
+	char *prompt = "text distance: ";
+	char *helplabel = "down=increase enter=decrease";
+	double n;
+
+	if (c == '\033' || c == KEY_EXIT || c == 'q')
+		return WINDOW_DOCUMENT;
+
+	if (c != KEY_ENTER && c != '\n') {
+		strncpy(output->help, helplabel, 79);
+
+		switch (c) {
+		case KEY_INIT:
+			sprintf(distancestring, "%lg", output->distance);
+			break;
+		case KEY_DOWN:
+		case KEY_UP:
+			n = atof(distancestring);
+			n = n + (c == KEY_DOWN ? +1 : -1);
+			sprintf(distancestring, "%lg", n);
+			c = KEY_REDRAW;
+			break;
+		default:
+			if (! keynumeric(c))
+				return WINDOW_DISTANCE;
+		}
+
+		field(c, output, prompt, distancestring, "", NULL);
+		output->flush = TRUE;
+		return WINDOW_DISTANCE;
+	}
+
+	output->distance = atof(distancestring);
+	readpage(position, output);
+	firsttextbox(position, output);
+	return WINDOW_DOCUMENT;
+}
+
+/*
  * window selector
  */
 int selectwindow(int window, int c,
@@ -1468,6 +1517,8 @@ int selectwindow(int window, int c,
 		return viewmode(c, position, output);
 	case WINDOW_FITDIRECTION:
 		return fitdirection(c, position, output);
+	case WINDOW_DISTANCE:
+		return textdistance(c, position, output);
 	default:
 		return WINDOW_DOCUMENT;
 	}
