@@ -11,7 +11,6 @@
  * - multiple files, list()-based window; return WINDOW_NEXT+n to tell main()
  *   which file to switch to; and/or have a field in struct output for the new
  *   file index or name
- * - reduce height of list() if strings are less than height
  * - menu for all functions (except movements): search, gotopage, mode, fit;
  *   function WINDOW_MENU, based on list(); for the mode and fit calls 
  *   functions WINDOW_MODE and WINDOW_FIT, still based on list()
@@ -957,8 +956,9 @@ int list(int c, struct output *output, char *viewtext[],
 	cairo_identity_matrix(output->cr);
 	lines = (int) (height * percent - titleheight - bordery * 2) /
 		(int) output->extents.height;
-	textheight = lines * output->extents.height;
+	textheight = (n - 1 < lines ? n - 1 : lines) * output->extents.height;
 	listheight = textheight + 2 * bordery;
+	height = textheight + listheight;
 
 	switch (c) {
 	case KEY_DOWN:
