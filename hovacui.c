@@ -914,8 +914,13 @@ int document(int c, struct position *position, struct output *output) {
 		readpage(position, output);
 		break;
 	case 'z':
-		if (output->minwidth > 0)
-			output->minwidth -= 10;
+		if (output->minwidth <= 0)
+			break;
+		output->minwidth -= 10;
+		if (output->fit & 0x1)
+			position->scrollx = 0;
+		else
+			position->scrolly = 0;
 		break;
 	case 'Z':
 		if (boundingboxinscreen(position, output))
