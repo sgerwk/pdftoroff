@@ -1868,7 +1868,7 @@ double aspect(char *arg) {
  * usage
  */
 void usage() {
-	printf("fbdev pdf viewer with automatic zoom to text\n");
+	printf("pdf viewer with automatic zoom to text\n");
 	printf("usage:\n\thovacui\t[-m viewmode] [-f direction] ");
 	printf("[-w minwidth] [-t distance]\n");
 	printf("\t\t[-s aspect] [-d device] file.pdf\n");
