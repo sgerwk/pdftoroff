@@ -1426,7 +1426,7 @@ int gotopage(int c, struct position *position, struct output *output) {
 	static char gotostring[100] = "";
 	char *prompt = "go to page: ";
 	char *helplabel = "c=current e=end up=previous down=next enter=go";
-	char *nopage = "[no such page]";
+	char *nopage = "no such page";
 	int n;
 
 	if (c == '\033' || c == KEY_EXIT || c == 'q') {
@@ -1466,7 +1466,7 @@ int gotopage(int c, struct position *position, struct output *output) {
 				return WINDOW_GOTOPAGE;
 		}
 
-		field(c, output, prompt, gotostring, "", NULL);
+		field(c, output, prompt, gotostring, NULL, NULL);
 		output->flush = TRUE;
 		output->pagenumber = TRUE;
 		return WINDOW_GOTOPAGE;
@@ -1480,8 +1480,7 @@ int gotopage(int c, struct position *position, struct output *output) {
 	}
 
 	if (n < 0 || n >= position->totpages) {
-		field(KEY_REDRAW, output,
-			prompt, gotostring, nopage, NULL);
+		field(KEY_REDRAW, output, prompt, gotostring, nopage, NULL);
 		output->flush = TRUE;
 		return WINDOW_GOTOPAGE;
 	}
@@ -1541,7 +1540,7 @@ int number(int c, struct position *position, struct output *output,
 	case KEY_INIT:
 		sprintf(fieldstring, "%lg", *destination);
 		strncpy(output->help, helplabel, 79);
-		field(c, output, prompt, fieldstring, "", NULL);
+		field(c, output, prompt, fieldstring, NULL, NULL);
 		return window;
 
 	case KEY_DOWN:
@@ -1552,7 +1551,7 @@ int number(int c, struct position *position, struct output *output,
 			return window;
 		sprintf(fieldstring, "%lg", n);
 		c = KEY_REDRAW;
-		field(c, output, prompt, fieldstring, "", NULL);
+		field(c, output, prompt, fieldstring, NULL, NULL);
 		return window;
 
 	case KEY_ENTER:
@@ -1565,7 +1564,7 @@ int number(int c, struct position *position, struct output *output,
 	default:
 		if (! keynumeric(c))
 			return window;
-		field(c, output, prompt, fieldstring, "", NULL);
+		field(c, output, prompt, fieldstring, NULL, NULL);
 		return window;
 	}
 }
