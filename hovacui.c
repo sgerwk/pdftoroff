@@ -1492,39 +1492,42 @@ int number(int c, struct position *position, struct output *output,
 		double *destination, double min, double max) {
 	double n;
 
-	if (c == '\033' || c == KEY_EXIT || c == 'q')
+	switch (c) {
+	case '\033':
+	case KEY_EXIT:
+	case 'q':
 		return WINDOW_DOCUMENT;
 
-	if (c != KEY_ENTER && c != '\n') {
+	case KEY_INIT:
+		sprintf(fieldstring, "%lg", *destination);
 		strncpy(output->help, helplabel, 79);
-
-		switch (c) {
-		case KEY_INIT:
-			sprintf(fieldstring, "%lg", *destination);
-			break;
-		case KEY_DOWN:
-		case KEY_UP:
-			n = atof(fieldstring);
-			n = n + (c == KEY_DOWN ? +1 : -1);
-			if (n < min || n > max)
-				return window;
-			sprintf(fieldstring, "%lg", n);
-			c = KEY_REDRAW;
-			break;
-		default:
-			if (! keynumeric(c))
-				return window;
-		}
-
 		field(c, output, prompt, fieldstring, "", NULL);
-		output->flush = TRUE;
+		return window;
+
+	case KEY_DOWN:
+	case KEY_UP:
+		n = atof(fieldstring);
+		n = n + (c == KEY_DOWN ? +1 : -1);
+		if (n < min || n > max)
+			return window;
+		sprintf(fieldstring, "%lg", n);
+		c = KEY_REDRAW;
+		field(c, output, prompt, fieldstring, "", NULL);
+		return window;
+
+	case KEY_ENTER:
+	case '\n':
+		*destination = atof(fieldstring);
+		readpage(position, output);
+		firsttextbox(position, output);
+		return WINDOW_DOCUMENT;
+
+	default:
+		if (! keynumeric(c))
+			return window;
+		field(c, output, prompt, fieldstring, "", NULL);
 		return window;
 	}
-
-	*destination = atof(fieldstring);
-	readpage(position, output);
-	firsttextbox(position, output);
-	return WINDOW_DOCUMENT;
 }
 
 /*
