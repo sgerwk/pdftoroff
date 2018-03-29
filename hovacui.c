@@ -128,17 +128,25 @@
  * void label(struct position *position, struct output *output);
  *	all label functions are called at each step; they have to decide by
  *	themselves whether to draw something; they choose based on the content
- *	of the output structure; for example, output->pagenumber makes the
- *	pagenumber() label draw the page number
+ *	of the position and output structures; for example, the pagenumber()
+ *	labels draws when the page number changes and when output->pagenumber
+ *	is true
  *
  * both windows and label draw themselves
  *
- * each window is a specific instance of a widget: for example, gotopage() and
- * search() are both textfields; each window function calls another function
- * that collects the generic part of their logic: gotopage() and search() call
- * field(), which input a string; in the same way, help(), tutorial(), menu(),
- * viewmode() and fitdirection() call list(), which shows a list of strings
- * possibly with a selected element and a scrollbar if too long
+ * each window is a specific instance of a generic window:
+ *
+ * field()
+ *	a generic textfield
+ *	called by gotopage() and search()
+ *
+ * number()
+ *	a textfield for a number
+ *	called by minwidth() and textdistance()
+ *
+ * list()
+ *	a list of strings, possibly with a selected one
+ *	called by help(), tutorial() and menu()
  *
  * a particular window is document(), which draws nothing and deal with normal
  * input (when no other window is active)
