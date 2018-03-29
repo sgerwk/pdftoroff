@@ -158,7 +158,9 @@
  *
  * this sequence allows for a window to draw itself over the document without
  * the need to redraw the document first; it however disallows for example to
- * move the document or to show/remove a label while the window is active
+ * move the document or to show/remove a label while the window is active;
+ * therefore, everthing the window needs to communicate has to be drawn within
+ * its own screen space
  */
 
 #include <stdlib.h>
