@@ -1485,12 +1485,11 @@ int search(int c, struct position *position, struct output *output) {
 }
 
 /*
- * field for minimal width
+ * field for a number
  */
-int minwidth(int c, struct position *position, struct output *output) {
-	static char minwidthstring[100] = "";
-	char *prompt = "minimal width: ";
-	char *helplabel = "down=increase enter=decrease";
+int number(int c, struct position *position, struct output *output,
+		int window, char* fieldstring, char *prompt, char *helplabel,
+		double *destination, double min, double max) {
 	double n;
 
 	if (c == '\033' || c == KEY_EXIT || c == 'q')
@@ -1501,73 +1500,53 @@ int minwidth(int c, struct position *position, struct output *output) {
 
 		switch (c) {
 		case KEY_INIT:
-			sprintf(minwidthstring, "%lg", output->minwidth);
+			sprintf(fieldstring, "%lg", *destination);
 			break;
 		case KEY_DOWN:
 		case KEY_UP:
-			n = atof(minwidthstring);
+			n = atof(fieldstring);
 			n = n + (c == KEY_DOWN ? +1 : -1);
-			if (n < 0)
-				break;
-			sprintf(minwidthstring, "%lg", n);
+			if (n < min || n > max)
+				return window;
+			sprintf(fieldstring, "%lg", n);
 			c = KEY_REDRAW;
 			break;
 		default:
 			if (! keynumeric(c))
-				return WINDOW_WIDTH;
+				return window;
 		}
 
-		field(c, output, prompt, minwidthstring, "", NULL);
+		field(c, output, prompt, fieldstring, "", NULL);
 		output->flush = TRUE;
-		return WINDOW_WIDTH;
+		return window;
 	}
 
-	output->minwidth = atof(minwidthstring);
+	*destination = atof(fieldstring);
 	readpage(position, output);
 	firsttextbox(position, output);
 	return WINDOW_DOCUMENT;
 }
 
 /*
- * field for text distance
+ * field for minimal width
  */
+int minwidth(int c, struct position *position, struct output *output) {
+	static char minwidthstring[100] = "";
+	return number(c, position, output, WINDOW_WIDTH,
+		minwidthstring,
+		"minimal width: ", "down=increase enter=decrease",
+		&output->minwidth, 0, 1000);
+}
+
+/*
+ * field for text distance
+ */ 
 int textdistance(int c, struct position *position, struct output *output) {
 	static char distancestring[100] = "";
-	char *prompt = "text distance: ";
-	char *helplabel = "down=increase enter=decrease";
-	double n;
-
-	if (c == '\033' || c == KEY_EXIT || c == 'q')
-		return WINDOW_DOCUMENT;
-
-	if (c != KEY_ENTER && c != '\n') {
-		strncpy(output->help, helplabel, 79);
-
-		switch (c) {
-		case KEY_INIT:
-			sprintf(distancestring, "%lg", output->distance);
-			break;
-		case KEY_DOWN:
-		case KEY_UP:
-			n = atof(distancestring);
-			n = n + (c == KEY_DOWN ? +1 : -1);
-			sprintf(distancestring, "%lg", n);
-			c = KEY_REDRAW;
-			break;
-		default:
-			if (! keynumeric(c))
-				return WINDOW_DISTANCE;
-		}
-
-		field(c, output, prompt, distancestring, "", NULL);
-		output->flush = TRUE;
-		return WINDOW_DISTANCE;
-	}
-
-	output->distance = atof(distancestring);
-	readpage(position, output);
-	firsttextbox(position, output);
-	return WINDOW_DOCUMENT;
+	return number(c, position, output, WINDOW_DISTANCE,
+		distancestring,
+		"text distance: ", "down=increase enter=decrease",
+		&output->distance, 0, 1000);
 }
 
 /*
