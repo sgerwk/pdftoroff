@@ -177,6 +177,7 @@ enum window {
 	WINDOW_VIEWMODE,
 	WINDOW_FITDIRECTION,
 	WINDOW_MENU,
+	WINDOW_WIDTH,
 	WINDOW_DISTANCE,
 	WINDOW_EXIT
 };
@@ -1096,11 +1097,11 @@ int help(int c, struct position *position, struct output *output) {
 		"Home       top of page",
 		"End        bottom of page",
 		"m          main menu",
-		"v          rotate among view modes:",
+		"v          change view modes:",
 		"           textarea, boundingbox, page",
 		"f          change fitting direction:",
 		"           horizontal, vertical, both",
-		"w W        + or - minimal viewbox width",
+		"w          minimal viewbox width",
 		"           (determines the maximal zoom)",
 		"t          text-to-text distance",
 		"g          go to page",
@@ -1239,6 +1240,7 @@ int menu(int c, struct position *position, struct output *output) {
 		"(/) search",
 		"(v) view mode",
 		"(f) fit direction",
+		"(w) minimal width",
 		"(t) text distance",
 		"(q) quit",
 		NULL
@@ -1265,6 +1267,10 @@ int menu(int c, struct position *position, struct output *output) {
 		selected = 1;
 		output->redraw = TRUE;
 		return WINDOW_FITDIRECTION;
+	case 'w':
+		selected = 1;
+		output->redraw = TRUE;
+		return WINDOW_WIDTH;
 	case 't':
 		selected = 1;
 		output->redraw = TRUE;
@@ -1296,10 +1302,14 @@ int menu(int c, struct position *position, struct output *output) {
 	case 5:
 		selected = 1;
 		output->redraw = TRUE;
-		return WINDOW_DISTANCE;
+		return WINDOW_WIDTH;
 	case 6:
-		return WINDOW_EXIT;
+		selected = 1;
+		output->redraw = TRUE;
+		return WINDOW_DISTANCE;
 	case 7:
+		return WINDOW_EXIT;
+	case 8:
 		strcpy(output->help, "unimplemented");
 		/* fallthrough */
 	default:
@@ -1475,6 +1485,50 @@ int search(int c, struct position *position, struct output *output) {
 }
 
 /*
+ * field for minimal width
+ */
+int minwidth(int c, struct position *position, struct output *output) {
+	static char minwidthstring[100] = "";
+	char *prompt = "minimal width: ";
+	char *helplabel = "down=increase enter=decrease";
+	double n;
+
+	if (c == '\033' || c == KEY_EXIT || c == 'q')
+		return WINDOW_DOCUMENT;
+
+	if (c != KEY_ENTER && c != '\n') {
+		strncpy(output->help, helplabel, 79);
+
+		switch (c) {
+		case KEY_INIT:
+			sprintf(minwidthstring, "%lg", output->minwidth);
+			break;
+		case KEY_DOWN:
+		case KEY_UP:
+			n = atof(minwidthstring);
+			n = n + (c == KEY_DOWN ? +1 : -1);
+			if (n < 0)
+				break;
+			sprintf(minwidthstring, "%lg", n);
+			c = KEY_REDRAW;
+			break;
+		default:
+			if (! keynumeric(c))
+				return WINDOW_WIDTH;
+		}
+
+		field(c, output, prompt, minwidthstring, "", NULL);
+		output->flush = TRUE;
+		return WINDOW_WIDTH;
+	}
+
+	output->minwidth = atof(minwidthstring);
+	readpage(position, output);
+	firsttextbox(position, output);
+	return WINDOW_DOCUMENT;
+}
+
+/*
  * field for text distance
  */
 int textdistance(int c, struct position *position, struct output *output) {
@@ -1538,6 +1592,8 @@ int selectwindow(int window, int c,
 		return viewmode(c, position, output);
 	case WINDOW_FITDIRECTION:
 		return fitdirection(c, position, output);
+	case WINDOW_WIDTH:
+		return minwidth(c, position, output);
 	case WINDOW_DISTANCE:
 		return textdistance(c, position, output);
 	default:
