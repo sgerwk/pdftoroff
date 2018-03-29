@@ -1341,7 +1341,11 @@ void field(int c, struct output *output,
 		char *label, char *current, char *error, char *help) {
 	double percent = 0.8, prop = (1 - percent) / 2;
 	double marginx = (output->dest.x2 - output->dest.x1) * prop;
+	double marginy = 20.0;
+	double startx = output->dest.x1 + marginx;
+	double starty = output->dest.y1 + marginy;
 	double x, y;
+	cairo_text_extents_t te;
 	int l;
 
 	l = strlen(current);
@@ -1361,23 +1365,37 @@ void field(int c, struct output *output,
 
 	cairo_set_source_rgb(output->cr, 0.8, 0.8, 0.8);
 	cairo_rectangle(output->cr,
-		output->dest.x1 + marginx,
-		output->dest.y1 + 20,
+		startx,
+		starty,
 		output->dest.x2 - output->dest.x1 - marginx * 2,
 		output->extents.height * (help != NULL ? 2 : 1) + 10);
 	cairo_fill(output->cr);
 
 	cairo_set_source_rgb(output->cr, 0.0, 0.0, 0.0);
 	cairo_move_to(output->cr,
-		output->dest.x1 + marginx + output->extents.height / 2,
-		output->dest.y1 + 20 + 5 + output->extents.ascent);
+		startx + 10.0,
+		starty + 5.0 + output->extents.ascent);
 	cairo_get_current_point(output->cr, &x, &y);
 	cairo_show_text(output->cr, label);
 	cairo_show_text(output->cr, current);
 	cairo_show_text(output->cr, "_ ");
-	cairo_show_text(output->cr, error);
 	cairo_move_to(output->cr, x, y + output->extents.height);
 	cairo_show_text(output->cr, help);
+	if (error == NULL)
+		return;
+	cairo_text_extents(output->cr, error, &te);
+	cairo_set_source_rgb(output->cr, 0.8, 0.0, 0.0);
+	cairo_rectangle(output->cr,
+		output->dest.x2 - marginx - te.x_advance - 20.0,
+		starty,
+		te.x_advance + 20.0,
+		output->extents.height + 10.0);
+	cairo_fill(output->cr);
+	cairo_move_to(output->cr,
+		output->dest.x2 - marginx - te.x_advance - 10.0,
+		starty + 5.0 + output->extents.ascent);
+	cairo_set_source_rgb(output->cr, 1.0, 1.0, 1.0);
+	cairo_show_text(output->cr, error);
 }
 
 /*
@@ -1493,7 +1511,7 @@ int search(int c, struct position *position, struct output *output) {
 			return WINDOW_DOCUMENT;
 		}
 		c = KEY_REDRAW;
-		error = "[no match]";
+		error = "no match";
 	}
 
 	field(c, output, prompt, searchstring, error, NULL);
@@ -1559,7 +1577,7 @@ int minwidth(int c, struct position *position, struct output *output) {
 
 /*
  * field for text distance
- */ 
+ */
 int textdistance(int c, struct position *position, struct output *output) {
 	static char distancestring[100] = "";
 	return number(c, position, output, WINDOW_DISTANCE,
