@@ -860,6 +860,9 @@ int document(int c, struct position *position, struct output *output) {
 	case 'g':
 		output->redraw = FALSE;
 		return WINDOW_GOTOPAGE;
+	case 'w':
+		output->redraw = FALSE;
+		return WINDOW_WIDTH;
 	case 't':
 		output->redraw = FALSE;
 		return WINDOW_DISTANCE;
@@ -910,11 +913,11 @@ int document(int c, struct position *position, struct output *output) {
 		firsttextbox(position, output);
 		readpage(position, output);
 		break;
-	case 'w':
+	case 'z':
 		if (output->minwidth > 0)
 			output->minwidth -= 10;
 		break;
-	case 'W':
+	case 'Z':
 		if (boundingboxinscreen(position, output))
 			break;
 		output->minwidth += 10;
@@ -1101,7 +1104,7 @@ int help(int c, struct position *position, struct output *output) {
 		"           textarea, boundingbox, page",
 		"f          change fitting direction:",
 		"           horizontal, vertical, both",
-		"w          minimal viewbox width",
+		"w z Z      minimal width (set, +, -)",
 		"           (determines the maximal zoom)",
 		"t          text-to-text distance",
 		"g          go to page",
