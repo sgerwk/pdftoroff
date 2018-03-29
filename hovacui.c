@@ -22,7 +22,7 @@
  * - rotate
  * - numbermode: 2 is a, 22 is b, 222 is c, etc.
  * - remote control (via socket)
- * - split pdf viewing function to pdfview.c and gui stuff to cairogui.c
+ * - split pdf viewing functions to pdfview.c and gui stuff to cairogui.c
  * - improve column-sorting rectangles (to be done in pdfrects.c)
  * - cache the textarea list of pages already scanned
  * - save last position(s) to $(HOME)/.pdfpositions
