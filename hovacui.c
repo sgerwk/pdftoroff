@@ -29,6 +29,10 @@
  * - include images (in pdfrects.c)
  * - utf8 in field()
  * - key to reset viewmode and fit direction to initial values
+ * - introduce WINDOW_REFRESH, which causes the document to be redrawn with the
+ *   labels on top and the same window to be called again with c=KEY_REDRAW; to
+ *   avoid flickering, this requires flushing to be done only after the second
+ *   call to the window, before accepting real input
  * - search(): utf8
  * - history of positions
  * - set output->redraw to FALSE when not moving
