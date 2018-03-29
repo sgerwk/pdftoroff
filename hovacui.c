@@ -1264,6 +1264,7 @@ int menu(int c, struct position *position, struct output *output) {
 		"(f) fit direction",
 		"(w) minimal width",
 		"(t) text distance",
+		"(h) help",
 		"(q) quit",
 		NULL
 	};
@@ -1297,6 +1298,10 @@ int menu(int c, struct position *position, struct output *output) {
 		selected = 1;
 		output->redraw = TRUE;
 		return WINDOW_DISTANCE;
+	case 'h':
+		selected = 1;
+		output->redraw = TRUE;
+		return WINDOW_HELP;
 	case 'q':
 		return WINDOW_EXIT;
 	}
@@ -1330,8 +1335,12 @@ int menu(int c, struct position *position, struct output *output) {
 		output->redraw = TRUE;
 		return WINDOW_DISTANCE;
 	case 7:
-		return WINDOW_EXIT;
+		selected = 1;
+		output->redraw = TRUE;
+		return WINDOW_HELP;
 	case 8:
+		return WINDOW_EXIT;
+	case 9:
 		strcpy(output->help, "unimplemented");
 		/* fallthrough */
 	default:
