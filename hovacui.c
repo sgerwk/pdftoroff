@@ -5,7 +5,6 @@
  *
  * todo:
  * - man page
- * - rewrite gotopage() using number()
  * - document notutorial and totalpages in man page
  * - line of next scroll: where the top/bottom of the screen will be after
  *   scrolling up or down
@@ -1354,13 +1353,12 @@ int menu(int c, struct position *position, struct output *output) {
  * generic textfield
  */
 void field(int c, struct output *output,
-		char *label, char *current, char *error, char *help) {
+		char *prompt, char *current, char *error, char *help) {
 	double percent = 0.8, prop = (1 - percent) / 2;
 	double marginx = (output->dest.x2 - output->dest.x1) * prop;
 	double marginy = 20.0;
 	double startx = output->dest.x1 + marginx;
 	double starty = output->dest.y1 + marginy;
-	double x, y;
 	cairo_text_extents_t te;
 	int l;
 
@@ -1376,6 +1374,8 @@ void field(int c, struct output *output,
 		current[l] = c;
 		current[l + 1] = '\0';
 	}
+	else if ((c == KEY_INIT || c == KEY_REDRAW) && help != NULL)
+		strcpy(output->help, help);
 
 	cairo_identity_matrix(output->cr);
 
@@ -1384,19 +1384,16 @@ void field(int c, struct output *output,
 		startx,
 		starty,
 		output->dest.x2 - output->dest.x1 - marginx * 2,
-		output->extents.height * (help != NULL ? 2 : 1) + 10);
+		output->extents.height + 10);
 	cairo_fill(output->cr);
 
 	cairo_set_source_rgb(output->cr, 0.0, 0.0, 0.0);
 	cairo_move_to(output->cr,
 		startx + 10.0,
 		starty + 5.0 + output->extents.ascent);
-	cairo_get_current_point(output->cr, &x, &y);
-	cairo_show_text(output->cr, label);
+	cairo_show_text(output->cr, prompt);
 	cairo_show_text(output->cr, current);
 	cairo_show_text(output->cr, "_ ");
-	cairo_move_to(output->cr, x, y + output->extents.height);
-	cairo_show_text(output->cr, help);
 	if (error == NULL)
 		return;
 	cairo_text_extents(output->cr, error, &te);
@@ -1427,79 +1424,6 @@ int keyfield(int c) {
  */
 int keynumeric(int c) {
 	return (c >= '0' && c <= '9') || keyfield(c);
-}
-
-/*
- * field for a page number
- */
-int gotopage(int c, struct position *position, struct output *output) {
-	static char gotostring[100] = "";
-	char *prompt = "go to page: ";
-	char *helplabel = "c=current e=end up=previous down=next enter=go";
-	char *nopage = "no such page";
-	int n;
-
-	if (c == '\033' || c == KEY_EXIT || c == 'q') {
-		gotostring[0] = '\0';
-		return WINDOW_DOCUMENT;
-	}
-
-	if (c != KEY_ENTER && c != '\n') {
-		strncpy(output->help, helplabel, 79);
-
-		switch (c) {
-		case 'c':
-			sprintf(gotostring, "%d", position->npage + 1);
-			c = KEY_REDRAW;
-			break;
-		case 'e':
-			sprintf(gotostring, "%d", position->totpages);
-			c = KEY_REDRAW;
-			break;
-		case KEY_DOWN:
-		case KEY_UP:
-		case KEY_NPAGE:
-		case KEY_PPAGE:
-			n = gotostring[0] == '\0' ?
-				position->npage : atoi(gotostring) - 1;
-			n += c == KEY_UP ? -1 : c == KEY_DOWN ? +1 :
-			     c == KEY_PPAGE ? -10 : +10;
-			if (n < 0)
-				n = 0;
-			if (n >= position->totpages)
-				n = position->totpages - 1;
-			sprintf(gotostring, "%d", n + 1);
-			c = KEY_REDRAW;
-			break;
-		default:
-			if (! keynumeric(c))
-				return WINDOW_GOTOPAGE;
-		}
-
-		field(c, output, prompt, gotostring, NULL, NULL);
-		output->flush = TRUE;
-		output->pagenumber = TRUE;
-		return WINDOW_GOTOPAGE;
-	}
-
-	n = atoi(gotostring) - 1;
-
-	if (n == position->npage || gotostring[0] == '\0') {
-		gotostring[0] = '\0';
-		return WINDOW_DOCUMENT;
-	}
-
-	if (n < 0 || n >= position->totpages) {
-		field(KEY_REDRAW, output, prompt, gotostring, nopage, NULL);
-		output->flush = TRUE;
-		return WINDOW_GOTOPAGE;
-	}
-
-	position->npage = n;
-	readpage(position, output);
-	firsttextbox(position, output);
-	gotostring[0] = '\0';
-	return WINDOW_DOCUMENT;
 }
 
 /*
@@ -1537,7 +1461,7 @@ int search(int c, struct position *position, struct output *output) {
  * field for a number
  */
 int number(int c, struct output *output,
-		char* fieldstring, char *prompt, char *helplabel,
+		char *prompt, char *current, char *error, char *help,
 		double *destination, double min, double max) {
 	double n;
 
@@ -1548,32 +1472,87 @@ int number(int c, struct output *output,
 		return -1;
 
 	case KEY_INIT:
-		sprintf(fieldstring, "%lg", *destination);
-		strncpy(output->help, helplabel, 79);
-		field(c, output, prompt, fieldstring, NULL, NULL);
+		sprintf(current, "%lg", *destination);
+		/* fallthrough */
+	case KEY_REDRAW:
+		field(c, output, prompt, current, error, help);
 		return 0;
 
 	case KEY_DOWN:
 	case KEY_UP:
-		n = atof(fieldstring);
+		n = atof(current);
 		n = n + (c == KEY_DOWN ? +1 : -1);
 		if (n < min || n > max)
 			return 0;
-		sprintf(fieldstring, "%lg", n);
+		sprintf(current, "%lg", n);
 		c = KEY_REDRAW;
-		field(c, output, prompt, fieldstring, NULL, NULL);
+		field(c, output, prompt, current, error, help);
 		return 0;
 
 	case KEY_ENTER:
 	case '\n':
-		*destination = atof(fieldstring);
+		n = atof(current);
+		if (n < min || n > max)
+			return -2;
+		*destination = n;
 		return 1;
 
 	default:
 		if (keynumeric(c))
-			field(c, output, prompt, fieldstring, NULL, NULL);
+			field(c, output, prompt, current, error, help);
 		return 0;
 	}
+}
+
+int gotopage(int c, struct position *position, struct output *output) {
+	static char gotopagestring[100] = "";
+	int res;
+	double n;
+
+	switch (c) {
+	case KEY_INIT:
+		c = KEY_REDRAW;
+		break;
+	case KEY_PPAGE:
+	case KEY_NPAGE:
+		c = c == KEY_PPAGE ? KEY_UP : KEY_DOWN;
+		/* fallthrough */
+	case KEY_UP:
+	case KEY_DOWN:
+		if (atof(gotopagestring) < 1)
+			sprintf(gotopagestring, "%d", 0);
+		else if (atof(gotopagestring) > position->totpages)
+			sprintf(gotopagestring, "%d", position->totpages + 1);
+		break;
+	case 'c':
+		sprintf(gotopagestring, "%d", position->npage + 1);
+		c = KEY_REDRAW;
+		break;
+	case 'e':
+		sprintf(gotopagestring, "%d", position->totpages);
+		c = KEY_REDRAW;
+		break;
+	}
+
+	n = position->npage + 1;
+	res = number(c == KEY_INIT ? KEY_REDRAW : c, output,
+		"go to page: ", gotopagestring, NULL,
+		"c=current e=end up=previous down=next enter=go",
+		&n, 1, position->totpages);
+	if (res == -2) {
+		number(KEY_REDRAW, output,
+			"go to page: ", gotopagestring, "no such page",
+			"c=current e=end up=previous down=next enter=go",
+			&n, 1, position->totpages);
+		return WINDOW_GOTOPAGE;
+	}
+	if (res == 1) {
+		gotopagestring[0] = '\0';
+		position->npage = n - 1;
+		readpage(position, output);
+		firsttextbox(position, output);
+	}
+	return res ? WINDOW_DOCUMENT : WINDOW_GOTOPAGE;
 }
 
 /*
@@ -1583,9 +1562,8 @@ int minwidth(int c, struct position *position, struct output *output) {
 	static char minwidthstring[100] = "";
 	int res;
 
-	res = number(c, output, minwidthstring,
-		"minimal width: ", "down=increase enter=decrease",
-		&output->minwidth, 0, 1000);
+	res = number(c, output, "minimal width: ", minwidthstring, NULL,
+		"down=increase enter=decrease", &output->minwidth, 0, 1000);
 	if (res == 1) {
 		readpage(position, output);
 		firsttextbox(position, output);
@@ -1600,9 +1578,8 @@ int textdistance(int c, struct position *position, struct output *output) {
 	static char distancestring[100] = "";
 	int res;
 
-	res = number(c, output, distancestring,
-		"text distance: ", "down=increase enter=decrease",
-		&output->distance, 0, 1000);
+	res = number(c, output, "text distance: ", distancestring, NULL,
+		"down=increase enter=decrease", &output->distance, 0, 1000);
 	if (res == 1) {
 		readpage(position, output);
 		firsttextbox(position, output);
