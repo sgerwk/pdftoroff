@@ -9,8 +9,6 @@
  * - line of next scroll: where the top/bottom of the screen will be after
  *   scrolling up or down
  * - config opt "nolabel" for no label at all: skip the label part from draw()
- * - config option "noinitlabels" for not showing the labels at startup; not so
- *   easy as it seems, since requires the labels to initalize without drawing
  * - multiple files, list()-based window; return WINDOW_NEXT+n to tell main()
  *   which file to switch to; and/or have a field in struct output for the new
  *   file index or name
@@ -1941,6 +1939,7 @@ int main(int argn, char *argv[]) {
 	double screenaspect;
 	int opt;
 	int firstwindow;
+	int noinitlabels;
 
 	WINDOW *w;
 	int c;
@@ -1959,6 +1958,7 @@ int main(int argn, char *argv[]) {
 	margin = 10.0;
 	fontsize = 16.0;
 	fbdev = "/dev/fb0";
+	noinitlabels = FALSE;
 
 				/* config file */
 
@@ -1993,6 +1993,9 @@ int main(int argn, char *argv[]) {
 			if (sscanf(configline, "%s", s) == 1 &&
 			    ! strcmp(s, "totalpages"))
 				output.totalpages = TRUE;
+			if (sscanf(configline, "%s", s) == 1 &&
+			    ! strcmp(s, "noinitlabels"))
+				noinitlabels = TRUE;
 		}
 		fclose(config);
 	}
@@ -2079,13 +2082,25 @@ int main(int argn, char *argv[]) {
 
 	vt_setup();
 
-				/* initialize position and output */
+				/* initialize position and output context */
 
 	initposition(position);
-
 	output.cr = cairofb->cr;
 
-	output.redraw = TRUE;
+				/* initialize labels */
+
+	if (noinitlabels || firstwindow != WINDOW_DOCUMENT) {
+		output.dest.x1 = 0;
+		output.dest.y1 = -500;
+		output.dest.x2 = 200;
+		output.dest.y2 = -100;
+		output.redraw = FALSE;
+		draw(cairofb, position, &output);
+	}
+	else
+		output.filename = firstwindow == WINDOW_DOCUMENT;
+
+				/* setup output */
 
 	output.dest.x1 = margin;
 	output.dest.y1 = margin;
@@ -2112,15 +2127,13 @@ int main(int argn, char *argv[]) {
 
 				/* first window */
 
-	output.filename = firstwindow == WINDOW_DOCUMENT;
-
 	window = document(KEY_INIT, position, &output);
 	if (window != firstwindow) {
 		draw(cairofb, position, &output);
 		window = selectwindow(firstwindow, KEY_INIT,
 				position, &output);
 	}
-	else
+	else if (! noinitlabels)
 		strncpy(output.help, "press 'h' for help", 79);
 
 				/* event loop */
