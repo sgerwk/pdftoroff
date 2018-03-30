@@ -1545,7 +1545,7 @@ int number(int c, struct output *output,
 	case '\033':
 	case KEY_EXIT:
 	case 'q':
-		return 1;
+		return -1;
 
 	case KEY_INIT:
 		sprintf(fieldstring, "%lg", *destination);
@@ -1586,7 +1586,7 @@ int minwidth(int c, struct position *position, struct output *output) {
 	res = number(c, output, minwidthstring,
 		"minimal width: ", "down=increase enter=decrease",
 		&output->minwidth, 0, 1000);
-	if (res) {
+	if (res == 1) {
 		readpage(position, output);
 		firsttextbox(position, output);
 	}
@@ -1603,7 +1603,7 @@ int textdistance(int c, struct position *position, struct output *output) {
 	res = number(c, output, distancestring,
 		"text distance: ", "down=increase enter=decrease",
 		&output->distance, 0, 1000);
-	if (res) {
+	if (res == 1) {
 		readpage(position, output);
 		firsttextbox(position, output);
 	}
