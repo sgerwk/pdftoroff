@@ -5,6 +5,7 @@
  *
  * todo:
  * - man page
+ * - rewrite gotopage() using number()
  * - document notutorial and totalpages in man page
  * - line of next scroll: where the top/bottom of the screen will be after
  *   scrolling up or down
@@ -1535,8 +1536,8 @@ int search(int c, struct position *position, struct output *output) {
 /*
  * field for a number
  */
-int number(int c, struct position *position, struct output *output,
-		int window, char* fieldstring, char *prompt, char *helplabel,
+int number(int c, struct output *output,
+		char* fieldstring, char *prompt, char *helplabel,
 		double *destination, double min, double max) {
 	double n;
 
@@ -1544,37 +1545,34 @@ int number(int c, struct position *position, struct output *output,
 	case '\033':
 	case KEY_EXIT:
 	case 'q':
-		return WINDOW_DOCUMENT;
+		return 1;
 
 	case KEY_INIT:
 		sprintf(fieldstring, "%lg", *destination);
 		strncpy(output->help, helplabel, 79);
 		field(c, output, prompt, fieldstring, NULL, NULL);
-		return window;
+		return 0;
 
 	case KEY_DOWN:
 	case KEY_UP:
 		n = atof(fieldstring);
 		n = n + (c == KEY_DOWN ? +1 : -1);
 		if (n < min || n > max)
-			return window;
+			return 0;
 		sprintf(fieldstring, "%lg", n);
 		c = KEY_REDRAW;
 		field(c, output, prompt, fieldstring, NULL, NULL);
-		return window;
+		return 0;
 
 	case KEY_ENTER:
 	case '\n':
 		*destination = atof(fieldstring);
-		readpage(position, output);
-		firsttextbox(position, output);
-		return WINDOW_DOCUMENT;
+		return 1;
 
 	default:
-		if (! keynumeric(c))
-			return window;
-		field(c, output, prompt, fieldstring, NULL, NULL);
-		return window;
+		if (keynumeric(c))
+			field(c, output, prompt, fieldstring, NULL, NULL);
+		return 0;
 	}
 }
 
@@ -1583,10 +1581,16 @@ int number(int c, struct position *position, struct output *output,
  */
 int minwidth(int c, struct position *position, struct output *output) {
 	static char minwidthstring[100] = "";
-	return number(c, position, output, WINDOW_WIDTH,
-		minwidthstring,
+	int res;
+
+	res = number(c, output, minwidthstring,
 		"minimal width: ", "down=increase enter=decrease",
 		&output->minwidth, 0, 1000);
+	if (res) {
+		readpage(position, output);
+		firsttextbox(position, output);
+	}
+	return res ? WINDOW_DOCUMENT : WINDOW_WIDTH;
 }
 
 /*
@@ -1594,10 +1598,16 @@ int minwidth(int c, struct position *position, struct output *output) {
  */
 int textdistance(int c, struct position *position, struct output *output) {
 	static char distancestring[100] = "";
-	return number(c, position, output, WINDOW_DISTANCE,
-		distancestring,
+	int res;
+
+	res = number(c, output, distancestring,
 		"text distance: ", "down=increase enter=decrease",
 		&output->distance, 0, 1000);
+	if (res) {
+		readpage(position, output);
+		firsttextbox(position, output);
+	}
+	return res ? WINDOW_DOCUMENT : WINDOW_DISTANCE;
 }
 
 /*
