@@ -8,7 +8,8 @@
  * - document notutorial and totalpages in man page
  * - line of next scroll: where the top/bottom of the screen will be after
  *   scrolling up or down
- * - config option "nolabels" for not showing the labels at startup; not so
+ * - config opt "nolabel" for no label at all: skip the label part from draw()
+ * - config option "noinitlabels" for not showing the labels at startup; not so
  *   easy as it seems, since requires the labels to initalize without drawing
  * - multiple files, list()-based window; return WINDOW_NEXT+n to tell main()
  *   which file to switch to; and/or have a field in struct output for the new
