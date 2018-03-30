@@ -143,11 +143,11 @@
  *
  * field()
  *	a generic textfield
- *	called by gotopage() and search()
+ *	called by search()
  *
  * number()
  *	a textfield for a number
- *	called by minwidth() and textdistance()
+ *	called by gotopage(), minwidth() and textdistance()
  *
  * list()
  *	a list of strings, possibly with a selected one
@@ -1428,7 +1428,7 @@ int keynumeric(int c) {
 }
 
 /*
- * field for a number
+ * generic field for a number
  */
 int number(int c, struct output *output,
 		char *prompt, char *current, char *error, char *help,
@@ -1452,8 +1452,18 @@ int number(int c, struct output *output,
 	case KEY_UP:
 		n = atof(current);
 		n = n + (c == KEY_DOWN ? +1 : -1);
-		if (n < min || n > max)
-			return 0;
+		if (n < min) {
+			if (c == KEY_DOWN)
+				n = min;
+			else
+				return 0;
+		}
+		if (n > max) {
+			if (c == KEY_UP)
+				n = max;
+			else
+				return 0;
+		}
 		sprintf(current, "%lg", n);
 		c = KEY_REDRAW;
 		field(c, output, prompt, current, error, help);
@@ -1524,13 +1534,6 @@ int gotopage(int c, struct position *position, struct output *output) {
 	case KEY_PPAGE:
 	case KEY_NPAGE:
 		c = c == KEY_PPAGE ? KEY_UP : KEY_DOWN;
-		/* fallthrough */
-	case KEY_UP:
-	case KEY_DOWN:
-		if (atof(gotopagestring) < 1)
-			sprintf(gotopagestring, "%d", 0);
-		else if (atof(gotopagestring) > position->totpages)
-			sprintf(gotopagestring, "%d", position->totpages + 1);
 		break;
 	case 'c':
 		sprintf(gotopagestring, "%d", position->npage + 1);
