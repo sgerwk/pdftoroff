@@ -1151,19 +1151,16 @@ int help(int c, struct position *position, struct output *output) {
  */
 int tutorial(int c, struct position *position, struct output *output) {
 	static char *tutorialtext[] = {
+		"hovacui - pdf viewer with autozoom to text",
 		"hovacui displays a block of text at time",
 		"the current block is bordered in blue",
 		"",
 		"zoom is automatic",
-		"navigate by cursor %s",
-		"switch page by PageUp/PageDown",
+		"move by cursor %s " "and PageUp/PageDown",
 		"",
 		"key h for help",
-		"key m for whole page view",
-		"",
-		"to remove these instructions at startup:",
-		"add \"notutorial\" to file",
-		"$HOME/.config/hovacui/hovacui.conf",
+		"key m for menu",
+		"key v for whole page view",
 		"",
 		"space bar to view document",
 		NULL
