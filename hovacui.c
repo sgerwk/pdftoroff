@@ -866,12 +866,15 @@ int document(int c, struct position *position, struct output *output) {
 		break;
 	case 'q':
 		return WINDOW_EXIT;
+	case KEY_HELP:
 	case 'h':
 		output->redraw = FALSE;
 		return WINDOW_HELP;
+	case KEY_OPTIONS:
 	case 'm':
 		output->redraw = FALSE;
 		return WINDOW_MENU;
+	case KEY_MOVE:
 	case 'g':
 		output->redraw = FALSE;
 		return WINDOW_GOTOPAGE;
@@ -881,9 +884,10 @@ int document(int c, struct position *position, struct output *output) {
 	case 't':
 		output->redraw = FALSE;
 		return WINDOW_DISTANCE;
+	case KEY_FIND:
 	case '/':
 	case '?':
-		output->forward = c == '/';
+		output->forward = c != '?';
 		output->redraw = FALSE;
 		return WINDOW_SEARCH;
 	case 'n':
