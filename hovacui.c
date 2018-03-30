@@ -1460,6 +1460,8 @@ int number(int c, struct output *output,
 
 	case KEY_ENTER:
 	case '\n':
+		if (current[0] == '\0')
+			return -1;
 		n = atof(current);
 		if (n < min || n > max)
 			return -2;
@@ -1489,6 +1491,8 @@ int search(int c, struct position *position, struct output *output) {
 
 	if (c == KEY_ENTER || c == '\n') {
 		strcpy(output->search, searchstring);
+		if (searchstring[0] == '\0')
+			return WINDOW_DOCUMENT;
 		if (firstmatch(position, output) != -1) {
 			searchstring[0] = '\0';
 			strcpy(output->help,
