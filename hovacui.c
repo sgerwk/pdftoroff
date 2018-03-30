@@ -1427,37 +1427,6 @@ int keynumeric(int c) {
 }
 
 /*
- * field for a search keyword
- */
-int search(int c, struct position *position, struct output *output) {
-	static char searchstring[100] = "";
-	char *prompt = "find: ";
-	char *error = NULL;
-
-	if (c == '\033' || c == KEY_EXIT) {
-		searchstring[0] = '\0';
-		strcpy(output->search, searchstring);
-		return WINDOW_DOCUMENT;
-	}
-
-	if (c == KEY_ENTER || c == '\n') {
-		strcpy(output->search, searchstring);
-		if (firstmatch(position, output) != -1) {
-			searchstring[0] = '\0';
-			strcpy(output->help,
-				"n=next matches p=previous matches");
-			output->timeout = 2000;
-			return WINDOW_DOCUMENT;
-		}
-		c = KEY_REDRAW;
-		error = "no match";
-	}
-
-	field(c, output, prompt, searchstring, error, NULL);
-	return WINDOW_SEARCH;
-}
-
-/*
  * field for a number
  */
 int number(int c, struct output *output,
@@ -1504,6 +1473,40 @@ int number(int c, struct output *output,
 	}
 }
 
+/*
+ * field for a search keyword
+ */
+int search(int c, struct position *position, struct output *output) {
+	static char searchstring[100] = "";
+	char *prompt = "find: ";
+	char *error = NULL;
+
+	if (c == '\033' || c == KEY_EXIT) {
+		searchstring[0] = '\0';
+		strcpy(output->search, searchstring);
+		return WINDOW_DOCUMENT;
+	}
+
+	if (c == KEY_ENTER || c == '\n') {
+		strcpy(output->search, searchstring);
+		if (firstmatch(position, output) != -1) {
+			searchstring[0] = '\0';
+			strcpy(output->help,
+				"n=next matches p=previous matches");
+			output->timeout = 2000;
+			return WINDOW_DOCUMENT;
+		}
+		c = KEY_REDRAW;
+		error = "no match";
+	}
+
+	field(c, output, prompt, searchstring, error, NULL);
+	return WINDOW_SEARCH;
+}
+
+/*
+ * field for a page number
+ */
 int gotopage(int c, struct position *position, struct output *output) {
 	static char gotopagestring[100] = "";
 	int res;
