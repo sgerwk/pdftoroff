@@ -2,7 +2,9 @@
  * hovacui.c
  *
  * view a pdf document, autozooming to the text
- *
+ */
+
+/*
  * todo:
  * - line of next scroll: where the top/bottom of the screen will be after
  *   scrolling up or down
@@ -18,15 +20,22 @@
  * - info(), based on list(): filename, number of pages, page format, etc.
  * - rotate
  * - fit direction "none" to emulate the normal arbitrary zooming of the text
- *   (note that currently output->fit is 0 for "both", but it should logically
- *   be 0 for "none" and 3 for "both");
- *   this could be implemented by always making the viewbox dimensions equal to
- *   the minimal width in adjustviewbox(); currently this is only done if the
- *   viewbox is smaller than the screen, with fit "none" it would be done
- *   regardless; this way, the current textbox can become larger than the
- *   screen, but this happens only when the viewbox is smaller than the screen;
- *   this creates the problem that scrollx=0 is no longer the left of the
- *   current textbox and scrolly=0 its top
+ *   - note that currently output->fit is 0 for "both"; it should logically be
+ *   0 for "none" and 3 for "both" anyway
+ *   - fit "none" could be implemented in the current framework by always
+ *   making the viewbox dimensions equal to the minimal width in
+ *   adjustviewbox(); currently this is only done if the viewbox is smaller
+ *   than the screen, with fit "none" it would be done regardless; this way,
+ *   the current textbox can become larger than the screen
+ *   - however, the aim of making the textbox larger than the screem is only
+ *   reached when the viewbox is smaller than the screen; this creates the
+ *   problem that scrollx=0 is no longer the left of the current textbox; the
+ *   same for the top/right/bottom of the textbox
+ *   - the solution is that toptextbox first calculates the viewbox size by
+ *   moveto(), then sets scrollx to: 0, if the viewbox is larger or equal than
+ *   the current textbox (this way, the center columns in a 3-columns page is
+ *   centered); otherwise, textbox->x - viewbox->x; this is min(0, textbox->x -
+ *   viewbox->x); the same for scrolly, and similarly for bottomtextbox
  * - numbermode: 2 is a, 22 is b, 222 is c, etc.
  * - remote control (via socket)
  * - split pdf viewing functions to pdfview.c and gui stuff to cairogui.c
