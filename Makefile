@@ -8,8 +8,8 @@ hovacui: LDFLAGS+=${shell pkg-config --libs ncurses}
 all: ${PROGS}
 
 install: all
-	cp pdftoroff pdftoebook pdffit ${DESTDIR}/usr/bin
-	cp pdftoroff.1 pdffit.1 pdfrects.1 ${DESTDIR}/usr/share/man/man1
+	cp hovacui pdftoroff pdftoebook pdffit ${DESTDIR}/usr/bin
+	cp hovacui.1 pdftoroff.1 pdffit.1 pdfrects.1 ${DESTDIR}/usr/share/man/man1
 
 pdftoroff: pdftext.o
 pdfrects: pdfrects-main.o
