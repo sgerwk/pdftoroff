@@ -1,0 +1,440 @@
+.TH hovacui 1 "March 30, 2018"
+
+.
+.
+.
+.SH NAME
+hovacui - pdf viewer with autozoom to text for the Linux framebuffer
+
+.
+.
+.
+.SH SYNOPSIS
+\fBhovacui\fP
+[\fIoptions\fP]
+\fIfile.pdf\fP
+
+.
+.
+.
+.SH DESCRIPTION
+
+Viewer for pdf files on the Linux framebuffer based on poppler,
+with autozooming to the blocks of text in the page.
+
+The other pdf viewers require the user to set the zoom explicitely and then to
+move the page on the screen via scrollbars or cursor keys. The only automatic
+zoom modes available are those fitting the page width or height (or both) to
+the screen's.
+
+The \fBhovacui\fP pdf viewer automatically zooms to the blocks of text in the
+page. The user only needs to scroll down to continue reading.
+
+This is handy on small screens, especially with small fonts. White margings are
+not shown and the text is zoomed enough to fit the width of the screen.
+Contrary to normal pdf viewer, it is not the page that fits the width the
+screen, only the text in it. This means that the letters are larger and
+therefore more readable.
+
+Moving through the text for reading is much improved for two-column documents,
+or document with multiple columns. A regular pdf viewer requires the user to
+first zoom enough to make the letters readable, and then to move across the
+page following the text:
+
+.nf
+        +-------+     +-------+
+        |    <-----   |       |
+        |   |   |   ----->    |
+        |   |   |  ^  |   |   |
+        |   |   |  |  |   |   |
+        |   |   |  |  |   |   |
+        |   |   |  |  |   |   |
+        |   |   |  |  |   |   |
+        |   V   |  |  |   |   |
+        |    ----->   |   V   |
+        +-------+     +-------+
+.fi
+
+This is not necessary in \fBhovacui\fP. The screen automatically starts showing
+the top of the first column:
+
+.nf
+       +---------+
+       |+-------+|    +-------+
+       ||       ||    |       |
+       ||       ||    |       |
+       ||       ||    |       |
+       +---------+    |       |
+        |       |     |       |
+        |       |     |       |
+        |       |     |       |
+        |       |     |       |
+        |       |     |       |
+        +-------+     +-------+
+.fi
+
+The cursor down key moves the screen down the text:
+
+.nf
+        +-------+     +-------+
+        |       |     |       |
+        |       |     |       |
+       +---------+    |       |
+       ||       ||    |       |
+       ||       ||    |       |
+       ||       ||    |       |
+       ||       ||    |       |
+       +---------+    |       |
+        |       |     |       |
+        +-------+     +-------+
+.fi
+
+This looks like moving down in the page like in a regular pdf viewer, but is
+not. The difference shows when reaching the end of the column:
+
+.nf
+        +-------+     +-------+
+        |       |     |       |
+        |       |     |       |
+        |       |     |       |
+        |       |     |       |
+        |       |     |       |
+       +---------+    |       |
+       ||       ||    |       |
+       ||       ||    |       |
+       ||       ||    |       |
+       |+-------+|    +-------+
+       +---------+
+.fi
+
+The next cursor down keystroke moves to the \fBnext part of text\fP, whereever
+it is. In this case, a single keystroke moves to the top of the second column:
+
+.nf
+                     +---------+
+        +-------+    |+-------+|
+        |       |    ||       ||
+        |       |    ||       ||
+        |       |    ||       ||
+        |       |    +---------+
+        |       |     |       |
+        |       |     |       |
+        |       |     |       |
+        |       |     |       |
+        |       |     |       |
+        +-------+     +-------+
+.fi
+
+The user needs not to move around in the page or even remember where the text
+goes. A single cursor down keystroke is enough to continue reading, regardless
+of whether the next part of the text is below, in the next column or in the
+next page.
+
+The cursor up key does the same in the opposite direction.
+
+.
+.
+.
+.SH MODE OF OPERATION
+
+Before displaying a page, \fBhovacui\fP locates its blocks of text. It then
+displays its first block with a blue border, zoomed enough to fill the width of
+the screen. If the block is taller than the screen at this zoom, the cursor
+down key scrolls it up. When the bottom of the block is visible, the next
+cursor down keystroke makes the viewer switch to the next block.
+
+This mode of operation is affected by various parameters, which can be
+configured by keystrokes, from the menu (key \fI'm'\fP), via command line
+options or the configuration file \fI$HOME/.config/hovacui/hovacui.conf\fP.
+
+.SS View mode
+
+Normally, \fBhovacui\fP splits the page into its blocks of text, and displays
+them one at time.
+
+Instead of the blocks of text, the area of the page that is displayed may be
+the whole bounding box of the page (the smallest rectangle enclosing all text
+in the page). This viewing mode is obtained by the keystroke \fI'v'\fP, by the
+\fI'view mode'\fP entry in the menu, by the command line option \fI-v
+boundingbox\fP and by the configuration file line \fImode boundingbox\fP.
+
+It is equivalent to the page being a single block of text that is as large as
+the bounding box. When \fBhovacui\fP fails to correctly locate the blocks of
+text or their order, switching to this mode allows for a more conventional view
+of the page. Still, the white border of the page is suppressed, making the text
+larger than the "fit to width" mode.
+
+Fitting the whole page to the width of the screen is the third mode of
+operation, obtained by pressing \fI'v'\fP a second time, by the menu, by the
+command line option \fI-v page\fP and by the configuration file line \fImode
+page\fP.
+
+.SS Fit direction
+
+Normally, \fBhovacui\fP fits the width of the text to the width of the screen.
+This is the way to the largest possible zoom not requiring the user to move
+right or left for reading a single line of text.
+
+If required, it fits the height instead: by the \fI'f'\fP key, the \fIfit
+direction\fP entry in the menu, the \fI-f vertical\fP command line option and
+the \fIfit vertical\fP line in the configuration file. Zooming the text so that
+it is all in the screen is also possible (pressing \fI'f'\fP again or using the
+\fIboth\fP fit direction).
+
+This allows for example to view the whole text in the page at once, or the
+entire page: select the boundingbox or page mode (previous section) and the
+"both" fitting direction.
+
+.SS Minimal width
+
+Fitting the width of the text to the width of the screen produces the largest
+possible zoom while keeping the lines of text wholly in the page. However, when
+the block of text is very narrow, the resulting zoom may be too large.
+
+For example, line numbers are usually separated from the text, and therefore
+each makes its own block of text. The page number "12" would for example
+elarged so much that its width is made the same of the screen, with the result
+that it is not even wholly contained in the screen.
+
+The minimal width parameter prevents this from happening. It is the width of
+the most narrow block of text that is fit to the width of the screen. Blocks of
+text that are narrower than this are still zoomed, but only as if they were as
+wide as the minimal width.
+
+In short: the minimal width prevents narrow blocks of text to be zoomed too
+much.
+
+It can be set by the \fI'w'\fP keystroke, by the menu, by the \fI'-w'\fP
+command line option and by the \fIminwidth\fP configuration file line, but can
+alzo be changed on the fly with keys 'z' and 'Z'.
+They work like 'zoom in' and 'zoom out' keys, but the block of text
+is never zoomed more than the width of the screen.
+
+.SS The text distance
+
+Locating the block of text depends on a parameter: the minimal distance between
+blocks of text. If two letters are closer than this, they are considered to be
+part of the same block of text. Therefore, two blocks of text are never closer
+than this distance.
+
+The default \fI15.0\fP is reasonable for most documents. On largely-spaced
+pages the blocks of text may be too many, even one per paragraph. However,
+since such pages are usually single-column, if the block of text are too many,
+it is usually better to switch to bounding box mode (see above) rather than
+increasing the text distance.
+
+Nevertheless, the text distance can be changed by the \fI't'\fP keystroke, from
+the menu, by the \fI-t\fP command line option and by the \fIdistance\fP
+configuration file line.
+
+.
+.
+.
+.SH KEYS
+
+The cursor up and cursor down keys work as expected: they move up and down the
+screen. However, when the bottom of the current block of text (bordered in
+blue) is already visible, the cursor down key moves to the next block. The same
+for the cursor up key.
+
+The same applies to the cursor left and right keys. This implies that in
+horizontal fit mode (the default), since the right edge is always visible, the
+cursor right key always moves to the next block of text. The converse happens
+in vertical fit mode.
+
+The page up and page down keys move to the previous and next page.
+
+.TP
+.B
+h
+display a summary of the keys
+.TP
+.B
+m
+enter the main menu
+.TP
+.B
+v
+change view mode: text area (default), boundingbox, page
+(see \fIView mode\fP, above)
+.TP
+.B
+f
+change fit direction: horizontal, vertical, both
+(see \fIFit direction\fP, above)
+.TP
+.B
+g
+go to a given page
+.TP
+.B
+/
+search forward
+.TP
+.B
+?
+search backward
+.TP
+.B
+n
+go to the next match of the last search, if any
+.TP
+.B
+p
+go to the previous match of the last search, if any
+.TP
+.B
+w
+change the minimal width
+(see \fIMinimal width\fP, above)
+.TP
+.B
+t
+change the text distance
+(see \fIText distance\fP, above)
+.TP
+.B
+q
+quit the program
+
+.
+.
+.
+.SH OPTIONS
+
+Not all parameters can be given in the command line. Some can only be set in
+the configuration file (see below).
+
+.TP
+.BI -m " (textarea|boundingbox|page)
+view mode
+(see \fIView mode\fP, above)
+.TP
+.BI -f " (horizontal|vertical|both)
+fit direction
+(see \fIFit direction\fP, above)
+.TP
+.BI -w " minwidth
+minimal width
+(see \fIMinimal width\fP, above)
+.TP
+.BI -t " distance
+text distance
+(see \fIText distance\fP, above)
+.TP
+.BI -d " device
+the fbdev device to use, by default \fI/dev/fb0\fP
+.TP
+.BI -s " aspect
+the screen aspect; it can be specified as \fI16:9\fP or \fI4:3\fP, for example;
+only necessary when pixels are non-square
+.TP
+.BI -h
+show a summary of the command line options and the main keys
+
+.
+.
+.
+.SH CONFIGURATION FILE
+
+All command line options can also be set in the configuration file
+\fI$HOME/.config/hovacui/hovacui.conf\fP, but not the other way around.
+Command line options take precedence over the configuration file. Most options
+can also be changed at runtime via keys or the menu (keystroke \fI'm'\fP).
+
+.TP
+.BI mode " (textarea|boundingbox|page)
+view by the blocks of text in the page, by the bounding box of the page or by
+the whole page; see \fIView mode\fP, above
+.TP
+.BI fit " (horizontal|vertical|both)
+fit the text to the width of the screen, to its height, or both;
+see \fIFit direction\fP, above
+.TP
+.BI minwidth " w
+the minimal width of a block of text that is made as wide as the screen;
+see \fIMinimal width\fP, above)x
+.TP
+.BI distance " d
+letters closer than this are in the same block of text;
+see \fIText distance\fP, above
+.TP
+.BI aspect " a
+the screen aspect, like \fI16:9\fP or \fI4:3\fP; allows for non-square pixels
+.TP
+.BI scroll " s
+how much a keystroke scrolls, in proportion of the screen size; the default is
+\fI1/4\fP, meaning that for example the cursor down keys scrolls the text up
+one quarter of the screen
+.TP
+.BI fontsize " f
+the size of the font of the user interface (the menus and the text fields);
+this has nothing to do with the size of the text in the pdf document
+.TP
+.BI margin " m
+the text does not exactly fit the width of the screen; a small margin is left
+around it; the default is \fI10.0\fP
+.TP
+.BI device " d
+the framebuffer device to use; defaults to \fI/dev/fb0\fP
+.TP
+.BI notutorial
+do not show the short tutorial at startup
+.TP
+.BI totalpages
+show page numbers as "page X of Y" instead of "page X"
+.TP
+.BI noinitlabels
+do not show the file name, the viewing mode etc. at startup
+
+.
+.
+.
+.SH COMPARISON WITH GREEN(1)
+
+\fBgreen\fP (http://github.com/schandinat/green) is a fine pdf viewer for the
+Linux framebuffer and X11. It has some features more and some less than
+\fBhovacui\fP:
+
+.IP "  * " 4
+green only allows fitting the whole page to the screen (horizontally,
+vertically and both ways); hovacui also allows fitting a single block of text
+at time or the bounding box of the page
+.IP "  * "
+green allows for arbitrary zooming and moving in the page;
+hovacui has automatic zooming and only allows vertical movements
+(but horizontal movements are never necessary)
+.IP "  * "
+green allows rotating the document; hovacui does not
+.IP "  * "
+green can display multiple documents (using tabs to switch to the next);
+hovacui only shows a single document
+.IP "  * "
+green allows searching and moving to a given page, but does not have a user
+interface; this means that the user has for example to type a page number
+without seeing it; hovacui has a crude but functional user interface
+.IP "  * "
+hovacui has an inline help and allows for non-square pixels; green does not
+(but a fork with these features exist: https://github/sgerwk/green)
+.IP "  * "
+hovacui briefly shows the page number when switching page; green does not
+.IP "  * "
+the configuration file of green allows for schemes (profiles); hovacui has a
+configuration file but no schemes
+.IP "  * "
+green works in X11; hovacui does not
+
+.SH NOTES
+
+If something goes wrong, press 'v' to change view mode.
+
+The horizontal fit mode is intended for horizontal scripts, but \fBhovacui\fP
+also allows for vertical fit mode. It however has no support for sorting blocks
+of text for vertical scripts yet.
+
+The cursor left and cursor right keys may not work as expected. Yet, they are
+coherent with the general rule: when moving in a direction and the edge of the
+current block of text in that direction is already shown, switch to the next
+block of text. This means that in horizontal fit mode (the default) the left
+and right cursor keys work as "move to the previous/next" block of text.
+

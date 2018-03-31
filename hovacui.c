@@ -4,8 +4,6 @@
  * view a pdf document, autozooming to the text
  *
  * todo:
- * - man page
- * - document notutorial and totalpages in man page
  * - line of next scroll: where the top/bottom of the screen will be after
  *   scrolling up or down
  * - config opt "nolabel" for no label at all: skip the label part from draw()
@@ -35,13 +33,8 @@
  * - search(): utf8
  * - history of positions
  * - set output->redraw to FALSE when not moving
- * - note that horizontal fitting is intended for horizontal scripts,
- *   but the program also supports vertical fitting; yet, it only supports
- *   vertical scrolling
  * - order of rectangles for right-to-left and top-to-bottom scripts
  *   (generalize sorting function in pdfrects.c)
- * - man: KEY_LEFT and KEY_RIGHT work as next/prev box in horizontal fit, but
- *   they are regular scroll keys in vertical fit; and the other way around
  * - i18n
  * - function to be possibly called before list() to wrap lines too long
  * - annotations and links:
