@@ -1837,6 +1837,37 @@ void closepdf(struct position *position) {
 }
 
 /*
+ * initialize terminal
+ */
+void *init_curses() {
+	WINDOW *w;
+
+	if (getenv("ESCDELAY") == NULL)
+		setenv("ESCDELAY", "200", 1);
+	w = initscr();
+	cbreak();
+	keypad(w, TRUE);
+	noecho();
+	curs_set(0);
+	ungetch(KEY_INIT);
+	getch();
+
+	vt_setup();
+
+	return NULL;
+}
+
+/*
+ * close terminal
+ */
+void finish_curses(WINDOW *w) {
+	(void) w;
+	clear();
+	refresh();
+	endwin();
+}
+
+/*
  * read a character from input
  */
 int input_curses(int timeout) {
@@ -2060,17 +2091,7 @@ int main(int argn, char *argv[]) {
 
 				/* setup terminal */
 
-	if (getenv("ESCDELAY") == NULL)
-		setenv("ESCDELAY", "200", 1);
-	w = initscr();
-	cbreak();
-	keypad(w, TRUE);
-	noecho();
-	curs_set(0);
-	ungetch(KEY_INIT);
-	getch();
-
-	vt_setup();
+	w = init_curses();
 
 				/* initialize position and output context */
 
@@ -2163,9 +2184,7 @@ int main(int argn, char *argv[]) {
 
 	closepdf(position);
 	cairofb_finish(cairofb);
-	clear();
-	refresh();
-	endwin();
+	finish_curses(w);
 	return EXIT_SUCCESS;
 }
 
