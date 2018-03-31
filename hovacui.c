@@ -17,12 +17,16 @@
  * - history of searches
  * - info(), based on list(): filename, number of pages, page format, etc.
  * - rotate
- * - fit direction "none", which emulates the normal arbitrary zooming of the
- *   text; this could be implemented by making the viewbox dimensions equal to
- *   the minimal width regardless of its current size in adjustviewbox(); the
- *   current textbox can then become larger than the screen, but this happens
- *   only when the viewbox is smaller than the screen; this creates the problem
- *   that scrollx=0 is no longer the left of the current textbox
+ * - fit direction "none" to emulate the normal arbitrary zooming of the text
+ *   (note that currently output->fit is 0 for "both", but it should logically
+ *   be 0 for "none" and 3 for "both");
+ *   this could be implemented by always making the viewbox dimensions equal to
+ *   the minimal width in adjustviewbox(); currently this is only done if the
+ *   viewbox is smaller than the screen, with fit "none" it would be done
+ *   regardless; this way, the current textbox can become larger than the
+ *   screen, but this happens only when the viewbox is smaller than the screen;
+ *   this creates the problem that scrollx=0 is no longer the left of the
+ *   current textbox and scrolly=0 its top
  * - numbermode: 2 is a, 22 is b, 222 is c, etc.
  * - remote control (via socket)
  * - split pdf viewing functions to pdfview.c and gui stuff to cairogui.c
