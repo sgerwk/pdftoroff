@@ -1799,38 +1799,6 @@ void draw(struct cairofb *cairofb,
 }
 
 /*
- * read a character from input
- */
-int input(int timeout) {
-	fd_set fds;
-	int max, ret;
-	struct timeval tv;
-
-	FD_ZERO(&fds);
-	FD_SET(STDIN_FILENO, &fds);
-	max = STDIN_FILENO;
-
-	tv.tv_sec = timeout / 1000;
-	tv.tv_usec = timeout % 1000;
-
-	ret = select(max + 1, &fds, NULL, NULL, timeout != 0 ? &tv : NULL);
-
-	if (ret == -1) {
-		if (vt_redraw) {
-			vt_redraw = FALSE;
-			return KEY_REDRAW;
-		}
-		else
-			return KEY_SIGNAL;
-	}
-
-	if (FD_ISSET(STDIN_FILENO, &fds))
-		return getch();
-
-	return KEY_TIMEOUT;
-}
-
-/*
  * open a pdf file
  */
 struct position *openpdf(char *filename) {
@@ -1866,6 +1834,38 @@ struct position *openpdf(char *filename) {
 void closepdf(struct position *position) {
 	free(position->filename);
 	free(position);
+}
+
+/*
+ * read a character from input
+ */
+int input_curses(int timeout) {
+	fd_set fds;
+	int max, ret;
+	struct timeval tv;
+
+	FD_ZERO(&fds);
+	FD_SET(STDIN_FILENO, &fds);
+	max = STDIN_FILENO;
+
+	tv.tv_sec = timeout / 1000;
+	tv.tv_usec = timeout % 1000;
+
+	ret = select(max + 1, &fds, NULL, NULL, timeout != 0 ? &tv : NULL);
+
+	if (ret == -1) {
+		if (vt_redraw) {
+			vt_redraw = FALSE;
+			return KEY_REDRAW;
+		}
+		else
+			return KEY_SIGNAL;
+	}
+
+	if (FD_ISSET(STDIN_FILENO, &fds))
+		return getch();
+
+	return KEY_TIMEOUT;
 }
 
 /*
@@ -2136,7 +2136,7 @@ int main(int argn, char *argv[]) {
 
 					/* read input */
 
-		c = input(output.timeout);
+		c = input_curses(output.timeout);
 		output.timeout = 0;
 		if (vt_suspend || c == KEY_SIGNAL)
 			continue;
