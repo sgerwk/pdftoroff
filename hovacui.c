@@ -1887,9 +1887,9 @@ int optindex(char arg, char *all) {
 }
 
 /*
- * scan an aspect ratio w:h
+ * scan a fraction like w:h or n/d
  */
-double aspect(char *arg) {
+double fraction(char *arg) {
 	char *col;
 	col = index(arg, ':');
 	if (col == NULL) {
@@ -1975,9 +1975,9 @@ int main(int argn, char *argv[]) {
 			if (sscanf(configline, "distance %lg", &d) == 1)
 				output.distance = d;
 			if (sscanf(configline, "aspect %s", s) == 1)
-				screenaspect = aspect(s);
+				screenaspect = fraction(s);
 			if (sscanf(configline, "scroll %s", s) == 1)
-				output.scroll = aspect(s);
+				output.scroll = fraction(s);
 			if (sscanf(configline, "fontsize %lg", &d) == 1)
 				fontsize = d;
 			if (sscanf(configline, "margin %lg", &d) == 1)
@@ -2035,7 +2035,7 @@ int main(int argn, char *argv[]) {
 			fbdev = optarg;
 			break;
 		case 's':
-			screenaspect = aspect(optarg);
+			screenaspect = fraction(optarg);
 			break;
 		case 'h':
 			usage();
