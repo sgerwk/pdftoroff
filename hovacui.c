@@ -27,6 +27,8 @@
  * - remote control (via socket)
  * - split pdf viewing functions to pdfview.c and gui stuff to cairogui.c
  * - improve column-sorting rectangles (to be done in pdfrects.c)
+ * - sort a rectangle list by another rectangle list (in pdfrects.c); this is
+ *   for sorting the textboxes by the occurrence of their first character
  * - cache the textarea list of pages already scanned
  * - save last position(s) to $(HOME)/.pdfpositions
  * - include images (in pdfrects.c)
