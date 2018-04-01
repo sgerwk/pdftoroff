@@ -30,11 +30,11 @@ the screen's.
 The \fBhovacui\fP pdf viewer automatically zooms to the blocks of text in the
 page. The user only needs to scroll down to continue reading.
 
-This is handy on small screens, especially with small fonts. White margings are
-not shown and the text is zoomed enough to fit the width of the screen.
-Contrary to normal pdf viewer, it is not the page that fits the width the
-screen, only the text in it. This means that the letters are larger and
-therefore more readable.
+This is handy on small screens, especially for documents with small letters.
+White margings are not shown and the text is zoomed enough to fit the width of
+the screen. Contrary to normal pdf viewer, it is not the page that fits the
+width the screen, only the text in it. This means that the letters are larger
+and therefore more readable.
 
 Moving through the text for reading is much improved for two-column documents,
 or document with multiple columns. A regular pdf viewer requires the user to
@@ -172,18 +172,22 @@ page\fP.
 .SS Fit direction
 
 Normally, \fBhovacui\fP fits the width of the text to the width of the screen.
-This is the way to the largest possible zoom not requiring the user to move
-right or left for reading a single line of text.
+This achieves the largest possible zoom not requiring the user to move right or
+left for reading a single line of text.
 
 If required, it fits the height instead: by the \fI'f'\fP key, the \fIfit
 direction\fP entry in the menu, the \fI-f vertical\fP command line option and
-the \fIfit vertical\fP line in the configuration file. Zooming the text so that
-it is all in the screen is also possible (pressing \fI'f'\fP again or using the
-\fIboth\fP fit direction).
+the \fIfit vertical\fP line in the configuration file.
 
-This allows for example to view the whole text in the page at once, or the
-entire page: select the boundingbox or page mode (previous section) and the
-"both" fitting direction.
+Zooming the text so that it is all in the screen is also possible: pressing
+\fI'f'\fP again or using the \fIboth\fP fit direction. This allows for example
+to view the whole text in the page at once, or the entire page, by also
+selecting the boundingbox or page mode (previous section).
+
+Also possible is the fitting direction "none", which allows arbitrary zooming
+and moving in the page. This is mostly an hack to allow zooming more than
+normally possible, and some things do not work (like moving to the next or
+previous search match).
 
 .SS Minimal width
 
@@ -260,7 +264,7 @@ change view mode: text area (default), boundingbox, page
 .TP
 .B
 f
-change fit direction: horizontal, vertical, both
+change fit direction: none, horizontal, vertical, both
 (see \fIFit direction\fP, above)
 .TP
 .B
@@ -310,7 +314,7 @@ the configuration file (see below).
 view mode
 (see \fIView mode\fP, above)
 .TP
-.BI -f " (horizontal|vertical|both)
+.BI -f " (none|horizontal|vertical|both)
 fit direction
 (see \fIFit direction\fP, above)
 .TP
@@ -347,7 +351,7 @@ can also be changed at runtime via keys or the menu (keystroke \fI'm'\fP).
 view by the blocks of text in the page, by the bounding box of the page or by
 the whole page; see \fIView mode\fP, above
 .TP
-.BI fit " (horizontal|vertical|both)
+.BI fit " (none|horizontal|vertical|both)
 fit the text to the width of the screen, to its height, or both;
 see \fIFit direction\fP, above
 .TP
@@ -402,8 +406,9 @@ vertically and both ways); hovacui also allows fitting a single block of text
 at time or the bounding box of the page
 .IP "  * "
 green allows for arbitrary zooming and moving in the page;
-hovacui has automatic zooming and only allows vertical movements
-(but horizontal movements are never necessary)
+by default, hovacui has automatic zooming and only allows vertical movements
+(but horizontal movements are never necessary); it allows for arbitrary zooming
+and moving in the page with viewmode=page and fit=none
 .IP "  * "
 green allows rotating the document; hovacui does not
 .IP "  * "

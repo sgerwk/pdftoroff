@@ -6,6 +6,7 @@
 
 /*
  * todo:
+ *
  * - line of next scroll: where the top/bottom of the screen will be after
  *   scrolling up or down
  * - config opt "nolabel" for no label at all: skip the label part from draw()
@@ -19,23 +20,6 @@
  * - history of searches
  * - info(), based on list(): filename, number of pages, page format, etc.
  * - rotate
- * - fit direction "none" to emulate the normal arbitrary zooming of the text
- *   - note that currently output->fit is 0 for "both"; it should logically be
- *   0 for "none" and 3 for "both" anyway
- *   - fit "none" could be implemented in the current framework by always
- *   making the viewbox dimensions equal to the minimal width in
- *   adjustviewbox(); currently this is only done if the viewbox is smaller
- *   than the screen, with fit "none" it would be done regardless; this way,
- *   the current textbox can become larger than the screen
- *   - however, the aim of making the textbox larger than the screem is only
- *   reached when the viewbox is smaller than the screen; this creates the
- *   problem that scrollx=0 is no longer the left of the current textbox; the
- *   same for the top/right/bottom of the textbox
- *   - the solution is that toptextbox first calculates the viewbox size by
- *   moveto(), then sets scrollx to: 0, if the viewbox is larger or equal than
- *   the current textbox (this way, the center columns in a 3-columns page is
- *   centered); otherwise, textbox->x - viewbox->x; this is min(0, textbox->x -
- *   viewbox->x); the same for scrolly, and similarly for bottomtextbox
  * - numbermode: 2 is a, 22 is b, 222 is c, etc.
  * - remote control (via socket)
  * - split pdf viewing functions to pdfview.c and gui stuff to cairogui.c
@@ -66,6 +50,9 @@
  *   moving to the next; it was not needed for search, where the next match is
  *   just the first outside the area of the current textbox that is currently
  *   displayed
+ * - next/previous match does not work with fit=none; do not fix, cannot work
+ *   in general (see below); it can however be done by the same system of the
+ *   next or previous anchor used for annotations and links
  * - x11
  * - avoid repeated operations (finding textarea, drawing, flushing)
  */
@@ -75,11 +62,10 @@
  * ------------------------------------------
  *
  * position->textarea->rect[position->box]
- *	the current textbox: the text-enclosing rectangle that is "focused"
- *	(drawn in light blue)
+ *	the current textbox: the block of text that is focused (drawn in blue)
  *
  * position->viewbox
- *	the above rectangle, possibly enlarged to ensure the minimal width
+ *	the same rectangle, possibly enlarged to ensure the minimal width
  *
  * output->dest
  *	the area of the screen to use (all of it but a thin margin)
@@ -96,12 +82,14 @@
  * applied to the source in reverse order, this is like first scrolling the
  * document and then mapping position->viewbox onto the top of output->dest
  *
- * both position->scrollx and position->scrolly are adjusted to avoid parts
- * outside of the bounding box being displayed, wasting screen space
+ * the textbox is at the center of the viewbox and is therefore shown centered
+ * on the screen; but position->scrollx and position->scrolly are adjusted to
+ * avoid parts outside of the bounding box being displayed, wasting screen
+ * space; this moves the textbox out of the center of the screen
  *
  * all of this is for horizontal fitting mode: vertical fitting mode fits the
  * viewbox by height, but is otherwise the same; in both modes, the scroll is
- * relative to the origin of the current textbox
+ * relative to the origin of the current viewbox
  */
 
 /*
@@ -180,6 +168,32 @@
  * its own screen space
  */
 
+/*
+ * note: fit=none
+ * --------------
+ *
+ * fit=none is mostly an hack to allow for arbitrary zooming and moving in the
+ * page like regular pdf viewers
+ *
+ * it is implemented in the current framework by allowing the viewbox to be
+ * narrower than the textbox, instead of always wider or equally wide; since
+ * the viewbox is mapped to the screen, this allows the screen to show only a
+ * part of the width of the textbox instead of its full width
+ *
+ * this requires toptextbox() to decrease the scroll: a zero scroll would just
+ * map the viewbox to the screen, but now the viewbox is somewhere in the
+ * middle of the textbox; while its upper left corner should be shown instead;
+ * the same for bottomtextbox()
+ *
+ * the current method for finding the next or previous search match could never
+ * work in general anyway: in the other fit modes, the next match in the
+ * current textbox is the first match below or on the right of the portion of
+ * the textbox that is currently shown; with fit=none, that portion may be the
+ * middle of the textbox; depending on how the next match is searched for, two
+ * matches in the lower left corner and the upper right corner may be each the
+ * next of the other, or none the next of the other
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -191,6 +205,9 @@
 #include "cairofb.h"
 #include "pdfrects.h"
 #include "vt.h"
+
+#define MIN(a,b) (((a) < (b)) ? (a) : (b))
+#define MAX(a,b) (((a) > (b)) ? (a) : (b))
 
 /*
  * the windows
@@ -501,16 +518,18 @@ void adjustviewbox(struct position *position, struct output *output) {
 	PopplerRectangle *viewbox;
 	int fitmode;
 
-	fitmode = output->fit == 0 ? 3 : output->fit;
+	fitmode = output->fit;
 	viewbox = position->viewbox;
 
-	if ((fitmode & 1) && viewbox->x2 - viewbox->x1 < output->minwidth) {
+	if (fitmode == 0 ||
+	    (fitmode == 1 && viewbox->x2 - viewbox->x1 < output->minwidth)) {
 		d = output->minwidth - viewbox->x2 + viewbox->x1;
 		viewbox->x1 -= d / 2;
 		viewbox->x2 += d / 2;
 	}
 
-	if ((fitmode & 2) && viewbox->y2 - viewbox->y1 < output->minwidth) {
+	if (fitmode == 0 ||
+	    (fitmode == 2 && viewbox->y2 - viewbox->y1 < output->minwidth)) {
 		d = output->minwidth - viewbox->y2 + viewbox->y1;
 		viewbox->y1 -= d / 2;
 		viewbox->y2 += d / 2;
@@ -545,7 +564,7 @@ void moveto(struct position *position, struct output *output) {
 		(&position->textarea->rect[position->box]);
 	adjustviewbox(position, output);
 	rectangle_map_to_cairo(output->cr, &scaled, position->viewbox,
-		output->fit & 0x1, output->fit & 0x2, TRUE, TRUE, TRUE);
+		output->fit == 1, output->fit == 2, TRUE, TRUE, TRUE);
 
 	adjustscroll(position, output);
 	cairo_translate(output->cr, -position->scrollx, -position->scrolly);
@@ -558,6 +577,21 @@ int toptextbox(struct position *position, struct output *output) {
 	(void) output;
 	position->scrollx = 0;
 	position->scrolly = 0;
+	moveto(position, output);
+
+	/* scrolling moves the origin of the viewbox; scrolling to zero places
+	 * the top left corner of the viewbox at the top left corner of the
+	 * screen; this is usually correct, as it makes the textbox centered on
+	 * the screen (the textboxes at the border are then repositioned by
+	 * adjustscroll() to avoid empty space being shown); but when fit=none,
+	 * the viewbox may be smaller than the textbox; scrolling to zero would
+	 * show the middle of the textbox instead of its upper left corner */
+	position->scrollx = MIN(0,
+		position->textarea->rect[position->box].x1 -
+		position->viewbox->x1);
+	position->scrolly = MIN(0,
+		position->textarea->rect[position->box].y1 -
+		position->viewbox->y1);
 	return 0;
 }
 
@@ -586,7 +620,7 @@ int nextpage(struct position *position, struct output *output) {
  */
 int nexttextbox(struct position *position, struct output *output) {
 	if (position->box + 1 >= position->textarea->num)
-		return nextpage(position, output);
+		return output->fit == 0 ? 0 : nextpage(position, output);
 
 	position->box++;
 	return toptextbox(position, output);
@@ -629,10 +663,25 @@ int bottomtextbox(struct position *position, struct output *output) {
 	position->scrollx = 0;
 	position->scrolly = 0;
 	moveto(position, output);
+
+	/* the viewbox is scrolled so that its bottom right corner is at the
+	 * bottom right corner of the screen; this makes the textbox
+	 * horizontally centered on the screen since the textbox is in the
+	 * center of the viewbox (the textboxes at the border of the page are
+	 * then repositioned by adjustscroll() to avoid empty space being
+	 * shown); but when fit=none the viewbox may be smaller than the
+	 * textbox, and the screen would show the middle of the textbox instead
+	 * of its bottom right corner; in this case, the scrolling has to place
+	 * at the bottom right corner of the screen the corner of the textbox
+	 * instead of the viewbox */
 	position->scrollx =
-		position->viewbox->x2 - xscreentodoc(output, output->dest.x2);
+		MAX(position->viewbox->x2,
+			position->textarea->rect[position->box].x2)
+		- xscreentodoc(output, output->dest.x2);
 	position->scrolly =
-		position->viewbox->y2 - yscreentodoc(output, output->dest.y2);
+		MAX(position->viewbox->y2,
+			position->textarea->rect[position->box].y2)
+		- yscreentodoc(output, output->dest.y2);
 	return 0;
 }
 
@@ -661,7 +710,7 @@ int prevpage(struct position *position, struct output *output) {
  */
 int prevtextbox(struct position *position, struct output *output) {
 	if (position->box - 1 < 0)
-		return prevpage(position, output);
+		return output->fit == 0 ? 0 : prevpage(position, output);
 
 	position->box--;
 	return bottomtextbox(position, output);
@@ -732,11 +781,11 @@ void scrolltorectangle(struct position *position, struct output *output,
 	t = &position->textarea->rect[position->box];
 	toptextbox(position, output);
 	moveto(position, output);
-	if (output->fit & 0x2)
+	if (output->fit != 1)
 		position->scrollx = top ?
 			r->x1 - t->x1 - 40 :
 			r->x2 - t->x1 + 40 - xdestsizetodoc(output);
-	if (output->fit & 0x1)
+	if (output->fit != 2)
 		position->scrolly = top ?
 			r->y1 - t->y1 - 40 :
 			r->y2 - t->y1 + 40 - ydestsizetodoc(output);
@@ -908,9 +957,9 @@ int document(int c, struct position *position, struct output *output) {
 		nextmatch(position, output);
 		break;
 	case ' ':
-		if (output->fit & 0x1)
+		if (output->fit == 0 || output->fit == 1)
 			scrolldown(position, output);
-		else if (output->fit & 0x2)
+		else if (output->fit == 2)
 			scrollright(position, output);
 		else
 			nexttextbox(position, output);
@@ -950,7 +999,7 @@ int document(int c, struct position *position, struct output *output) {
 		output->minwidth -= 10;
 		if (output->fit & 0x1)
 			position->scrollx = 0;
-		else
+		else if (output->fit & 0x2)
 			position->scrolly = 0;
 		break;
 	case 'Z':
@@ -959,7 +1008,7 @@ int document(int c, struct position *position, struct output *output) {
 		output->minwidth += 10;
 		break;
 	case 'f':
-		output->fit = (output->fit + 1) % 3;
+		output->fit = (output->fit + 1) % 4;
 		position->scrollx = 0;
 		position->scrolly = 0;
 		break;
@@ -1170,7 +1219,7 @@ int tutorial(int c, struct position *position, struct output *output) {
 		"the current block is bordered in blue",
 		"",
 		"zoom is automatic",
-		"move by cursor %s " "and PageUp/PageDown",
+		"move by cursor%s%s" " and PageUp/PageDown",
 		"",
 		"key h for help",
 		"key m for menu",
@@ -1187,7 +1236,8 @@ int tutorial(int c, struct position *position, struct output *output) {
 	for (i = 0; tutorialtext[i] != NULL; i++)
 		if (strstr(tutorialtext[i], "%s")) {
 			sprintf(cursor, tutorialtext[i],
-				output->fit == 0x1 ? "Up/Down" : "Left/Right");
+				output->fit == 1 ? " Up/Down" : "",
+				output->fit == 2 ? " Left/Right" : "");
 			tutorialtext[i] = cursor;
 		}
 
@@ -1237,6 +1287,7 @@ int viewmode(int c, struct position *position, struct output *output) {
 int fitdirection(int c, struct position *position, struct output *output) {
 	static char *fitdirectiontext[] = {
 		"fit direction",
+		"none",
 		"horizontal",
 		"vertical",
 		"both",
@@ -1248,7 +1299,7 @@ int fitdirection(int c, struct position *position, struct output *output) {
 	(void) position;
 
 	if (c == KEY_INIT)
-		selected = output->fit == 0 ? 3 : output->fit;
+		selected = output->fit + 1;
 
 	res = list(c, output, fitdirectiontext, &line, &selected);
 	switch (res) {
@@ -1257,7 +1308,8 @@ int fitdirection(int c, struct position *position, struct output *output) {
 	case 1:
 	case 2:
 	case 3:
-		output->fit = res == 3 ? 0 : res;
+	case 4:
+		output->fit = res - 1;
 		firsttextbox(position, output);
 		/* fallthrough */
 	default:
@@ -1734,7 +1786,7 @@ void showmode(struct position *position, struct output *output) {
 void showfit(struct position *position, struct output *output) {
 	static int prev = -1;
 	char s[100];
-	char *fits[] = {"both", "horizontal", "vertical"};
+	char *fits[] = {"none", "horizontal", "vertical", "both"};
 
 	(void) position;
 
@@ -2014,7 +2066,7 @@ int main(int argn, char *argv[]) {
 			if (sscanf(configline, "mode %s", s) == 1)
 				output.viewmode = optindex(optarg[0], "tbp");
 			if (sscanf(configline, "fit %s", s) == 1)
-				output.fit = optindex(optarg[0], "bhv");
+				output.fit = optindex(optarg[0], "nhvb");
 			if (sscanf(configline, "minwidth %lg", &d) == 1)
 				output.minwidth = d;
 			if (sscanf(configline, "distance %lg", &d) == 1)
@@ -2055,7 +2107,7 @@ int main(int argn, char *argv[]) {
 			}
 			break;
 		case 'f':
-			output.fit = optindex(optarg[0], "bhv");
+			output.fit = optindex(optarg[0], "nhvb");
 			if (output.fit == -1) {
 				printf("unsupported fit mode: %s\n", optarg);
 				usage();
