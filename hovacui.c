@@ -147,7 +147,7 @@
  *	called by search()
  *
  * number()
- *	a textfield for a number
+ *	a textfield for a number; calls field()
  *	called by gotopage(), minwidth() and textdistance()
  *
  * list()
@@ -1038,7 +1038,7 @@ void printline(cairo_t *cr, char *string, int advance) {
 }
 
 /*
- * show a list of strings
+ * a list of strings, possibly with a selected one
  */
 int list(int c, struct output *output, char *viewtext[],
 		int *line, int *selected) {
@@ -1320,7 +1320,7 @@ int fitdirection(int c, struct position *position, struct output *output) {
 }
 
 /*
- * general menu
+ * main menu
  */
 int menu(int c, struct position *position, struct output *output) {
 	static char *menutext[] = {
@@ -1633,7 +1633,7 @@ int gotopage(int c, struct position *position, struct output *output) {
 }
 
 /*
- * field for minimal width
+ * field for the minimal width
  */
 int minwidth(int c, struct position *position, struct output *output) {
 	static char minwidthstring[100] = "";
@@ -1649,7 +1649,7 @@ int minwidth(int c, struct position *position, struct output *output) {
 }
 
 /*
- * field for text distance
+ * field for the text distance
  */
 int textdistance(int c, struct position *position, struct output *output) {
 	static char distancestring[100] = "";
@@ -1696,7 +1696,7 @@ int selectwindow(int window, int c,
 }
 
 /*
- * show an arbitrary label
+ * show an arbitrary label at the given number of labels from the bottom
  */
 void label(struct output *output, char *string, int bottom) {
 	double width, x, y;
