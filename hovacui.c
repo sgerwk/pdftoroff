@@ -186,13 +186,13 @@
  * middle of the textbox; while its upper left corner should be shown instead;
  * the same for bottomtextbox()
  *
- * the current method for finding the next or previous search match could never
- * work in general anyway: in the other fit modes, the next match in the
- * current textbox is the first match below or on the right of the portion of
- * the textbox that is currently shown; with fit=none, that portion may be the
- * middle of the textbox; depending on how the next match is searched for, two
- * matches in the lower left corner and the upper right corner may be each the
- * next of the other, or none the next of the other
+ * the current method for finding the next or previous search match cannot work
+ * in general: in the other fit modes, the next match in the current textbox is
+ * the first match below or on the right of the portion of the textbox that is
+ * currently shown; with fit=none, that portion may be the middle of the
+ * textbox; depending on how the next match is searched for, two matches in the
+ * lower left corner and the upper right corner may be each the next of the
+ * other, or none the next of the other
  */
 
 #include <stdlib.h>
