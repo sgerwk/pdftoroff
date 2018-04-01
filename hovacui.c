@@ -85,7 +85,8 @@
  * the textbox is at the center of the viewbox and is therefore shown centered
  * on the screen; but position->scrollx and position->scrolly are adjusted to
  * avoid parts outside of the bounding box being displayed, wasting screen
- * space; this moves the textbox out of the center of the screen
+ * space; in this case, the textbox is moved out of the center of the screen;
+ * this happens for example for the textboxes at the border of the page
  *
  * all of this is for horizontal fitting mode: vertical fitting mode fits the
  * viewbox by height, but is otherwise the same; in both modes, the scroll is
