@@ -307,7 +307,7 @@ struct position {
 	int box;
 	PopplerRectangle *viewbox;
 
-	/* the scroll within the rectangle currently viewed */
+	/* how much the viewbox is moved before being displayed */
 	double scrollx;
 	double scrolly;
 };
