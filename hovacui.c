@@ -31,9 +31,6 @@
  * - include images (in pdfrects.c)
  * - utf8 in field()
  * - key to reset viewmode and fit direction to initial values
- * - introduce WINDOW_REFRESH: call draw() without flushing, then call the same
- *   window again with c=KEY_REDRAW, which sets output->flush; how: in the main
- *   loop set c=KEY_REDRAW, do not call input_curses() when c=KEY_REDRAW
  * - search(): utf8
  * - history of positions
  * - set output->redraw to FALSE when not moving
@@ -152,18 +149,15 @@
  *	a list of strings, possibly with a selected one
  *	called by help(), tutorial() and menu()
  *
+ * the generic windows draw and set output->flush; a specific window
+ * preprocesses the input character if necessary, then calls the generic window
+ * and processes its return value, possibly changing the output and the
+ * position structures; it returns the next window, or WINDOW_REFRESH to have
+ * the document be redrawn and control returned to itself
+ *
  * a particular window is document(), which draws nothing and deal with normal
- * input (when no other window is active)
- *
- * the windows change the position or output structures if necessary, and:
- *
- * output->flush
- *	set to TRUE when something has been drawn;
- *	both drawing and setting this variable are done by the generic windows
- *
- * output->redraw
- *	to be set only in document(): redraw the document before flushing;
- *	do not set anywhere else, as it makes the current window invisible
+ * input (when no other window is active); this is the only window that can set
+ * output->redraw to redraw the document
  */
 
 /*
@@ -221,6 +215,7 @@ enum window {
 	WINDOW_MENU,
 	WINDOW_WIDTH,
 	WINDOW_DISTANCE,
+	WINDOW_REFRESH,
 	WINDOW_EXIT
 };
 
@@ -260,6 +255,9 @@ struct output {
 
 	/* scroll distance, as a fraction of the screen size */
 	double scroll;
+
+	/* apply the changes immediately from the ui */
+	int immediate;
 
 	/* whether the document has to be redrawn */
 	int redraw;
@@ -1307,6 +1305,8 @@ int viewmode(int c, struct position *position, struct output *output) {
 		output->viewmode = res - 1;
 		textarea(position, output);
 		firsttextbox(position, output);
+		if (output->immediate)
+			return WINDOW_REFRESH;
 		/* fallthrough */
 	default:
 		selected = 1;
@@ -1344,6 +1344,8 @@ int fitdirection(int c, struct position *position, struct output *output) {
 	case 4:
 		output->fit = res - 1;
 		firsttextbox(position, output);
+		if (output->immediate)
+			return WINDOW_REFRESH;
 		/* fallthrough */
 	default:
 		selected = 1;
@@ -1655,6 +1657,8 @@ int gotopage(int c, struct position *position, struct output *output) {
 			readpage(position, output);
 			firsttextbox(position, output);
 		}
+		if (output->immediate)
+			return WINDOW_REFRESH;
 		/* fallthrough */
 	case FIELD_LEAVE:
 		gotopagestring[0] = '\0';
@@ -1682,7 +1686,7 @@ int minwidth(int c, struct position *position, struct output *output) {
 	if (res == FIELD_ENTER) {
 		readpage(position, output);
 		firsttextbox(position, output);
-		return WINDOW_DOCUMENT;
+		return output->immediate ? WINDOW_REFRESH : WINDOW_DOCUMENT;
 	}
 	return res == FIELD_LEAVE ? WINDOW_DOCUMENT : WINDOW_WIDTH;
 }
@@ -1699,7 +1703,7 @@ int textdistance(int c, struct position *position, struct output *output) {
 	if (res == FIELD_ENTER) {
 		readpage(position, output);
 		firsttextbox(position, output);
-		return WINDOW_DOCUMENT;
+		return output->immediate ? WINDOW_REFRESH : WINDOW_DOCUMENT;
 	}
 	return res == FIELD_LEAVE ? WINDOW_DOCUMENT : WINDOW_DISTANCE;
 }
@@ -2124,6 +2128,9 @@ int main(int argn, char *argv[]) {
 			if (sscanf(configline, "device %s", s) == 1)
 				fbdev = strdup(s);
 			if (sscanf(configline, "%s", s) == 1 &&
+			    ! strcmp(s, "immediate"))
+				output.immediate = TRUE;
+			if (sscanf(configline, "%s", s) == 1 &&
 			    ! strcmp(s, "notutorial"))
 				firstwindow = WINDOW_DOCUMENT;
 			if (sscanf(configline, "%s", s) == 1 &&
@@ -2267,7 +2274,9 @@ int main(int argn, char *argv[]) {
 
 					/* read input */
 
-		c = c == KEY_INIT ? KEY_INIT : input_curses(output.timeout);
+		c = c == KEY_INIT ? KEY_INIT :
+		    c == KEY_REDRAW ? KEY_REDRAW :
+		    input_curses(output.timeout);
 		pending = output.timeout != 0;
 		output.timeout = 0;
 		if (vt_suspend || c == KEY_SIGNAL)
@@ -2284,6 +2293,12 @@ int main(int argn, char *argv[]) {
 		c = KEY_NONE;
 		if (next == window)
 			continue;
+		if (next == WINDOW_REFRESH) {
+			output.redraw = TRUE;
+			output.flush = FALSE;
+			c = KEY_REDRAW;
+			continue;
+		}
 		if (next == WINDOW_DOCUMENT) {
 			output.redraw = TRUE;
 			output.flush = TRUE;
