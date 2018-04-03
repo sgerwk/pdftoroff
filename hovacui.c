@@ -32,8 +32,8 @@
  * - utf8 in field()
  * - key to reset viewmode and fit direction to initial values
  * - introduce WINDOW_REFRESH: call draw() without flushing, then call the same
- *   window again with c=KEY_REDRAW; requires a change in the main loop if a
- *   window can return WINDOW_REFRESH even when c=KEY_INIT
+ *   window again with c=KEY_REDRAW, which sets output->flush; how: in the main
+ *   loop set c=KEY_REDRAW, do not call input_curses() when c=KEY_REDRAW
  * - search(): utf8
  * - history of positions
  * - set output->redraw to FALSE when not moving
