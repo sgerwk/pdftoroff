@@ -227,10 +227,11 @@ enum window {
 /*
  * imaginary keys
  */
-#define KEY_INIT	((KEY_MAX) + 1)
-#define KEY_REDRAW	((KEY_MAX) + 2)
-#define KEY_TIMEOUT	((KEY_MAX) + 3)
-#define KEY_SIGNAL	((KEY_MAX) + 4)
+#define KEY_NONE	((KEY_MAX) + 1)
+#define KEY_INIT	((KEY_MAX) + 2)
+#define KEY_REDRAW	((KEY_MAX) + 3)
+#define KEY_TIMEOUT	((KEY_MAX) + 4)
+#define KEY_SIGNAL	((KEY_MAX) + 5)
 
 /*
  * output parameters
@@ -2242,22 +2243,18 @@ int main(int argn, char *argv[]) {
 	output.flush = FALSE;
 	if (noinitlabels || firstwindow != WINDOW_DOCUMENT)
 		draw(cairofb, position, &output);
-	else
+	else {
 		output.filename = firstwindow == WINDOW_DOCUMENT;
+		strncpy(output.help, "press 'h' for help", 79);
+	}
 
 				/* first window */
 
 	readpage(position, &output);
-	window = WINDOW_DOCUMENT;
-	output.redraw = TRUE;
-	if (window != firstwindow) {
-		draw(cairofb, position, &output);
-		window = selectwindow(firstwindow, KEY_INIT,
-				position, &output);
-	}
-	else if (! noinitlabels)
-		strncpy(output.help, "press 'h' for help", 79);
+	window = firstwindow;
 	output.flush = TRUE;
+	output.redraw = firstwindow == WINDOW_DOCUMENT;
+	c = firstwindow == WINDOW_DOCUMENT ? KEY_NONE : KEY_INIT;
 
 				/* event loop */
 
@@ -2265,11 +2262,12 @@ int main(int argn, char *argv[]) {
 
 					/* draw document and labels */
 
-		draw(cairofb, position, &output);
+		if (c != KEY_INIT || output.redraw)
+			draw(cairofb, position, &output);
 
 					/* read input */
 
-		c = input_curses(output.timeout);
+		c = c == KEY_INIT ? KEY_INIT : input_curses(output.timeout);
 		pending = output.timeout != 0;
 		output.timeout = 0;
 		if (vt_suspend || c == KEY_SIGNAL)
@@ -2283,18 +2281,19 @@ int main(int argn, char *argv[]) {
 					/* pass input to window */
 
 		next = selectwindow(window, c, position, &output);
+		c = KEY_NONE;
 		if (next == window)
 			continue;
 		if (next == WINDOW_DOCUMENT) {
 			output.redraw = TRUE;
 			output.flush = TRUE;
+			window = next;
+			continue;
 		}
-		else if (pending || window != WINDOW_DOCUMENT) {
+		if (window != WINDOW_DOCUMENT)
 			output.redraw = TRUE;
-			draw(cairofb, position, &output);
-		}
 		window = next;
-		selectwindow(window, KEY_INIT, position, &output);
+		c = KEY_INIT;
 	}
 
 				/* close */
