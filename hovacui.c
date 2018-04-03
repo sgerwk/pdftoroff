@@ -162,8 +162,7 @@
  *	both drawing and setting this variable are done by the generic windows
  *
  * output->redraw
- *	if true, redraw the document before flushing;
- *	set only in document() and when switching from a window to another;
+ *	to be set only in document(): redraw the document before flushing;
  *	do not set anywhere else, as it makes the current window invisible
  */
 
@@ -1375,31 +1374,24 @@ int menu(int c, struct position *position, struct output *output) {
 	switch (c) {
 	case 'g':
 		selected = 1;
-		output->redraw = TRUE;
 		return WINDOW_GOTOPAGE;
 	case '/':
 		selected = 1;
-		output->redraw = TRUE;
 		return WINDOW_SEARCH;
 	case 'v':
 		selected = 1;
-		output->redraw = TRUE;
 		return WINDOW_VIEWMODE;
 	case 'f':
 		selected = 1;
-		output->redraw = TRUE;
 		return WINDOW_FITDIRECTION;
 	case 'w':
 		selected = 1;
-		output->redraw = TRUE;
 		return WINDOW_WIDTH;
 	case 't':
 		selected = 1;
-		output->redraw = TRUE;
 		return WINDOW_DISTANCE;
 	case 'h':
 		selected = 1;
-		output->redraw = TRUE;
 		return WINDOW_HELP;
 	case 'q':
 		return WINDOW_EXIT;
@@ -1411,31 +1403,24 @@ int menu(int c, struct position *position, struct output *output) {
 		return WINDOW_MENU;
 	case 1:
 		selected = 1;
-		output->redraw = TRUE;
 		return WINDOW_GOTOPAGE;
 	case 2:
 		selected = 1;
-		output->redraw = TRUE;
 		return WINDOW_SEARCH;
 	case 3:
 		selected = 1;
-		output->redraw = TRUE;
 		return WINDOW_VIEWMODE;
 	case 4:
 		selected = 1;
-		output->redraw = TRUE;
 		return WINDOW_FITDIRECTION;
 	case 5:
 		selected = 1;
-		output->redraw = TRUE;
 		return WINDOW_WIDTH;
 	case 6:
 		selected = 1;
-		output->redraw = TRUE;
 		return WINDOW_DISTANCE;
 	case 7:
 		selected = 1;
-		output->redraw = TRUE;
 		return WINDOW_HELP;
 	case 8:
 		return WINDOW_EXIT;
@@ -2300,14 +2285,13 @@ int main(int argn, char *argv[]) {
 		next = selectwindow(window, c, position, &output);
 		if (next == window)
 			continue;
-		if (next != WINDOW_DOCUMENT) {
-			if (pending)
-				output.redraw = TRUE;
-			draw(cairofb, position, &output);
-		}
-		else {
+		if (next == WINDOW_DOCUMENT) {
 			output.redraw = TRUE;
 			output.flush = TRUE;
+		}
+		else if (pending || window != WINDOW_DOCUMENT) {
+			output.redraw = TRUE;
+			draw(cairofb, position, &output);
 		}
 		window = next;
 		selectwindow(window, KEY_INIT, position, &output);
