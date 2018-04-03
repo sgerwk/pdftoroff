@@ -31,10 +31,9 @@
  * - include images (in pdfrects.c)
  * - utf8 in field()
  * - key to reset viewmode and fit direction to initial values
- * - introduce WINDOW_REFRESH, which causes the document to be redrawn with the
- *   labels on top and the same window to be called again with c=KEY_REDRAW; to
- *   avoid flickering, this requires flushing to be done only after the second
- *   call to the window, before accepting real input
+ * - introduce WINDOW_REFRESH: call draw() without flushing, then call the same
+ *   window again with c=KEY_REDRAW; requires a change in the main loop if a
+ *   window can return WINDOW_REFRESH even when c=KEY_INIT
  * - search(): utf8
  * - history of positions
  * - set output->redraw to FALSE when not moving
@@ -54,7 +53,6 @@
  *   in general (see below); it can however be done by the same system of the
  *   next or previous anchor used for annotations and links
  * - x11
- * - avoid repeated operations (finding textarea, drawing, flushing)
  */
 
 /*
@@ -157,16 +155,16 @@
  * a particular window is document(), which draws nothing and deal with normal
  * input (when no other window is active)
  *
- * for each input (or at input timeout, if output->timeout is true), the active
- * window is called, then the document is (re)drawn if output->redraw is true,
- * then the label functions are all called (each decide by itself whether to
- * draw something)
+ * the windows change the position or output structures if necessary, and:
  *
- * this sequence allows for a window to draw itself over the document without
- * the need to redraw the document first; it however disallows for example to
- * move the document or to show/remove a label while the window is active;
- * therefore, everthing the window needs to communicate has to be drawn within
- * its own screen space
+ * output->flush
+ *	set to TRUE when something has been drawn;
+ *	both drawing and setting this variable are done by the generic windows
+ *
+ * output->redraw
+ *	if true, redraw the document before flushing;
+ *	set only in document() and when switching from a window to another;
+ *	do not set anywhere else, as it makes the current window invisible
  */
 
 /*
@@ -349,16 +347,22 @@ void freeglistrectangles(GList *list) {
 }
 
 /*
+ * find the matches rectangles in the page
+ */
+int pagematch(struct position *position, struct output *output) {
+	freeglistrectangles(output->found);
+	output->found = output->search[0] == '\0' ?
+		NULL : poppler_page_find_text(position->page, output->search);
+	return 0;
+}
+
+/*
  * read the current page without its textarea
  */
 int readpageraw(struct position *position, struct output *output) {
 	position->page =
 		poppler_document_get_page(position->doc, position->npage);
-
-	freeglistrectangles(output->found);
-	output->found = output->search[0] == '\0' ?
-		NULL : poppler_page_find_text(position->page, output->search);
-
+	pagematch(position, output);
 	return 0;
 }
 
@@ -918,44 +922,40 @@ int boundingboxinscreen(struct position *position, struct output *output) {
  * document window
  */
 int document(int c, struct position *position, struct output *output) {
-	output->redraw = TRUE;
-
 	switch (c) {
-	case KEY_INIT:
-	case KEY_REDRAW:
 	case 'r':
 		readpage(position, output);
+		break;
+	case KEY_INIT:
+	case KEY_TIMEOUT:
+	case KEY_REDRAW:
 		break;
 	case 'q':
 		return WINDOW_EXIT;
 	case KEY_HELP:
 	case 'h':
-		output->redraw = FALSE;
 		return WINDOW_HELP;
 	case KEY_OPTIONS:
 	case 'm':
-		output->redraw = FALSE;
 		return WINDOW_MENU;
 	case KEY_MOVE:
 	case 'g':
-		output->redraw = FALSE;
 		return WINDOW_GOTOPAGE;
 	case 'w':
-		output->redraw = FALSE;
 		return WINDOW_WIDTH;
 	case 't':
-		output->redraw = FALSE;
 		return WINDOW_DISTANCE;
 	case KEY_FIND:
 	case '/':
 	case '?':
 		output->forward = c != '?';
-		output->redraw = FALSE;
 		return WINDOW_SEARCH;
 	case 'n':
 	case 'p':
 		output->forward = c == 'n';
 		nextmatch(position, output);
+		output->redraw = TRUE;
+		output->flush = TRUE;
 		break;
 	case ' ':
 		if (output->fit == 0 || output->fit == 1)
@@ -964,35 +964,55 @@ int document(int c, struct position *position, struct output *output) {
 			scrollright(position, output);
 		else
 			nexttextbox(position, output);
+		output->redraw = TRUE;
+		output->flush = TRUE;
 		break;
 	case KEY_DOWN:
 		scrolldown(position, output);
+		output->redraw = TRUE;
+		output->flush = TRUE;
 		break;
 	case KEY_UP:
 		scrollup(position, output);
+		output->redraw = TRUE;
+		output->flush = TRUE;
 		break;
 	case KEY_LEFT:
 		scrollleft(position, output);
+		output->redraw = TRUE;
+		output->flush = TRUE;
 		break;
 	case KEY_RIGHT:
 		scrollright(position, output);
+		output->redraw = TRUE;
+		output->flush = TRUE;
 		break;
 	case KEY_HOME:
 		firsttextbox(position, output);
+		output->redraw = TRUE;
+		output->flush = TRUE;
 		break;
 	case KEY_END:
 		lasttextbox(position, output);
+		output->redraw = TRUE;
+		output->flush = TRUE;
 		break;
 	case KEY_NPAGE:
 		nextpage(position, output);
+		output->redraw = TRUE;
+		output->flush = TRUE;
 		break;
 	case KEY_PPAGE:
 		prevpage(position, output);
+		output->redraw = TRUE;
+		output->flush = TRUE;
 		break;
 	case 'v':
 		output->viewmode = (output->viewmode + 1) % 3;
 		firsttextbox(position, output);
 		readpage(position, output);
+		output->redraw = TRUE;
+		output->flush = TRUE;
 		break;
 	case 'z':
 		if (output->minwidth <= 0)
@@ -1002,16 +1022,22 @@ int document(int c, struct position *position, struct output *output) {
 			position->scrollx = 0;
 		else if (output->fit & 0x2)
 			position->scrolly = 0;
+		output->redraw = TRUE;
+		output->flush = TRUE;
 		break;
 	case 'Z':
 		if (boundingboxinscreen(position, output))
 			break;
 		output->minwidth += 10;
+		output->redraw = TRUE;
+		output->flush = TRUE;
 		break;
 	case 'f':
 		output->fit = (output->fit + 1) % 4;
 		position->scrollx = 0;
 		position->scrolly = 0;
+		output->redraw = TRUE;
+		output->flush = TRUE;
 		break;
 	case 's':
 		output->timeout = 3000;
@@ -1019,6 +1045,8 @@ int document(int c, struct position *position, struct output *output) {
 		output->showmode = TRUE;
 		output->showfit = TRUE;
 		output->filename = TRUE;
+		output->redraw = TRUE;
+		output->flush = TRUE;
 		break;
 	default:
 		;
@@ -1079,7 +1107,6 @@ int list(int c, struct output *output, char *viewtext[],
 				(*selected)++;
 			(*line)++;
 		}
-		output->redraw = TRUE;
 		break;
 	case KEY_UP:
 		if (selected != NULL && *selected <= 1)
@@ -1093,23 +1120,21 @@ int list(int c, struct output *output, char *viewtext[],
 				(*selected)--;
 			(*line)--;
 		}
-		output->redraw = TRUE;
 		break;
 	case KEY_INIT:
 	case KEY_REDRAW:
-	case KEY_TIMEOUT:
 		break;
+	case '\033':
+	case KEY_EXIT:
+		return -1;
 	case KEY_ENTER:
 	case '\n':
-		if (selected != NULL) {
-			return *selected;
-			break;
-		}
-		/* fallthrough */
+		return selected != NULL ? *selected : -1;
 	default:
-		output->redraw = TRUE;
-		return -1;
+		return selected != NULL ? 0 : -1;
 	}
+
+				/* list heading */
 
 	cairo_set_source_rgb(output->cr, 0.6, 0.6, 0.8);
 	cairo_rectangle(output->cr,
@@ -1120,6 +1145,8 @@ int list(int c, struct output *output, char *viewtext[],
 		startx + borderx, starty + bordery + output->extents.ascent);
 	printline(output->cr, viewtext[0], output->extents.height);
 
+				/* clip to make the list scrollable */
+
 	cairo_set_source_rgb(output->cr, 0.8, 0.8, 0.8);
 	cairo_rectangle(output->cr,
 		output->dest.x1 + marginx,
@@ -1127,7 +1154,8 @@ int list(int c, struct output *output, char *viewtext[],
 		output->dest.x2 - output->dest.x1 - marginx * 2,
 		listheight);
 	cairo_fill(output->cr);
-	cairo_stroke(output->cr);
+
+				/* background */
 
 	cairo_set_source_rgb(output->cr, 0.0, 0.0, 0.0);
 	cairo_save(output->cr);
@@ -1135,6 +1163,8 @@ int list(int c, struct output *output, char *viewtext[],
 		output->dest.x1 + marginx, startlist,
 		width - marginx * 2, textheight);
 	cairo_clip(output->cr);
+
+				/* draw the list elements */
 
 	cairo_translate(output->cr, 0.0, - output->extents.height * *line);
 	for (l = 1; viewtext[l] != NULL; l++) {
@@ -1159,6 +1189,8 @@ int list(int c, struct output *output, char *viewtext[],
 	cairo_stroke(output->cr);
 	cairo_restore(output->cr);
 
+				/* draw the scrollbar */
+
 	if (lines < n - 1) {
 		cairo_rectangle(output->cr,
 			output->dest.x2 - marginx - borderx,
@@ -1170,7 +1202,6 @@ int list(int c, struct output *output, char *viewtext[],
 		cairo_stroke(output->cr);
 	}
 
-	output->redraw = FALSE;
 	output->flush = TRUE;
 	return 0;
 }
@@ -1274,6 +1305,7 @@ int viewmode(int c, struct position *position, struct output *output) {
 	case 2:
 	case 3:
 		output->viewmode = res - 1;
+		textarea(position, output);
 		firsttextbox(position, output);
 		/* fallthrough */
 	default:
@@ -1419,7 +1451,12 @@ int menu(int c, struct position *position, struct output *output) {
 /*
  * generic textfield
  */
-void field(int c, struct output *output,
+#define FIELD_ENTER 0
+#define FIELD_LEAVE 1
+#define FIELD_INVALID 2
+#define FIELD_UNCHANGED 3
+#define FIELD_CHANGED 4
+int field(int c, struct output *output,
 		char *prompt, char *current, char *error, char *help) {
 	double percent = 0.8, prop = (1 - percent) / 2;
 	double marginx = (output->dest.x2 - output->dest.x1) * prop;
@@ -1429,20 +1466,27 @@ void field(int c, struct output *output,
 	cairo_text_extents_t te;
 	int l;
 
+	if (c == '\033' || c == KEY_EXIT)
+		return FIELD_LEAVE;
+	if (c == '\n' || c == KEY_ENTER)
+		return FIELD_ENTER;
+
 	l = strlen(current);
 	if (c == KEY_BACKSPACE || c == KEY_DC) {
 		if (l < 0)
-			return;
+			return FIELD_UNCHANGED;
 		current[l - 1] = '\0';
 	}
 	else if (c != KEY_INIT && c != KEY_REDRAW) {
 		if (l > 30)
-			return;
+			return FIELD_UNCHANGED;
 		current[l] = c;
 		current[l + 1] = '\0';
 	}
 	else if ((c == KEY_INIT || c == KEY_REDRAW) && help != NULL)
 		strcpy(output->help, help);
+
+	output->flush = TRUE;
 
 	cairo_identity_matrix(output->cr);
 
@@ -1462,7 +1506,7 @@ void field(int c, struct output *output,
 	cairo_show_text(output->cr, current);
 	cairo_show_text(output->cr, "_ ");
 	if (error == NULL)
-		return;
+		return FIELD_CHANGED;
 	cairo_text_extents(output->cr, error, &te);
 	cairo_set_source_rgb(output->cr, 0.8, 0.0, 0.0);
 	cairo_rectangle(output->cr,
@@ -1476,6 +1520,7 @@ void field(int c, struct output *output,
 		starty + 5.0 + output->extents.ascent);
 	cairo_set_source_rgb(output->cr, 1.0, 1.0, 1.0);
 	cairo_show_text(output->cr, error);
+	return FIELD_CHANGED;
 }
 
 /*
@@ -1483,7 +1528,9 @@ void field(int c, struct output *output,
  */
 int keyfield(int c) {
 	return c == KEY_INIT || c == KEY_REDRAW ||
-		c == KEY_BACKSPACE || c == KEY_DC;
+		c == KEY_BACKSPACE || c == KEY_DC ||
+		c == KEY_ENTER || c == '\n' ||
+		c == '\033' || c == KEY_EXIT;
 }
 
 /*
@@ -1500,56 +1547,52 @@ int number(int c, struct output *output,
 		char *prompt, char *current, char *error, char *help,
 		double *destination, double min, double max) {
 	double n;
+	int res;
 
 	switch (c) {
-	case '\033':
-	case KEY_EXIT:
 	case 'q':
-		return -1;
+		c = KEY_EXIT;
+		break;
 
 	case KEY_INIT:
 		sprintf(current, "%lg", *destination);
-		/* fallthrough */
-	case KEY_REDRAW:
-		field(c, output, prompt, current, error, help);
-		return 0;
+		break;
 
 	case KEY_DOWN:
 	case KEY_UP:
-		n = atof(current);
+		n = current[0] == '\0' ? *destination : atof(current);
 		n = n + (c == KEY_DOWN ? +1 : -1);
 		if (n < min) {
 			if (c == KEY_DOWN)
 				n = min;
 			else
-				return 0;
+				return FIELD_UNCHANGED;
 		}
 		if (n > max) {
 			if (c == KEY_UP)
 				n = max;
 			else
-				return 0;
+				return FIELD_UNCHANGED;
 		}
 		sprintf(current, "%lg", n);
 		c = KEY_REDRAW;
-		field(c, output, prompt, current, error, help);
-		return 0;
-
-	case KEY_ENTER:
-	case '\n':
-		if (current[0] == '\0')
-			return -1;
-		n = atof(current);
-		if (n < min || n > max)
-			return -2;
-		*destination = n;
-		return 1;
+		break;
 
 	default:
-		if (keynumeric(c))
-			field(c, output, prompt, current, error, help);
-		return 0;
+		if (! keynumeric(c))
+			return FIELD_UNCHANGED;
 	}
+
+	res = field(c, output, prompt, current, error, help);
+	if (res == FIELD_ENTER) {
+		if (current[0] == '\0')
+			return FIELD_LEAVE;
+		n = atof(current);
+		if (n < min || n > max)
+			return FIELD_INVALID;
+		*destination = n;
+	}
+	return res;
 }
 
 /*
@@ -1558,30 +1601,34 @@ int number(int c, struct output *output,
 int search(int c, struct position *position, struct output *output) {
 	static char searchstring[100] = "";
 	char *prompt = "find: ";
-	char *error = NULL;
+	int res;
 
-	if (c == '\033' || c == KEY_EXIT) {
+	res = field(c, output, prompt, searchstring, NULL, NULL);
+
+	if (res == FIELD_LEAVE) {
 		searchstring[0] = '\0';
-		strcpy(output->search, searchstring);
 		return WINDOW_DOCUMENT;
 	}
 
-	if (c == KEY_ENTER || c == '\n') {
+	if (res == FIELD_ENTER) {
 		strcpy(output->search, searchstring);
-		if (searchstring[0] == '\0')
-			return WINDOW_DOCUMENT;
-		if (firstmatch(position, output) != -1) {
-			searchstring[0] = '\0';
-			strcpy(output->help,
-				"n=next matches p=previous matches");
-			output->timeout = 2000;
+		if (searchstring[0] == '\0') {
+			output->search[0] = '\0';
+			pagematch(position, output);
 			return WINDOW_DOCUMENT;
 		}
-		c = KEY_REDRAW;
-		error = "no match";
+		if (firstmatch(position, output) == -1) {
+			field(KEY_REDRAW, output, prompt, searchstring, 
+				"no match", NULL);
+			return WINDOW_SEARCH;
+		}
+		searchstring[0] = '\0';
+		strcpy(output->help,
+			"n=next matches p=previous matches");
+		output->timeout = 2000;
+		return WINDOW_DOCUMENT;
 	}
 
-	field(c, output, prompt, searchstring, error, NULL);
 	return WINDOW_SEARCH;
 }
 
@@ -1612,24 +1659,29 @@ int gotopage(int c, struct position *position, struct output *output) {
 	}
 
 	n = position->npage + 1;
-	res = number(c == KEY_INIT ? KEY_REDRAW : c, output,
-		"go to page: ", gotopagestring, NULL,
+	res = number(c, output, "go to page: ", gotopagestring, NULL,
 		"c=current e=end up=previous down=next enter=go",
 		&n, 1, position->totpages);
-	if (res == -2) {
+	switch (res) {
+	case FIELD_ENTER:
+		if (position->npage != n - 1) {
+			position->npage = n - 1;
+			readpage(position, output);
+			firsttextbox(position, output);
+		}
+		/* fallthrough */
+	case FIELD_LEAVE:
+		gotopagestring[0] = '\0';
+		return WINDOW_DOCUMENT;
+	case FIELD_INVALID:
 		number(KEY_REDRAW, output,
 			"go to page: ", gotopagestring, "no such page",
 			"c=current e=end up=previous down=next enter=go",
 			&n, 1, position->totpages);
 		return WINDOW_GOTOPAGE;
+	default:
+		return WINDOW_GOTOPAGE;
 	}
-	if (res == 1) {
-		gotopagestring[0] = '\0';
-		position->npage = n - 1;
-		readpage(position, output);
-		firsttextbox(position, output);
-	}
-	return res ? WINDOW_DOCUMENT : WINDOW_GOTOPAGE;
 }
 
 /*
@@ -1641,11 +1693,12 @@ int minwidth(int c, struct position *position, struct output *output) {
 
 	res = number(c, output, "minimal width: ", minwidthstring, NULL,
 		"down=increase enter=decrease", &output->minwidth, 0, 1000);
-	if (res == 1) {
+	if (res == FIELD_ENTER) {
 		readpage(position, output);
 		firsttextbox(position, output);
+		return WINDOW_DOCUMENT;
 	}
-	return res ? WINDOW_DOCUMENT : WINDOW_WIDTH;
+	return res == FIELD_LEAVE ? WINDOW_DOCUMENT : WINDOW_WIDTH;
 }
 
 /*
@@ -1657,11 +1710,12 @@ int textdistance(int c, struct position *position, struct output *output) {
 
 	res = number(c, output, "text distance: ", distancestring, NULL,
 		"down=increase enter=decrease", &output->distance, 0, 1000);
-	if (res == 1) {
+	if (res == FIELD_ENTER) {
 		readpage(position, output);
 		firsttextbox(position, output);
+		return WINDOW_DOCUMENT;
 	}
-	return res ? WINDOW_DOCUMENT : WINDOW_DISTANCE;
+	return res == FIELD_LEAVE ? WINDOW_DOCUMENT : WINDOW_DISTANCE;
 }
 
 /*
@@ -1730,9 +1784,6 @@ void helplabel(struct position *position, struct output *output) {
 		return;
 
 	label(output, output->help, 1);
-
-	if (output->timeout == 0)
-		output->timeout = 1200;
 	output->help[0] = '\0';
 }
 
@@ -1869,7 +1920,10 @@ void draw(struct cairofb *cairofb,
 	showfit(position, output);
 	filename(position, output);
 
-	cairofb_flush(cairofb);
+	if (output->flush) {
+		cairofb_flush(cairofb);
+		output->flush = FALSE;
+	}
 }
 
 /*
@@ -2039,6 +2093,7 @@ int main(int argn, char *argv[]) {
 	WINDOW *w;
 	int c;
 	int window, next;
+	int pending;
 
 				/* defaults */
 
@@ -2167,25 +2222,11 @@ int main(int argn, char *argv[]) {
 
 	w = init_curses();
 
-				/* initialize position and output context */
+				/* initialize position and output */
 
 	initposition(position);
+
 	output.cr = cairofb->cr;
-
-				/* initialize labels */
-
-	if (noinitlabels || firstwindow != WINDOW_DOCUMENT) {
-		output.dest.x1 = 0;
-		output.dest.y1 = -500;
-		output.dest.x2 = 200;
-		output.dest.y2 = -100;
-		output.redraw = FALSE;
-		draw(cairofb, position, &output);
-	}
-	else
-		output.filename = firstwindow == WINDOW_DOCUMENT;
-
-				/* setup output */
 
 	output.dest.x1 = margin;
 	output.dest.y1 = margin;
@@ -2210,9 +2251,20 @@ int main(int argn, char *argv[]) {
 	cairo_set_font_size(output.cr, fontsize);
 	cairo_font_extents(output.cr, &output.extents);
 
+				/* initialize labels */
+
+	output.redraw = FALSE;
+	output.flush = FALSE;
+	if (noinitlabels || firstwindow != WINDOW_DOCUMENT)
+		draw(cairofb, position, &output);
+	else
+		output.filename = firstwindow == WINDOW_DOCUMENT;
+
 				/* first window */
 
-	window = document(KEY_INIT, position, &output);
+	readpage(position, &output);
+	window = WINDOW_DOCUMENT;
+	output.redraw = TRUE;
 	if (window != firstwindow) {
 		draw(cairofb, position, &output);
 		window = selectwindow(firstwindow, KEY_INIT,
@@ -2220,38 +2272,45 @@ int main(int argn, char *argv[]) {
 	}
 	else if (! noinitlabels)
 		strncpy(output.help, "press 'h' for help", 79);
+	output.flush = TRUE;
 
 				/* event loop */
 
 	while (window != WINDOW_EXIT) {
 
-					/* draw the document */
+					/* draw document and labels */
 
 		draw(cairofb, position, &output);
 
 					/* read input */
 
 		c = input_curses(output.timeout);
+		pending = output.timeout != 0;
 		output.timeout = 0;
 		if (vt_suspend || c == KEY_SIGNAL)
 			continue;
-		if (c == KEY_REDRAW || c == KEY_TIMEOUT)
+		if (c == KEY_REDRAW || pending) {
+			output.redraw = TRUE;
 			draw(cairofb, position, &output);
+			output.flush = TRUE;
+		}
 
 					/* pass input to window */
 
 		next = selectwindow(window, c, position, &output);
-		if (next != window) {
-			if (next != WINDOW_DOCUMENT)
-				draw(cairofb, position, &output);
-			window = next;
-			selectwindow(window, KEY_INIT, position, &output);
+		if (next == window)
+			continue;
+		if (next != WINDOW_DOCUMENT) {
+			if (pending)
+				output.redraw = TRUE;
+			draw(cairofb, position, &output);
 		}
-
-					/* flush output */
-
-		if (output.flush)
-			cairofb_flush(cairofb);
+		else {
+			output.redraw = TRUE;
+			output.flush = TRUE;
+		}
+		window = next;
+		selectwindow(window, KEY_INIT, position, &output);
 	}
 
 				/* close */
