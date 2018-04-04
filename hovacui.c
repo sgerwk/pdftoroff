@@ -1413,7 +1413,7 @@ int menu(int c, struct position *position, struct output *output) {
 /*
  * generic textfield
  */
-#define FIELD_ENTER 0
+#define FIELD_DONE 0
 #define FIELD_LEAVE 1
 #define FIELD_INVALID 2
 #define FIELD_UNCHANGED 3
@@ -1431,7 +1431,7 @@ int field(int c, struct output *output,
 	if (c == '\033' || c == KEY_EXIT)
 		return FIELD_LEAVE;
 	if (c == '\n' || c == KEY_ENTER)
-		return FIELD_ENTER;
+		return FIELD_DONE;
 
 	l = strlen(current);
 	if (c == KEY_BACKSPACE || c == KEY_DC) {
@@ -1547,7 +1547,7 @@ int number(int c, struct output *output,
 	}
 
 	res = field(c, output, prompt, current, error, help);
-	if (res == FIELD_ENTER) {
+	if (res == FIELD_DONE) {
 		if (current[0] == '\0')
 			return FIELD_LEAVE;
 		n = atof(current);
@@ -1573,7 +1573,7 @@ int search(int c, struct position *position, struct output *output) {
 		return WINDOW_DOCUMENT;
 	}
 
-	if (res == FIELD_ENTER) {
+	if (res == FIELD_DONE) {
 		strcpy(output->search, searchstring);
 		if (searchstring[0] == '\0') {
 			output->search[0] = '\0';
@@ -1626,7 +1626,7 @@ int gotopage(int c, struct position *position, struct output *output) {
 		"c=current e=end up=previous down=next enter=go",
 		&n, 1, position->totpages);
 	switch (res) {
-	case FIELD_ENTER:
+	case FIELD_DONE:
 		if (position->npage != n - 1) {
 			position->npage = n - 1;
 			readpage(position, output);
@@ -1658,7 +1658,7 @@ int minwidth(int c, struct position *position, struct output *output) {
 
 	res = number(c, output, "minimal width: ", minwidthstring, NULL,
 		"down=increase enter=decrease", &output->minwidth, 0, 1000);
-	if (res == FIELD_ENTER) {
+	if (res == FIELD_DONE) {
 		readpage(position, output);
 		firsttextbox(position, output);
 		return output->immediate ? WINDOW_REFRESH : WINDOW_DOCUMENT;
@@ -1675,7 +1675,7 @@ int textdistance(int c, struct position *position, struct output *output) {
 
 	res = number(c, output, "text distance: ", distancestring, NULL,
 		"down=increase enter=decrease", &output->distance, 0, 1000);
-	if (res == FIELD_ENTER) {
+	if (res == FIELD_DONE) {
 		readpage(position, output);
 		firsttextbox(position, output);
 		return output->immediate ? WINDOW_REFRESH : WINDOW_DOCUMENT;
