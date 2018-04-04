@@ -123,7 +123,7 @@
  *
  * int window(int c, struct position *position, struct output *output);
  *	the given window is activated (if not already) and receive input c:
- *	- input is a key, but can also be KEY_INIT or KEY_REDRAW
+ *	- input is a key, but can also be KEY_INIT, KEY_REDRAW or KEY_REFRESH
  *	- output is the next window to become active
  *
  * void label(struct position *position, struct output *output);
@@ -132,8 +132,6 @@
  *	of the position and output structures; for example, the pagenumber()
  *	labels draws when the page number changes and when output->pagenumber
  *	is true
- *
- * both windows and label draw themselves
  *
  * each window is a specific instance of a generic window:
  *
@@ -153,7 +151,7 @@
  * preprocesses the input character if necessary, then calls the generic window
  * and processes its return value, possibly changing the output and the
  * position structures; it returns the next window, or WINDOW_REFRESH to have
- * the document be redrawn and control returned to itself
+ * the document be redrawn and be called again with input KEY_REFRESH
  *
  * a particular window is document(), which draws nothing and deal with normal
  * input (when no other window is active); this is the only window that can set
@@ -224,9 +222,11 @@ enum window {
  */
 #define KEY_NONE	((KEY_MAX) + 1)
 #define KEY_INIT	((KEY_MAX) + 2)
-#define KEY_REDRAW	((KEY_MAX) + 3)
-#define KEY_TIMEOUT	((KEY_MAX) + 4)
-#define KEY_SIGNAL	((KEY_MAX) + 5)
+#undef KEY_REFRESH
+#define KEY_REFRESH	((KEY_MAX) + 3)
+#define KEY_REDRAW	((KEY_MAX) + 4)
+#define KEY_TIMEOUT	((KEY_MAX) + 5)
+#define KEY_SIGNAL	((KEY_MAX) + 6)
 
 /*
  * output parameters
@@ -927,7 +927,8 @@ int document(int c, struct position *position, struct output *output) {
 	case KEY_INIT:
 	case KEY_TIMEOUT:
 	case KEY_REDRAW:
-		break;
+	case KEY_REFRESH:
+		return WINDOW_DOCUMENT;
 	case 'q':
 		return WINDOW_EXIT;
 	case KEY_HELP:
@@ -952,8 +953,6 @@ int document(int c, struct position *position, struct output *output) {
 	case 'p':
 		output->forward = c == 'n';
 		nextmatch(position, output);
-		output->redraw = TRUE;
-		output->flush = TRUE;
 		break;
 	case ' ':
 		if (output->fit == 0 || output->fit == 1)
@@ -962,55 +961,35 @@ int document(int c, struct position *position, struct output *output) {
 			scrollright(position, output);
 		else
 			nexttextbox(position, output);
-		output->redraw = TRUE;
-		output->flush = TRUE;
 		break;
 	case KEY_DOWN:
 		scrolldown(position, output);
-		output->redraw = TRUE;
-		output->flush = TRUE;
 		break;
 	case KEY_UP:
 		scrollup(position, output);
-		output->redraw = TRUE;
-		output->flush = TRUE;
 		break;
 	case KEY_LEFT:
 		scrollleft(position, output);
-		output->redraw = TRUE;
-		output->flush = TRUE;
 		break;
 	case KEY_RIGHT:
 		scrollright(position, output);
-		output->redraw = TRUE;
-		output->flush = TRUE;
 		break;
 	case KEY_HOME:
 		firsttextbox(position, output);
-		output->redraw = TRUE;
-		output->flush = TRUE;
 		break;
 	case KEY_END:
 		lasttextbox(position, output);
-		output->redraw = TRUE;
-		output->flush = TRUE;
 		break;
 	case KEY_NPAGE:
 		nextpage(position, output);
-		output->redraw = TRUE;
-		output->flush = TRUE;
 		break;
 	case KEY_PPAGE:
 		prevpage(position, output);
-		output->redraw = TRUE;
-		output->flush = TRUE;
 		break;
 	case 'v':
 		output->viewmode = (output->viewmode + 1) % 3;
 		firsttextbox(position, output);
 		readpage(position, output);
-		output->redraw = TRUE;
-		output->flush = TRUE;
 		break;
 	case 'z':
 		if (output->minwidth <= 0)
@@ -1020,22 +999,16 @@ int document(int c, struct position *position, struct output *output) {
 			position->scrollx = 0;
 		else if (output->fit & 0x2)
 			position->scrolly = 0;
-		output->redraw = TRUE;
-		output->flush = TRUE;
 		break;
 	case 'Z':
 		if (boundingboxinscreen(position, output))
 			break;
 		output->minwidth += 10;
-		output->redraw = TRUE;
-		output->flush = TRUE;
 		break;
 	case 'f':
 		output->fit = (output->fit + 1) % 4;
 		position->scrollx = 0;
 		position->scrolly = 0;
-		output->redraw = TRUE;
-		output->flush = TRUE;
 		break;
 	case 's':
 		output->timeout = 3000;
@@ -1043,13 +1016,13 @@ int document(int c, struct position *position, struct output *output) {
 		output->showmode = TRUE;
 		output->showfit = TRUE;
 		output->filename = TRUE;
-		output->redraw = TRUE;
-		output->flush = TRUE;
 		break;
 	default:
 		;
 	}
 
+	output->redraw = TRUE;
+	output->flush = TRUE;
 	return WINDOW_DOCUMENT;
 }
 
@@ -1121,6 +1094,7 @@ int list(int c, struct output *output, char *viewtext[],
 		break;
 	case KEY_INIT:
 	case KEY_REDRAW:
+	case KEY_REFRESH:
 		break;
 	case '\033':
 	case KEY_EXIT:
@@ -1465,13 +1439,13 @@ int field(int c, struct output *output,
 			return FIELD_UNCHANGED;
 		current[l - 1] = '\0';
 	}
-	else if (c != KEY_INIT && c != KEY_REDRAW) {
+	else if (c != KEY_INIT && c != KEY_REDRAW && c != KEY_REFRESH) {
 		if (l > 30)
 			return FIELD_UNCHANGED;
 		current[l] = c;
 		current[l + 1] = '\0';
 	}
-	else if ((c == KEY_INIT || c == KEY_REDRAW) && help != NULL)
+	else if (help != NULL)
 		strcpy(output->help, help);
 
 	output->flush = TRUE;
@@ -1515,7 +1489,8 @@ int field(int c, struct output *output,
  * keys always allowed for a field
  */
 int keyfield(int c) {
-	return c == KEY_INIT || c == KEY_REDRAW ||
+	return c == KEY_INIT ||
+		c == KEY_REDRAW || c == KEY_REFRESH ||
 		c == KEY_BACKSPACE || c == KEY_DC ||
 		c == KEY_ENTER || c == '\n' ||
 		c == '\033' || c == KEY_EXIT;
@@ -2093,6 +2068,7 @@ int main(int argn, char *argv[]) {
 	output.minwidth = -1;
 	output.distance = 15.0;
 	output.scroll = 1.0 / 4.0;
+	output.immediate = FALSE;
 	screenaspect = -1;
 	firstwindow = WINDOW_TUTORIAL;
 	margin = 10.0;
@@ -2274,13 +2250,13 @@ int main(int argn, char *argv[]) {
 
 					/* read input */
 
-		c = c == KEY_INIT ? KEY_INIT :
-		    c == KEY_REDRAW ? KEY_REDRAW :
-		    input_curses(output.timeout);
+		c = c != KEY_NONE ? c : input_curses(output.timeout);
 		pending = output.timeout != 0;
 		output.timeout = 0;
-		if (vt_suspend || c == KEY_SIGNAL)
+		if (vt_suspend || c == KEY_SIGNAL) {
+			c = KEY_NONE;
 			continue;
+		}
 		if (c == KEY_REDRAW || pending) {
 			output.redraw = TRUE;
 			draw(cairofb, position, &output);
@@ -2296,7 +2272,7 @@ int main(int argn, char *argv[]) {
 		if (next == WINDOW_REFRESH) {
 			output.redraw = TRUE;
 			output.flush = FALSE;
-			c = KEY_REDRAW;
+			c = KEY_REFRESH;
 			continue;
 		}
 		if (next == WINDOW_DOCUMENT) {
