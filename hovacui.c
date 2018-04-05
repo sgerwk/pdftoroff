@@ -156,6 +156,15 @@
  * a particular window is document(), which draws nothing and deal with normal
  * input (when no other window is active); this is the only window that can set
  * output->redraw to redraw the document
+ *
+ * the document is not redrawn at each step; rather, windows and labels are
+ * just drawn over it, and therefore remain on the screen until the document is
+ * redrawn; the document is redrawn only when:
+ * - the input timeout was set and it either expires or a key arrived
+ * - the virtual terminal is switched in
+ * - document() sets output->redraw; it does when it changes position
+ * - a window different than WINDOW_DOCUMENT returns another window
+ * - a window returns WINDOW_REFRESH
  */
 
 /*
