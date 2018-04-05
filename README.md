@@ -12,5 +12,5 @@ area of the pages of a pdf file.
 
 The **hovacui** pdf viewer for the Linux framebuffer (fbdev) automatically
 zooms to the blocks of text. It is aimed at viewing files on small screens, and
-is especially handful for multiple-columns documents.
+is especially handy for multiple-columns documents.
 
