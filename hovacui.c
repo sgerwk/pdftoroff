@@ -1624,7 +1624,7 @@ int gotopage(int c, struct position *position, struct output *output) {
 		sprintf(gotopagestring, "%d", position->npage + 1);
 		c = KEY_REDRAW;
 		break;
-	case 'e':
+	case 'l':
 		sprintf(gotopagestring, "%d", position->totpages);
 		c = KEY_REDRAW;
 		break;
@@ -1632,7 +1632,7 @@ int gotopage(int c, struct position *position, struct output *output) {
 
 	n = position->npage + 1;
 	res = number(c, output, "go to page: ", gotopagestring, NULL,
-		"c=current e=end up=previous down=next enter=go",
+		"c=current l=last up=previous down=next enter=go",
 		&n, 1, position->totpages);
 	switch (res) {
 	case FIELD_DONE:
