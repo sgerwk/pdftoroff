@@ -7,8 +7,16 @@
 /*
  * todo:
  *
+ * - x11
+ * - utf8 or widechar in input_curses() and field()
+ * - bookmarks, with field() for creating and list() for going to
+ * - save last position(s) to $HOME/.pdfpositions
+ *
+ * - info(), based on list(): filename, number of pages, page format, etc.
+ * - rotate
  * - line of next scroll: where the top/bottom of the screen will be after
  *   scrolling up or down
+ * - cache the textarea list of pages already scanned
  * - config opt "nolabel" for no label at all: skip the label part from draw()
  * - multiple files, list()-based window; return WINDOW_NEXT+n to tell main()
  *   which file to switch to; and/or have a field in struct output for the new
@@ -16,24 +24,16 @@
  * - non-expert mode: every unassigned key calls WINDOW_MENU
  * - in list(): separator, skip it when using a selected line
  * - add an optional help to the bottom of list()
- * - bookmarks, with field() for creating and list() for going to
  * - history of searches
- * - info(), based on list(): filename, number of pages, page format, etc.
- * - rotate
  * - numbermode: 2 is a, 22 is b, 222 is c, etc.
  * - remote control (via socket)
  * - split pdf viewing functions to pdfview.c and gui stuff to cairogui.c
  * - improve column-sorting rectangles (to be done in pdfrects.c)
  * - sort a rectangle list by another rectangle list (in pdfrects.c); this is
  *   for sorting the textboxes by the occurrence of their first character
- * - cache the textarea list of pages already scanned
- * - save last position(s) to $(HOME)/.pdfpositions
  * - include images (in pdfrects.c)
- * - utf8 in field()
  * - key to reset viewmode and fit direction to initial values
- * - search(): utf8
  * - history of positions
- * - set output->redraw to FALSE when not moving
  * - order of rectangles for right-to-left and top-to-bottom scripts
  *   (generalize sorting function in pdfrects.c)
  * - i18n
@@ -49,7 +49,6 @@
  * - next/previous match does not work with fit=none; do not fix, cannot work
  *   in general (see below); it can however be done by the same system of the
  *   next or previous anchor used for annotations and links
- * - x11
  */
 
 /*
