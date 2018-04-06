@@ -167,6 +167,39 @@
  */
 
 /*
+ * note: input
+ *
+ * a window is a function; one of its arguments is the user input, represented
+ * as an integer; when the window is open, it is called on each keystroke, and
+ * may also be called with one of the imaginary keys:
+ *
+ * KEY_NONE
+ *	no window ever receives this
+ *
+ * KEY_INIT
+ *	upon opening, the window is called the first time with this value;
+ *	every input different than KEY_INIT indicate that the window has not
+ *	been closed in the meantime
+ *
+ * KEY_REDRAW
+ *	received when the window has to redraw itself because of an external
+ *	reason (the terminal has been switched in)
+ *
+ * KEY_REFRESH
+ *	the window has requested a redraw of the document or the labels by
+ *	returning WINDOW_REFRESH, and now is its turn to redraw itself
+ *
+ * KEY_TIMEOUT
+ *	user input is normally waited with no time limit, but windows and
+ *	labels may set a timeout in output->timeout; this value tells that the
+ *	timeout expired; windows generally ignore this value
+ *
+ * KEY_SIGNAL
+ *	the input select() was interrupted by a signal; none of the windows use
+ *	this value
+ */
+
+/*
  * note: fit=none
  * --------------
  *
