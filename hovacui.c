@@ -1384,71 +1384,42 @@ int menu(int c, struct position *position, struct output *output) {
 		"(q) quit",
 		NULL
 	};
+	static char *shortcuts = "g/vfwthq", *s;
+	static int menunext[] = {
+		WINDOW_MENU,
+		WINDOW_GOTOPAGE,
+		WINDOW_SEARCH,
+		WINDOW_VIEWMODE,
+		WINDOW_FITDIRECTION,
+		WINDOW_WIDTH,
+		WINDOW_DISTANCE,
+		WINDOW_HELP,
+		WINDOW_EXIT,
+		-1,
+	};
 	static int line = 0;
 	static int selected = 1;
-	int res;
+	int n, res;
 	(void) position;
 
-	switch (c) {
-	case 'g':
-		selected = 1;
-		return WINDOW_GOTOPAGE;
-	case '/':
-		selected = 1;
-		return WINDOW_SEARCH;
-	case 'v':
-		selected = 1;
-		return WINDOW_VIEWMODE;
-	case 'f':
-		selected = 1;
-		return WINDOW_FITDIRECTION;
-	case 'w':
-		selected = 1;
-		return WINDOW_WIDTH;
-	case 't':
-		selected = 1;
-		return WINDOW_DISTANCE;
-	case 'h':
-		selected = 1;
-		return WINDOW_HELP;
-	case 'q':
-		return WINDOW_EXIT;
+	for (n = 0; menunext[n] != -1; n++) {
 	}
 
-	res = list(c, output, menutext, &line, &selected);
-	switch (res) {
-	case 0:
-		return WINDOW_MENU;
-	case 1:
-		selected = 1;
-		return WINDOW_GOTOPAGE;
-	case 2:
-		selected = 1;
-		return WINDOW_SEARCH;
-	case 3:
-		selected = 1;
-		return WINDOW_VIEWMODE;
-	case 4:
-		selected = 1;
-		return WINDOW_FITDIRECTION;
-	case 5:
-		selected = 1;
-		return WINDOW_WIDTH;
-	case 6:
-		selected = 1;
-		return WINDOW_DISTANCE;
-	case 7:
-		selected = 1;
-		return WINDOW_HELP;
-	case 8:
-		return WINDOW_EXIT;
-	case 9:
-		strcpy(output->help, "unimplemented");
-		/* fallthrough */
-	default:
-		selected = 1;
-		return WINDOW_DOCUMENT;
+	s = strchr(shortcuts, c);
+
+	res = s == NULL ?
+		list(c, output, menutext, &line, &selected) :
+		s - shortcuts + 1;
+
+	if (res >= 0 && res < n) {
+		selected = res == 0 ? selected : 1;
+		return menunext[res];
 	}
+	if (res >= n) {
+		selected = 1;
+		strcpy(output->help, "unimplemented");
+	}
+	return WINDOW_DOCUMENT;
 }
 
 /*
