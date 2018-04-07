@@ -1324,7 +1324,6 @@ int viewmode(int c, struct position *position, struct output *output) {
 			return WINDOW_REFRESH;
 		/* fallthrough */
 	default:
-		selected = 1;
 		return WINDOW_DOCUMENT;
 	}
 }
@@ -1363,7 +1362,6 @@ int fitdirection(int c, struct position *position, struct output *output) {
 			return WINDOW_REFRESH;
 		/* fallthrough */
 	default:
-		selected = 1;
 		return WINDOW_DOCUMENT;
 	}
 }
@@ -1405,20 +1403,19 @@ int menu(int c, struct position *position, struct output *output) {
 	for (n = 0; menunext[n] != -1; n++) {
 	}
 
+	if (c == KEY_INIT)
+		selected = 1;
+
 	s = strchr(shortcuts, c);
 
 	res = s == NULL ?
 		list(c, output, menutext, &line, &selected) :
 		s - shortcuts + 1;
 
-	if (res >= 0 && res < n) {
-		selected = res == 0 ? selected : 1;
+	if (res >= 0 && res < n)
 		return menunext[res];
-	}
-	if (res >= n) {
-		selected = 1;
+	if (res >= n)
 		strcpy(output->help, "unimplemented");
-	}
 	return WINDOW_DOCUMENT;
 }
 
