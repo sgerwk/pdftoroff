@@ -1956,6 +1956,7 @@ void *init_curses() {
 	curs_set(0);
 	ungetch(KEY_INIT);
 	getch();
+	timeout(0);
 
 	vt_setup();
 
@@ -1979,6 +1980,7 @@ int input_curses(int timeout) {
 	fd_set fds;
 	int max, ret;
 	struct timeval tv;
+	int c, l;
 
 	FD_ZERO(&fds);
 	FD_SET(STDIN_FILENO, &fds);
@@ -1998,8 +2000,11 @@ int input_curses(int timeout) {
 			return KEY_SIGNAL;
 	}
 
-	if (FD_ISSET(STDIN_FILENO, &fds))
-		return getch();
+	if (FD_ISSET(STDIN_FILENO, &fds)) {
+		for (l = ' '; l != ERR; l = getch())
+			c = l;
+		return c;
+	}
 
 	return KEY_TIMEOUT;
 }
