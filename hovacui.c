@@ -11,6 +11,8 @@
  * - utf8 or widechar in input_curses() and field()
  * - bookmarks, with field() for creating and list() for going to
  * - save last position(s) to $HOME/.pdfpositions
+ * - reopen the document on key and when file changes;
+ *   new field output->reopen; when true, reopen position->filename
  *
  * - info(), based on list(): filename, number of pages, page format, etc.
  * - rotate
