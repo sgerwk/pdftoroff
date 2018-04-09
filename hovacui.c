@@ -12,6 +12,7 @@
  * - bookmarks, with field() for creating and list() for going to
  * - save last position(s) to $HOME/.pdfpositions
  *
+ * - allow a different config file by command line option
  * - info(), based on list(): filename, number of pages, page format, etc.
  * - rotate
  * - line of next scroll: where the top/bottom of the screen will be after
