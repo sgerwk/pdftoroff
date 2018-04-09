@@ -11,9 +11,6 @@
  * - utf8 or widechar in input_curses() and field()
  * - bookmarks, with field() for creating and list() for going to
  * - save last position(s) to $HOME/.pdfpositions
- * - reopen the document on key and when file changes;
- *   new field output->reopen; when true, reopen position->filename;
- *   input_curses() returns KEY_FILECHANGED on an inotify file change event
  *
  * - info(), based on list(): filename, number of pages, page format, etc.
  * - rotate
@@ -49,9 +46,14 @@
  *   moving to the next; it was not needed for search, where the next match is
  *   just the first outside the area of the current textbox that is currently
  *   displayed
+ * - detect file changes via inotify, in input_curses(); return KEY_FILECHANGE
  * - next/previous match does not work with fit=none; do not fix, cannot work
  *   in general (see below); it can however be done by the same system of the
  *   next or previous anchor used for annotations and links
+ *
+ * regressions:
+ * - open a long document, open gotopage window, replace file with a short
+ *   document, go to a page the previous document has but the new does not
  */
 
 /*
@@ -228,6 +230,30 @@
  * other, or none the next of the other
  */
 
+/*
+ * note: reload
+ *
+ * a file is reloaded in the main loop whenever output->reload=TRUE
+ *
+ * this field is set in:
+ *
+ * - document(), upon receiving keystroke 'r'
+ * - draw(), if a file change is detected (see below)
+ *
+ * file changes are detected via poppler_document_get_id(), but this only works
+ * after trying to render the document; this is why detection is done in draw()
+ *
+ * this means that the document is automatically reloaded when switching into
+ * the virtual terminal and when moving in the document; it is not reloaded
+ * otherwise, in particular it is not reloaded when a window is active (unless
+ * it requests a refresh)
+ *
+ * since the newly opened document may have fewer pages than the previous,
+ * checking POPPLER_IS_PAGE(position->page) is always necessary before
+ * accessing the page (reading the textarea or drawing the page); if the page
+ * does not exist, output->reload is set
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -303,6 +329,9 @@ struct output {
 	/* apply the changes immediately from the ui */
 	int immediate;
 
+	/* whether the document has to be reloaded */
+	int reload;
+
 	/* whether the document has to be redrawn */
 	int redraw;
 
@@ -336,6 +365,7 @@ struct position {
 	/* the poppler document */
 	char *filename;
 	PopplerDocument *doc;
+	gchar *permanent_id, *update_id;
 
 	/* the current page, its bounding box, the total number of pages */
 	int npage, totpages;
@@ -412,6 +442,11 @@ int readpageraw(struct position *position, struct output *output) {
  * determine the textarea of the current page
  */
 int textarea(struct position *position, struct output *output) {
+	if (! POPPLER_IS_PAGE(position->page)) {
+		output->reload = TRUE;
+		return -1;
+	}
+
 	rectanglelist_free(position->textarea);
 	poppler_rectangle_free(position->boundingbox);
 
@@ -966,7 +1001,7 @@ int boundingboxinscreen(struct position *position, struct output *output) {
 int document(int c, struct position *position, struct output *output) {
 	switch (c) {
 	case 'r':
-		readpage(position, output);
+		output->reload = TRUE;
 		break;
 	case KEY_INIT:
 	case KEY_TIMEOUT:
@@ -1244,6 +1279,7 @@ int help(int c, struct position *position, struct output *output) {
 		"/ ?        search forward or backward",
 		"n p        next or previous search match",
 		"s          show current mode and page",
+		"r          reload the current document",
 		"h          help",
 		"q          quit",
 		"",
@@ -1873,6 +1909,27 @@ void selection(struct position *position, struct output *output, GList *s) {
 }
 
 /*
+ * check whether the pdf file was changed; only works after rendering a page
+ */
+int changedpdf(struct position *position) {
+	gchar *permanent_id, *update_id;
+	int res;
+
+	permanent_id = position->permanent_id;
+	update_id = position->update_id;
+
+	poppler_document_get_id(position->doc,
+		&position->permanent_id, &position->update_id);
+
+	res = update_id == NULL ? FALSE :
+		! ! memcmp(update_id, position->update_id, 32);
+
+	g_free(permanent_id);
+	g_free(update_id);
+	return res;
+}
+
+/*
  * draw the document with the labels on top
  */
 void draw(struct cairofb *cairofb,
@@ -1883,7 +1940,15 @@ void draw(struct cairofb *cairofb,
 	if (output->redraw) {
 		cairofb_clear(cairofb, 1.0, 1.0, 1.0);
 		moveto(position, output);
+		if (! POPPLER_IS_PAGE(position->page)) {
+			output->reload = TRUE;
+			return;
+		}
 		poppler_page_render(position->page, output->cr);
+		if (changedpdf(position)) {
+			output->reload = TRUE;
+			return;
+		}
 		rectangle_draw(output->cr,
 			&position->textarea->rect[position->box],
 			FALSE, FALSE, TRUE);
@@ -1921,16 +1986,51 @@ struct position *openpdf(char *filename) {
 	free(uri);
 	if (position->doc == NULL) {
 		printf("error opening pdf file\n");
+		free(position);
 		return NULL;
 	}
 
 	position->totpages = poppler_document_get_n_pages(position->doc);
 	if (position->totpages < 1) {
 		printf("no page in document\n");
+		free(position);
 		return NULL;
 	}
 
+	poppler_document_get_id(position->doc,
+		&position->permanent_id, &position->update_id);
+
 	return position;
+}
+
+/*
+ * reoload a pdf file
+ */
+struct position *reloadpdf(struct position *position, struct output *output) {
+	struct position *new;
+
+	output->reload = FALSE;
+
+	new = openpdf(position->filename);
+	if (new == NULL)
+		return NULL;
+	initposition(new);
+
+	if (position->npage >= new->totpages) {
+		new->npage = new->totpages - 1;
+		readpage(new, output);
+		lasttextbox(new, output);
+		free(position);
+		return new;
+	}
+	new->npage = position->npage;
+	readpage(new, output);
+
+	new->box = position->box >= new->textarea->num ?
+		new->textarea->num - 1 :
+		position->box;
+	free(position);
+	return new;
 }
 
 /*
@@ -2252,6 +2352,7 @@ int main(int argn, char *argv[]) {
 
 	readpage(position, &output);
 	window = firstwindow;
+	output.reload = FALSE;
 	output.flush = TRUE;
 	output.redraw = firstwindow == WINDOW_DOCUMENT;
 	c = firstwindow == WINDOW_DOCUMENT ? KEY_NONE : KEY_INIT;
@@ -2262,8 +2363,15 @@ int main(int argn, char *argv[]) {
 
 					/* draw document and labels */
 
-		if (c != KEY_INIT || output.redraw)
+		if (output.reload) {
+			position = reloadpdf(position, &output);
+			c = KEY_REDRAW;
+		}
+		if (c != KEY_INIT || output.redraw) {
 			draw(cairofb, position, &output);
+			if (output.reload)
+				continue;
+		}
 
 					/* read input */
 
