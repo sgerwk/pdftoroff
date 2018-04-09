@@ -118,6 +118,15 @@ void rectangle_printyaml(FILE *fd, char *first, char *indent,
 }
 
 /*
+ * a rectangle as large as the page
+ */
+void rectangle_page(PopplerPage *page, PopplerRectangle *rect) {
+	rect->x1 = 0;
+	rect->y1 = 0;
+	poppler_page_get_size(page, &rect->x2, &rect->y2);
+}
+
+/*
  * check if rectangle satisfies the bounds: both dimensions and at least one
  */
 gboolean rectangle_bound(PopplerRectangle *r, RectangleBound *b) {
@@ -566,7 +575,7 @@ RectangleList *rectanglelist_textarea_bound(PopplerPage *page,
 		return layout;
 
 	white = rectanglelist_new(MAXRECT);
-	poppler_page_get_crop_box(page, white->rect);
+	rectangle_page(page, white->rect);
 	/* enlarge, otherwise thin white areas at the borders are lost */
 	white->rect[0].x1 -= wb.both - 1.0;
 	white->rect[0].y1 -= wb.both - 1.0;
@@ -583,7 +592,7 @@ RectangleList *rectanglelist_textarea_bound(PopplerPage *page,
 		return white;
 
 	black = rectanglelist_new(MAXRECT);
-	poppler_page_get_crop_box(page, black->rect);
+	rectangle_page(page, black->rect);
 	black->num = 1;
 
 	if (! rectanglelist_subtract(&black, white, &bb))
@@ -615,7 +624,7 @@ RectangleList *rectanglelist_textarea_distance(PopplerPage *page, gdouble w) {
 	/* fallback: finding the rectangle list was impossible because of the
 	 * large number of rectangles; just return the whole page */
 	res = rectanglelist_new(1);
-	poppler_page_get_crop_box(page, res->rect);
+	rectangle_page(page, res->rect);
 	res->num = 1;
 	return res;
 }
