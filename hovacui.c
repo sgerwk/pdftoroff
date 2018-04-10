@@ -12,6 +12,9 @@
  * - bookmarks, with field() for creating and list() for going to
  * - save last position(s) to $HOME/.pdfpositions
  *
+ * - allow tabs in list(), make it display a table rather than a list;
+ *   use in help() to separate keys from function,
+ *   in menu() to show the current values
  * - allow a different config file by command line option
  * - info(), based on list(): filename, number of pages, page format, etc.
  * - rotate
