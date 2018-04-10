@@ -13,6 +13,7 @@
  * - save last position(s) to $HOME/.pdfpositions
  * - compare with fbpdf
  *
+ * - commandline option for first page to show
  * - allow tabs in list(), make it display a table rather than a list;
  *   use in help() to separate keys from functions,
  *   in menu() to show the current values for viewmode, fit, etc.
