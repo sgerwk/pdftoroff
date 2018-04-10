@@ -11,10 +11,11 @@
  * - utf8 or widechar in input_curses() and field()
  * - bookmarks, with field() for creating and list() for going to
  * - save last position(s) to $HOME/.pdfpositions
+ * - compare with fbpdf
  *
  * - allow tabs in list(), make it display a table rather than a list;
- *   use in help() to separate keys from function,
- *   in menu() to show the current values
+ *   use in help() to separate keys from functions,
+ *   in menu() to show the current values for viewmode, fit, etc.
  * - allow a different config file by command line option
  * - info(), based on list(): filename, number of pages, page format, etc.
  * - rotate
@@ -42,6 +43,7 @@
  *   (generalize sorting function in pdfrects.c)
  * - i18n
  * - function to be possibly called before list() to wrap lines too long
+ * - save a copy of the current document
  * - annotations and links:
  *   some key switches to anchor navigation mode, where keyup/keydown move to
  *   the next anchor (annotation or link) in displayed part of the current
