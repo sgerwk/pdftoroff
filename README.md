@@ -13,9 +13,12 @@ area of the pages of a pdf file.
 The **hovacui** pdf viewer for the Linux framebuffer (fbdev) automatically
 zooms to the blocks of text. It is aimed at viewing files on small screens, and
 is especially handy for multiple-columns documents. Details in the
-[hovacui web page](http://sgerwk.altervista.org/hovacui/hovacui.html). Here are
-two screenshots:
+[hovacui web page](http://sgerwk.altervista.org/hovacui/hovacui.html). Here is
+a screenshots of hovacui with the goto page dialog:
 
 ![hovacui: screenshot of the goto to page field](/screenshots/fb-12.png?raw=true "hovacui: the gotopage dialog")
+
+And here is the main menu:
+
 ![hovacui: screenshot of the main manu](/screenshots/fb-23.png?raw=true "hovacui: the main menu")
 
