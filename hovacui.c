@@ -7,6 +7,14 @@
 /*
  * todo:
  *
+ * - commandline option for inital position: -p page,box,scrollx,scrolly any
+ *   part can be empty, even page; every one implies a default for the
+ *   folliowing ones; if this option is given, the final position is printed in
+ *   the same format at exit; make separate functions for parsing and printing
+ *   a struct position; the function for parsing takes care of illegal values:
+ *   for example, a page number too large is reduced to the last, and
+ *   consequently the box is the last of the page; extract and complete this
+ *   part of the code from reopenpdf()
  * - x11
  * - utf8 or widechar in input_curses() and field()
  * - bookmarks, with field() for creating and list() for going to
@@ -15,7 +23,6 @@
  *
  * - reload on SIGHUP
  * - man page: compare with fbpdf and jfbview
- * - commandline option for first page to show
  * - allow tabs in list(), make it display a table rather than a list;
  *   use in help() to separate keys from functions,
  *   in menu() to show the current values for viewmode, fit, etc.
