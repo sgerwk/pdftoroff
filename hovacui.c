@@ -12,7 +12,9 @@
  * - bookmarks, with field() for creating and list() for going to
  * - save last position(s) to $HOME/.pdfpositions
  * - compare with fbpdf
+ * - allow cursor move in field()
  *
+ * - reload on SIGHUP
  * - commandline option for first page to show
  * - allow tabs in list(), make it display a table rather than a list;
  *   use in help() to separate keys from functions,
@@ -22,6 +24,7 @@
  * - rotate
  * - line of next scroll: where the top/bottom of the screen will be after
  *   scrolling up or down
+ * - support 8bpp framebuffers (via a fixed colormap)
  * - cache the textarea list of pages already scanned
  * - config opt "nolabel" for no label at all: skip the label part from draw()
  * - multiple files, list()-based window; return WINDOW_NEXT+n to tell main()
