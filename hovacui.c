@@ -11,10 +11,10 @@
  * - utf8 or widechar in input_curses() and field()
  * - bookmarks, with field() for creating and list() for going to
  * - save last position(s) to $HOME/.pdfpositions
- * - compare with fbpdf
  * - allow cursor move in field()
  *
  * - reload on SIGHUP
+ * - man page: compare with fbpdf and jfbview
  * - commandline option for first page to show
  * - allow tabs in list(), make it display a table rather than a list;
  *   use in help() to separate keys from functions,
