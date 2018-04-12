@@ -22,7 +22,7 @@ hovacui - pdf viewer with autozoom to text for the Linux framebuffer
 Viewer for pdf files on the Linux framebuffer based on poppler,
 with autozooming to the blocks of text in the page.
 
-The other pdf viewers require the user to set the zoom explicitely and then to
+The other pdf viewers require the user to set the zoom explicitly and then to
 move the page on the screen via scrollbars or cursor keys. The only automatic
 zoom modes available are those fitting the page width or height (or both) to
 the screen's.
@@ -31,7 +31,7 @@ The \fBhovacui\fP pdf viewer automatically zooms to the blocks of text in the
 page. The user only needs to scroll down to continue reading.
 
 This is handy on small screens, especially for documents with small letters.
-White margings are not shown and the text is zoomed enough to fit the width of
+White margins are not shown and the text is zoomed enough to fit the width of
 the screen. Contrary to normal pdf viewer, it is not the page that fits the
 width the screen, only the text in it. This means that the letters are larger
 and therefore more readable.
@@ -107,7 +107,7 @@ not. The difference shows when reaching the end of the column:
        +---------+
 .fi
 
-The next cursor down keystroke moves to the \fBnext part of text\fP, whereever
+The next cursor down keystroke moves to the \fBnext part of text\fP, wherever
 it is. In this case, a single keystroke moves to the top of the second column:
 
 .nf
@@ -185,7 +185,7 @@ to view the whole text in the page at once, or the entire page, by also
 selecting the boundingbox or page mode (previous section).
 
 Also possible is the fitting direction "none", which allows arbitrary zooming
-and moving in the page. This is mostly an hack to allow zooming more than
+and moving in the page. This is mostly a hack to allow zooming more than
 normally possible, and some things do not work (like moving to the next or
 previous search match). With this fit direction, only PageUp and PageDown
 switch page.
@@ -197,9 +197,9 @@ possible zoom while keeping the lines of text wholly in the page. However, when
 the block of text is very narrow, the resulting zoom may be too large.
 
 For example, line numbers are usually separated from the text, and therefore
-each makes its own block of text. The page number "12" would for example
-elarged so much that its width is made the same of the screen, with the result
-that it is not even wholly contained in the screen.
+each makes its own block of text. A page number like "12" would be rendered so
+large that its width is made the same of the screen, with the result that its
+bottom being cut out of the screen.
 
 The minimal width parameter prevents this from happening. It is the width of
 the most narrow block of text that is fit to the width of the screen. Blocks of
