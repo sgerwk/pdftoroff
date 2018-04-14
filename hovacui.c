@@ -212,10 +212,16 @@
  *	the window has requested a redraw of the document or the labels by
  *	returning WINDOW_REFRESH, and now is its turn to redraw itself
  *
+ * KEY_RESIZE
+ *	the space where the pdf is drawn has been resized
+ *
  * KEY_TIMEOUT
  *	user input is normally waited with no time limit, but windows and
  *	labels may set a timeout in output->timeout; this value tells that the
  *	timeout expired; windows generally ignore this value
+ *
+ * KEY_SUSPEND
+ *	the program should not draw anything
  *
  * KEY_SIGNAL
  *	the input select() was interrupted by a signal; none of the windows use
@@ -310,11 +316,21 @@ enum window {
  */
 #define KEY_NONE	((KEY_MAX) + 1)
 #define KEY_INIT	((KEY_MAX) + 2)
-#undef KEY_REFRESH
+#ifdef KEY_REFRESH
+#else
 #define KEY_REFRESH	((KEY_MAX) + 3)
+#endif
 #define KEY_REDRAW	((KEY_MAX) + 4)
-#define KEY_TIMEOUT	((KEY_MAX) + 5)
-#define KEY_SIGNAL	((KEY_MAX) + 6)
+#ifdef KEY_RESIZE
+#else
+#define KEY_RESIZE	((KEY_MAX) + 5)
+#endif
+#define KEY_TIMEOUT	((KEY_MAX) + 6)
+#ifdef KEY_SUSPEND
+#else
+#define KEY_SUSPEND	((KEY_MAX) + 7)
+#endif
+#define KEY_SIGNAL	((KEY_MAX) + 8)
 
 /*
  * output parameters
@@ -1024,6 +1040,7 @@ int document(int c, struct position *position, struct output *output) {
 	case KEY_INIT:
 	case KEY_TIMEOUT:
 	case KEY_REDRAW:
+	case KEY_RESIZE:
 	case KEY_REFRESH:
 		return WINDOW_DOCUMENT;
 	case 'q':
@@ -1191,6 +1208,7 @@ int list(int c, struct output *output, char *viewtext[],
 		break;
 	case KEY_INIT:
 	case KEY_REDRAW:
+	case KEY_RESIZE:
 	case KEY_REFRESH:
 		break;
 	case '\033':
@@ -1505,7 +1523,8 @@ int field(int c, struct output *output,
 			return FIELD_UNCHANGED;
 		current[l - 1] = '\0';
 	}
-	else if (c != KEY_INIT && c != KEY_REDRAW && c != KEY_REFRESH) {
+	else if (c != KEY_INIT && c != KEY_REDRAW &&
+	         c != KEY_REFRESH && c != KEY_RESIZE) {
 		if (l > 30)
 			return FIELD_UNCHANGED;
 		current[l] = c;
@@ -1556,7 +1575,7 @@ int field(int c, struct output *output,
  */
 int keyfield(int c) {
 	return c == KEY_INIT ||
-		c == KEY_REDRAW || c == KEY_REFRESH ||
+		c == KEY_REDRAW || c == KEY_REFRESH || c == KEY_RESIZE ||
 		c == KEY_BACKSPACE || c == KEY_DC ||
 		c == KEY_ENTER || c == '\n' ||
 		c == '\033' || c == KEY_EXIT;
@@ -1950,13 +1969,12 @@ int changedpdf(struct position *position) {
 /*
  * draw the document with the labels on top
  */
-void draw(struct cairofb *cairofb,
+void draw(void *cairo,
+		void cairoclear(void *cairo),
+		void cairoflush(void *cairo),
 		struct position *position, struct output *output) {
-	if (vt_suspend)
-		return;
-
 	if (output->redraw) {
-		cairofb_clear(cairofb, 1.0, 1.0, 1.0);
+		cairoclear(cairo);
 		moveto(position, output);
 		if (! POPPLER_IS_PAGE(position->page)) {
 			output->reload = TRUE;
@@ -1981,7 +1999,7 @@ void draw(struct cairofb *cairofb,
 	filename(position, output);
 
 	if (output->flush) {
-		cairofb_flush(cairofb);
+		cairoflush(cairo);
 		output->flush = FALSE;
 	}
 }
@@ -2060,74 +2078,6 @@ void closepdf(struct position *position) {
 }
 
 /*
- * initialize terminal
- */
-void *init_curses() {
-	WINDOW *w;
-
-	if (getenv("ESCDELAY") == NULL)
-		setenv("ESCDELAY", "200", 1);
-	w = initscr();
-	cbreak();
-	keypad(w, TRUE);
-	noecho();
-	curs_set(0);
-	ungetch(KEY_INIT);
-	getch();
-	timeout(0);
-
-	vt_setup();
-
-	return NULL;
-}
-
-/*
- * close terminal
- */
-void finish_curses(WINDOW *w) {
-	(void) w;
-	clear();
-	refresh();
-	endwin();
-}
-
-/*
- * read a character from input
- */
-int input_curses(int timeout) {
-	fd_set fds;
-	int max, ret;
-	struct timeval tv;
-	int c, l;
-
-	FD_ZERO(&fds);
-	FD_SET(STDIN_FILENO, &fds);
-	max = STDIN_FILENO;
-
-	tv.tv_sec = timeout / 1000;
-	tv.tv_usec = timeout % 1000;
-
-	ret = select(max + 1, &fds, NULL, NULL, timeout != 0 ? &tv : NULL);
-
-	if (ret == -1) {
-		if (vt_redraw) {
-			vt_redraw = FALSE;
-			return KEY_REDRAW;
-		}
-		else
-			return KEY_SIGNAL;
-	}
-
-	if (FD_ISSET(STDIN_FILENO, &fds)) {
-		for (l = ' '; l != ERR; l = getch())
-			c = l;
-		return c;
-	}
-
-	return KEY_TIMEOUT;
-}
-
-/*
  * index of a character in a string
  */
 int optindex(char arg, char *all) {
@@ -2172,14 +2122,28 @@ void usage() {
 }
 
 /*
- * main
+ * a cairo device
  */
-int main(int argn, char *argv[]) {
+struct cairodevice {
+	void *(*init)(char *device);
+	void (*finish)(void *cairo);
+	cairo_t *(*context)(void *cairo);
+	double (*width)(void *cairo);
+	double (*height)(void *cairo);
+	void (*clear)(void *cairo);
+	void (*flush)(void *cairo);
+	int (*input)(void *cairo, int timeout);
+};
+
+/*
+ * main for arbitrary cairo envelope
+ */
+int maincairo(int argn, char *argv[], struct cairodevice *cairodevice) {
 	char configfile[4096], configline[1000], s[1000];
 	FILE *config;
 	double d;
 	char *fbdev;
-	struct cairofb *cairofb;
+	void *cairo;
 	double margin;
 	double fontsize;
 	char *filename;
@@ -2190,7 +2154,6 @@ int main(int argn, char *argv[]) {
 	int firstwindow;
 	int noinitlabels;
 
-	WINDOW *w;
 	int c;
 	int window, next;
 	int pending;
@@ -2315,33 +2278,30 @@ int main(int argn, char *argv[]) {
 
 				/* open fbdev as cairo */
 
-	cairofb = cairofb_init(fbdev, 1);
-	if (cairofb == NULL) {
+	cairo = cairodevice->init(fbdev);
+	if (cairo == NULL) {
 		printf("cannot open %s as a cairo surface\n", fbdev);
-		free(cairofb);
+		cairodevice->finish(cairo);
 		exit(EXIT_FAILURE);
 	}
-
-				/* setup terminal */
-
-	w = init_curses();
 
 				/* initialize position and output */
 
 	initposition(position);
 
-	output.cr = cairofb->cr;
+	output.cr = cairodevice->context(cairo);
 
 	output.dest.x1 = margin;
 	output.dest.y1 = margin;
-	output.dest.x2 = cairofb->width - margin;
-	output.dest.y2 = cairofb->height - margin;
+	output.dest.x2 = cairodevice->width(cairo) - margin;
+	output.dest.y2 = cairodevice->height(cairo) - margin;
 
 	output.aspect = screenaspect == -1 ?
-		1 : screenaspect * cairofb->height / cairofb->width;
+		1 : screenaspect *
+			cairodevice->height(cairo) / cairodevice->width(cairo);
 
 	if (output.minwidth == -1)
-		output.minwidth = (cairofb->width - 2 * margin) / 2;
+		output.minwidth = (cairodevice->width(cairo) - 2 * margin) / 2;
 
 	strcpy(output.search, "");
 	output.found = NULL;
@@ -2360,7 +2320,8 @@ int main(int argn, char *argv[]) {
 	output.redraw = FALSE;
 	output.flush = FALSE;
 	if (noinitlabels || firstwindow != WINDOW_DOCUMENT)
-		draw(cairofb, position, &output);
+		draw(cairo, cairodevice->clear, cairodevice->flush,
+			position, &output);
 	else {
 		output.filename = firstwindow == WINDOW_DOCUMENT;
 		strncpy(output.help, "press 'h' for help", 79);
@@ -2386,23 +2347,28 @@ int main(int argn, char *argv[]) {
 			c = KEY_REDRAW;
 		}
 		if (c != KEY_INIT || output.redraw) {
-			draw(cairofb, position, &output);
+			draw(cairo, cairodevice->clear, cairodevice->flush,
+				position, &output);
 			if (output.reload)
 				continue;
 		}
 
 					/* read input */
 
-		c = c != KEY_NONE ? c : input_curses(output.timeout);
+		c = c != KEY_NONE ? c :
+			cairodevice->input(cairo, output.timeout);
 		pending = output.timeout != 0;
 		output.timeout = 0;
-		if (vt_suspend || c == KEY_SIGNAL) {
+		if (c == KEY_SUSPEND || c == KEY_SIGNAL) {
 			c = KEY_NONE;
 			continue;
 		}
-		if (c == KEY_REDRAW || pending) {
+		if (c == KEY_RESIZE || c == KEY_REDRAW || pending) {
+			output.dest.x2 = cairodevice->width(cairo) - margin;
+			output.dest.y2 = cairodevice->height(cairo) - margin;
 			output.redraw = TRUE;
-			draw(cairofb, position, &output);
+			draw(cairo, cairodevice->clear, cairodevice->flush,
+				position, &output);
 			output.flush = TRUE;
 		}
 
@@ -2433,8 +2399,134 @@ int main(int argn, char *argv[]) {
 				/* close */
 
 	closepdf(position);
-	cairofb_finish(cairofb);
-	finish_curses(w);
+	cairodevice->finish(cairo);
 	return EXIT_SUCCESS;
+}
+
+/*
+ * create a cairo envelope
+ */
+void *cairoinit(char *device) {
+	struct cairofb *cairofb;
+	WINDOW *w;
+
+	cairofb = cairofb_init(device, 1);
+	if (cairofb == NULL)
+		printf("cannot open %s as a cairo surface\n", device);
+
+	if (getenv("ESCDELAY") == NULL)
+		setenv("ESCDELAY", "200", 1);
+	w = initscr();
+	cbreak();
+	keypad(w, TRUE);
+	noecho();
+	curs_set(0);
+	ungetch(KEY_INIT);
+	getch();
+	timeout(0);
+
+	vt_setup();
+
+	return cairofb;
+}
+
+/*
+ * close a cairo context
+ */
+void cairofinish(void *cairo) {
+	if (cairo != NULL)
+		cairofb_finish((struct cairofb *)cairo);
+	clear();
+	refresh();
+	endwin();
+}
+
+/*
+ * get the cairo context from a cairo envelope
+ */
+cairo_t *cairocontext(void *cairo) {
+	return ((struct cairofb *) cairo)->cr;
+}
+
+/*
+ * get the width from a cairo envelope
+ */
+double cairowidth(void *cairo) {
+	return ((struct cairofb *) cairo)->width;
+}
+
+/*
+ * get the heigth from a cairo envelope
+ */
+double cairoheight(void *cairo) {
+	return ((struct cairofb *) cairo)->height;
+}
+
+/*
+ * clear a cairo envelope
+ */
+void cairoclear(void *cairo) {
+	cairofb_clear((struct cairofb *) cairo, 1.0, 1.0, 1.0);
+}
+
+/*
+ * flush a cairo envelope
+ */
+void cairoflush(void *cairo) {
+	cairofb_flush((struct cairofb *) cairo);
+}
+
+/*
+ * get a single input from a cairo envelope
+ */
+int cairoinput(void *cairo, int timeout) {
+	fd_set fds;
+	int max, ret;
+	struct timeval tv;
+	int c, l;
+
+	(void) cairo;
+
+	FD_ZERO(&fds);
+	FD_SET(STDIN_FILENO, &fds);
+	max = STDIN_FILENO;
+
+	tv.tv_sec = timeout / 1000;
+	tv.tv_usec = timeout % 1000;
+
+	ret = select(max + 1, &fds, NULL, NULL, timeout != 0 ? &tv : NULL);
+
+	if (vt_suspend)
+		return KEY_SUSPEND;
+
+	if (ret == -1) {
+		if (vt_redraw) {
+			vt_redraw = FALSE;
+			return KEY_REDRAW;
+		}
+		else
+			return KEY_SIGNAL;
+	}
+
+	if (FD_ISSET(STDIN_FILENO, &fds)) {
+		for (l = ' '; l != ERR; l = getch())
+			c = l;
+		return c;
+	}
+
+	return KEY_TIMEOUT;
+}
+
+/*
+ * main
+ */
+int main(int argn, char *argv[]) {
+	struct cairodevice cairodevice = {
+		cairoinit, cairofinish,
+		cairocontext, cairowidth, cairoheight,
+		cairoclear, cairoflush, cairoinput
+	};
+
+	return maincairo(argn, argv, &cairodevice);
 }
 
