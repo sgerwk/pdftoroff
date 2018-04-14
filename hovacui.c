@@ -2242,7 +2242,6 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 
 	cairo = cairodevice->init(fbdev);
 	if (cairo == NULL) {
-		printf("cannot open %s as a cairo surface\n", fbdev);
 		cairodevice->finish(cairo);
 		exit(EXIT_FAILURE);
 	}
