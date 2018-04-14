@@ -13,8 +13,10 @@ void *cairoinit(char *device) {
 	WINDOW *w;
 
 	cairofb = cairofb_init(device, 1);
-	if (cairofb == NULL)
+	if (cairofb == NULL) {
 		printf("cannot open %s as a cairo surface\n", device);
+		return cairofb;
+	}
 
 	if (getenv("ESCDELAY") == NULL)
 		setenv("ESCDELAY", "200", 1);
