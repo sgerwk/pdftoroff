@@ -7,7 +7,9 @@
 /*
  * todo:
  *
- * - configuration files specific for the framebuffer and x11:
+ * - arbitrary configuration file, specified as a commandline option
+ * - configuration files specific for the framebuffer and x11, passed as
+ *   additional arguments to hovacui()
  *   .config/hovacui/{framebuffer.conf,x11.conf}
  * - utf8 or widechar in cairodevice->input() and field()
  * - bookmarks, with field() for creating and list() for going to
@@ -28,7 +30,6 @@
  * - allow tabs in list(), make it display a table rather than a list;
  *   use in help() to separate keys from functions,
  *   in menu() to show the current values for viewmode, fit, etc.
- * - allow a different config file by command line option
  * - info(), based on list(): filename, number of pages, page format, etc.
  * - rotate
  * - line of next scroll: where the top/bottom of the screen will be after
