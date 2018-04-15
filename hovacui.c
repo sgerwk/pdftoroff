@@ -10,7 +10,6 @@
  * - document minwidth in details
  * - configuration files specific for the framebuffer and x11:
  *   .config/hovacui/{framebuffer.conf,x11.conf}
- * - minwidth: use a value in screen coordinates, then convert into document
  * - document the general device
  * - utf8 or widechar in input_curses() and field()
  * - bookmarks, with field() for creating and list() for going to
@@ -2175,7 +2174,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	screenaspect = -1;
 	firstwindow = WINDOW_TUTORIAL;
 	margin = 10.0;
-	fontsize = 16.0;
+	fontsize = -1;
 	fbdev = "/dev/fb0";
 	noinitlabels = FALSE;
 
@@ -2305,6 +2304,8 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 		1 : screenaspect * output.screenheight / output.screenwidth;
 	if (output.minwidth == -1)
 		output.minwidth = 350;
+	if (fontsize == -1)
+		fontsize = output.screenheight / 25;
 
 	strcpy(output.search, "");
 	output.found = NULL;

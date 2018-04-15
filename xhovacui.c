@@ -11,12 +11,8 @@
 
 /*
  * todo:
- * - make default font size dependent on screen size
- * - default minwidth for x11 should be in proportion of the screen size, not
- *   of the initial window size
  * - use getenv("DISPLAY") and parameter, but default for x11 should be :0.0
  *   and not /dev/fb0
- * - ignore aspect? or use screen size instead of window size
  */
 
 /*
