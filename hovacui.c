@@ -7,6 +7,7 @@
 /*
  * todo:
  *
+ * - document minwidth in details
  * - configuration files specific for the framebuffer and x11:
  *   .config/hovacui/{framebuffer.conf,x11.conf}
  * - minwidth: use a value in screen coordinates, then convert into document
@@ -281,6 +282,12 @@
  * does not exist, output->reload is set
  */
 
+/*
+ * note: the minwidth
+ *
+ * ...
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -320,6 +327,10 @@ struct output {
 
 	/* the destination rectangle */
 	PopplerRectangle dest;
+
+	/* the size of the whole screen */
+	double screenwidth;
+	double screenheight;
 
 	/* the pixel aspect */
 	double aspect;
@@ -609,23 +620,27 @@ void adjustscroll(struct position *position, struct output *output) {
  * adjust width of viewbox to the minimum allowed
  */
 void adjustviewbox(struct position *position, struct output *output) {
-	double d;
+	double d, minwidth, minheight;
 	PopplerRectangle *viewbox;
 	int fitmode;
 
 	fitmode = output->fit;
 	viewbox = position->viewbox;
+	minwidth = xscreentodocdistance(output, output->minwidth *
+		(output->dest.x2 - output->dest.x1) / output->screenwidth);
+	minheight = yscreentodocdistance(output, output->minwidth *
+		(output->dest.y2 - output->dest.y1) / output->screenheight);
 
 	if (fitmode == 0 ||
-	    (fitmode == 1 && viewbox->x2 - viewbox->x1 < output->minwidth)) {
-		d = output->minwidth - viewbox->x2 + viewbox->x1;
+	    (fitmode == 1 && viewbox->x2 - viewbox->x1 < minwidth)) {
+		d = minwidth - viewbox->x2 + viewbox->x1;
 		viewbox->x1 -= d / 2;
 		viewbox->x2 += d / 2;
 	}
 
 	if (fitmode == 0 ||
-	    (fitmode == 2 && viewbox->y2 - viewbox->y1 < output->minwidth)) {
-		d = output->minwidth - viewbox->y2 + viewbox->y1;
+	    (fitmode == 2 && viewbox->y2 - viewbox->y1 < minheight)) {
+		d = minheight - viewbox->y2 + viewbox->y1;
 		viewbox->y1 -= d / 2;
 		viewbox->y2 += d / 2;
 	}
@@ -1986,7 +2001,8 @@ void draw(void *cairo,
 /*
  * resize output
  */
-void resize(struct output *output, double width, double height,
+void resize(struct position *position, struct output *output,
+		double width, double height,
 		double margin, double fontsize) {
 	output->dest.x1 = margin;
 	output->dest.y1 = margin;
@@ -1999,6 +2015,12 @@ void resize(struct output *output, double width, double height,
 	                CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
 	cairo_set_font_size(output->cr, fontsize);
 	cairo_font_extents(output->cr, &output->extents);
+
+	/* undo box centering */
+	if (output->fit & 0x1)
+		position->scrollx = 0;
+	if (output->fit & 0x2)
+		position->scrolly = 0;
 }
 
 /*
@@ -2273,16 +2295,16 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 
 	output.cr = cairodevice->context(cairo);
 
-	resize(&output, cairodevice->width(cairo), cairodevice->height(cairo),
+	resize(position, &output,
+		cairodevice->width(cairo), cairodevice->height(cairo),
 		margin, fontsize);
 
+	output.screenwidth = cairodevice->screenwidth(cairo);
+	output.screenheight = cairodevice->screenheight(cairo);
 	output.aspect = screenaspect == -1 ?
-		1 : screenaspect *
-			cairodevice->height(cairo) / cairodevice->width(cairo);
-
+		1 : screenaspect * output.screenheight / output.screenwidth;
 	if (output.minwidth == -1)
-		output.minwidth =
-			(cairodevice->screenwidth(cairo) - 2 * margin) / 4;
+		output.minwidth = 350;
 
 	strcpy(output.search, "");
 	output.found = NULL;
@@ -2346,7 +2368,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 		}
 		if (c == KEY_RESIZE || c == KEY_REDRAW || pending) {
 			if (c == KEY_RESIZE)
-				resize(&output,
+				resize(position, &output,
 					cairodevice->width(cairo),
 					cairodevice->height(cairo),
 					margin, fontsize);
