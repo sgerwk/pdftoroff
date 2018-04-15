@@ -287,17 +287,20 @@
  * the minwidth avoids textboxes being zoomed too much; without it, a narrow
  * textbox such as a page number would render too large
  *
- * precisely, the minwidth is the minimal width of a texbox that is zoomed to
+ * precisely, the minwidth is the minimal width of a textbox that is zoomed to
  * fit the width of the destination box; a narrower texbox is mapped to a box
  * that is proportionately narrower than the destination box
  *
- * the value used for this mapping in adjustviewbox() is in document
- * coordinates, but the amount in the output structure (which comes from the
- * configuration file or the user interface) is in screen coordinates
+ * for example, the default 400 means that a textbox in the document that is
+ * wide 400 pdf points is zoomed to fit to the width of the destination box,
+ * and that narrower boxes are zoomed the same and therefore take less than the
+ * width of the destination box
  *
  * in x11 the window (destination box) may be small or large; in a small window
  * even a narrow box may need to be zoomed to the window width to be readable;
- * for this reason, the minwidth is in proportion to the window size
+ * for this reason, the minwidth is reduced in proportion to the window size;
+ * thanks to this multiplication, enlarging a small window the current textbox
+ * is enlarged, but at at some points the zoom stops increasing
  */
 
 #include <stdlib.h>
