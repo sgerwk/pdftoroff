@@ -7,7 +7,6 @@
 /*
  * todo:
  *
- * - document minwidth in details
  * - configuration files specific for the framebuffer and x11:
  *   .config/hovacui/{framebuffer.conf,x11.conf}
  * - document the general device
@@ -284,7 +283,20 @@
 /*
  * note: the minwidth
  *
- * ...
+ * the minwidth avoids textboxes being zoomed too much; without it, a narrow
+ * textbox such as a page number would render too large
+ *
+ * precisely, the minwidth is the minimal width of a texbox that is zoomed to
+ * fit the width of the destination box; a narrower texbox is mapped to a box
+ * that is proportionately narrower than the destination box
+ *
+ * the value used for this mapping in adjustviewbox() is in document
+ * coordinates, but the amount in the output structure (which comes from the
+ * configuration file or the user interface) is in screen coordinates
+ *
+ * in x11 the window (destination box) may be small or large; in a small window
+ * even a narrow box may need to be zoomed to the window width to be readable;
+ * for this reason, the minwidth is in proportion to the window size
  */
 
 #include <stdlib.h>
