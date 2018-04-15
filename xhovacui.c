@@ -13,7 +13,9 @@
  * todo:
  * - use getenv("DISPLAY") and parameter, but default for x11 should be :0.0
  *   and not /dev/fb0
- * - "hovacui: document.pdf" as the x11 window title
+ * - "hovacui: document.pdf" as the x11 window title;
+ *   parse the commandline arguments and call XStoreWindow
+ * - option -display; also requires parsing the commandline arguments
  */
 
 /*
