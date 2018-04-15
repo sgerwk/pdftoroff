@@ -8,6 +8,7 @@
  * todo:
  *
  * - x11
+ * - document the general device
  * - utf8 or widechar in input_curses() and field()
  * - bookmarks, with field() for creating and list() for going to
  * - save last position(s) to $HOME/.pdfpositions
@@ -1981,6 +1982,24 @@ void draw(void *cairo,
 }
 
 /*
+ * resize output
+ */
+void resize(struct output *output, double width, double height,
+		double margin, double fontsize) {
+	output->dest.x1 = margin;
+	output->dest.y1 = margin;
+	output->dest.x2 = width - margin;
+	output->dest.y2 = height - margin;
+
+	/* set font again because a resize may have implied the destruction and
+	 * recreation of the context */
+	cairo_select_font_face(output->cr, "mono",
+	                CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+	cairo_set_font_size(output->cr, fontsize);
+	cairo_font_extents(output->cr, &output->extents);
+}
+
+/*
  * open a pdf file
  */
 struct position *openpdf(char *filename) {
@@ -2252,10 +2271,8 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 
 	output.cr = cairodevice->context(cairo);
 
-	output.dest.x1 = margin;
-	output.dest.y1 = margin;
-	output.dest.x2 = cairodevice->width(cairo) - margin;
-	output.dest.y2 = cairodevice->height(cairo) - margin;
+	resize(&output, cairodevice->width(cairo), cairodevice->height(cairo),
+		margin, fontsize);
 
 	output.aspect = screenaspect == -1 ?
 		1 : screenaspect *
@@ -2320,13 +2337,16 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 			cairodevice->input(cairo, output.timeout);
 		pending = output.timeout != 0;
 		output.timeout = 0;
-		if (c == KEY_SUSPEND || c == KEY_SIGNAL) {
+		if (c == KEY_SUSPEND || c == KEY_SIGNAL || c == KEY_NONE) {
 			c = KEY_NONE;
 			continue;
 		}
 		if (c == KEY_RESIZE || c == KEY_REDRAW || pending) {
-			output.dest.x2 = cairodevice->width(cairo) - margin;
-			output.dest.y2 = cairodevice->height(cairo) - margin;
+			if (c == KEY_RESIZE)
+				resize(&output,
+					cairodevice->width(cairo),
+					cairodevice->height(cairo),
+					margin, fontsize);
 			output.redraw = TRUE;
 			draw(cairo, cairodevice->clear, cairodevice->flush,
 				position, &output);
