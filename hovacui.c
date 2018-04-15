@@ -25,6 +25,7 @@
  *   part of the code from reloadpdf()
  *
  * - man page: compare with fbpdf and jfbview
+ * - field() for executing a shell command
  * - allow tabs in list(), make it display a table rather than a list;
  *   use in help() to separate keys from functions,
  *   in menu() to show the current values for viewmode, fit, etc.
