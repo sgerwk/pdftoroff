@@ -42,6 +42,7 @@
  * - non-expert mode: every unassigned key calls WINDOW_MENU
  * - in list(): separator, skip it when using a selected line
  * - add an optional help to the bottom of list()
+ * - clip window title in list()
  * - history of searches
  * - numbermode: 2 is a, 22 is b, 222 is c, etc.
  * - remote control (via socket)
