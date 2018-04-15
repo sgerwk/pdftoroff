@@ -11,11 +11,11 @@
 
 /*
  * todo:
- * - event of type 65?
- * - timeout: select on ConnectionNumber(xhovacui->dsp)
+ * - make default font size dependent on screen size
+ * - default minwidth for x11 should be in proportion of the screen size, not
+ *   of the initial window size
  * - use getenv("DISPLAY") and parameter, but default for x11 should be :0.0
  *   and not /dev/fb0
- * - make default font size dependent on screen size
  * - ignore aspect? or use screen size instead of window size
  */
 
@@ -27,10 +27,17 @@ struct xhovacui {
 	cairo_t *cr;
 	int width;
 	int height;
+	int screenwidth;
+	int screenheight;
 	Display *dsp;
 	Window win;
 	Pixmap dbuf;
 };
+
+/*
+ * events we want to receive
+ */
+#define EVENTMASK (KeyPressMask | ExposureMask | StructureNotifyMask)
 
 /*
  * create a cairo context
@@ -55,12 +62,14 @@ void *cairoinit(char *device) {
 	xhovacui->width = 400;
 	xhovacui->height = 300;
 
+	xhovacui->screenwidth = WidthOfScreen(scr);
+	xhovacui->screenheight = HeightOfScreen(scr);
+
 	xhovacui->win = XCreateSimpleWindow(xhovacui->dsp,
 		DefaultRootWindow(xhovacui->dsp),
 		200, 200, xhovacui->width, xhovacui->height, 1,
 		BlackPixelOfScreen(scr), WhitePixelOfScreen(scr));
-	XSelectInput(xhovacui->dsp, xhovacui->win,
-	             KeyPressMask | ExposureMask | StructureNotifyMask);
+	XSelectInput(xhovacui->dsp, xhovacui->win, EVENTMASK);
 
 	xhovacui->dbuf = XCreatePixmap(xhovacui->dsp, xhovacui->win,
 		xhovacui->width, xhovacui->height,
@@ -89,7 +98,7 @@ void cairofinish(void *cairo) {
 }
 
 /*
- * get the cairo context from a cairo envelope
+ * get the cairo context
  */
 cairo_t *cairocontext(void *cairo) {
 	struct xhovacui *xhovacui;
@@ -98,7 +107,7 @@ cairo_t *cairocontext(void *cairo) {
 }
 
 /*
- * get the width from a cairo envelope
+ * get the width of the window
  */
 double cairowidth(void *cairo) {
 	struct xhovacui *xhovacui;
@@ -107,7 +116,7 @@ double cairowidth(void *cairo) {
 }
 
 /*
- * get the heigth from a cairo envelope
+ * get the heigth of the window
  */
 double cairoheight(void *cairo) {
 	struct xhovacui *xhovacui;
@@ -116,7 +125,25 @@ double cairoheight(void *cairo) {
 }
 
 /*
- * clear a cairo envelope
+ * get the width of the screen
+ */
+double cairoscreenwidth(void *cairo) {
+	struct xhovacui *xhovacui;
+	xhovacui = (struct xhovacui *) cairo;
+	return xhovacui->screenwidth;
+}
+
+/*
+ * get the heigth of the screen
+ */
+double cairoscreenheight(void *cairo) {
+	struct xhovacui *xhovacui;
+	xhovacui = (struct xhovacui *) cairo;
+	return xhovacui->screenheight;
+}
+
+/*
+ * clear
  */
 void cairoclear(void *cairo) {
 	struct xhovacui *xhovacui;
@@ -128,7 +155,7 @@ void cairoclear(void *cairo) {
 }
 
 /*
- * flush a cairo envelope
+ * flush
  */
 void cairoflush(void *cairo) {
 	struct xhovacui *xhovacui;
@@ -139,93 +166,154 @@ void cairoflush(void *cairo) {
 }
 
 /*
- * get a single input from a cairo envelope
+ * reconfigure
+ */
+void cairoreconfigure(struct xhovacui *xhovacui, XConfigureEvent *xce) {
+	xhovacui->width = xce->width;
+	xhovacui->height = xce->height;
+
+	XFreePixmap(xhovacui->dsp, xhovacui->dbuf);
+	cairo_destroy(xhovacui->cr);
+	cairo_surface_destroy(xhovacui->surface);
+
+	xhovacui->dbuf = XCreatePixmap(xhovacui->dsp, xhovacui->win,
+		xhovacui->width, xhovacui->height,
+		DefaultDepth(xhovacui->dsp, 0));
+	xhovacui->surface = cairo_xlib_surface_create(xhovacui->dsp,
+			xhovacui->dbuf,
+			DefaultVisual(xhovacui->dsp, 0),
+			xhovacui->width, xhovacui->height);
+	xhovacui->cr = cairo_create(xhovacui->surface);
+}
+
+/*
+ * all available expose events
+ */
+int cairoexpose(Display *dsp, XEvent *evt) {
+	XExposeEvent *exp;
+	int redraw;
+
+	do {
+		redraw = 0;
+		switch (evt->type) {
+		case Expose:
+			exp = &evt->xexpose;
+			printf("Expose %d,%d->%dx%d\n",
+				exp->x, exp->y,
+				exp->width, exp->height);
+			redraw = 1;
+			break;
+		case GraphicsExpose:
+			printf("GraphicsExpose\n");
+			break;
+		case NoExpose:
+			printf("NoExpose\n");
+			break;
+		}
+	}
+	while (XCheckMaskEvent(dsp, ExposureMask, evt));
+
+	printf("\tend Exposure, redraw=%d\n", redraw);
+	return redraw;
+}
+
+/*
+ * next event or timeout
+ */
+int nextevent(Display *dsp, int timeout, XEvent *evt) {
+	fd_set fds;
+	int max, ret;
+	struct timeval tv;
+
+	/* the socket may be inactive but an event is already in the queue;
+	 * so: first check events, then possibly wait on the socket */
+	while (! XCheckMaskEvent(dsp, EVENTMASK, evt)) {
+		FD_ZERO(&fds);
+		FD_SET(ConnectionNumber(dsp), &fds);
+		max = ConnectionNumber(dsp);
+
+		tv.tv_sec = timeout / 1000;
+		tv.tv_usec = timeout % 1000;
+
+		ret = select(max + 1, &fds, NULL, NULL, timeout != 0 ? &tv : NULL);
+		if (ret == -1)
+			return -2;
+
+		if (! FD_ISSET(ConnectionNumber(dsp), &fds))
+			return -1;
+	}
+
+	return 0;
+}
+
+/*
+ * get a single input
  */
 int cairoinput(void *cairo, int timeout) {
 	struct xhovacui *xhovacui;
 	XEvent evt;
-	XConfigureEvent *xce;
 	int key;
-
-	(void) timeout;
 
 	xhovacui = (struct xhovacui *) cairo;
 
-	/* to be done: use ConnectionManager(xhovacui->dsp) in a select()
-	   with the given timeout, like in fbhovacui.c */
-	XNextEvent(xhovacui->dsp, &evt);
+	while (1) {
+		if (nextevent(xhovacui->dsp, timeout, &evt))
+			return KEY_TIMEOUT;
 
-	switch(evt.type) {
-	case KeyPress:
-		printf("Key\n");
-		key = XLookupKeysym(&evt.xkey, 0);
-		switch (key) {
-		case XK_Down:
-			return KEY_DOWN;
-		case XK_Up:
-			return KEY_UP;
-		case XK_Left:
-			return KEY_LEFT;
-		case XK_Right:
-			return KEY_RIGHT;
-		case XK_Page_Down:
-			return KEY_NPAGE;
-		case XK_Page_Up:
-			return KEY_PPAGE;
-		case XK_Escape:
-			return 033;
-		case XK_Home:
-			return KEY_HOME;
-		case XK_End:
-			return KEY_END;
-		case XK_Return:
-			return '\n';
-		case XK_BackSpace:
-			return KEY_BACKSPACE;
-		case XK_slash:
-			return '/';
+		switch(evt.type) {
+		case KeyPress:
+			printf("Key\n");
+			key = XLookupKeysym(&evt.xkey, 0);
+			switch (key) {
+			case XK_Down:
+				return KEY_DOWN;
+			case XK_Up:
+				return KEY_UP;
+			case XK_Left:
+				return KEY_LEFT;
+			case XK_Right:
+				return KEY_RIGHT;
+			case XK_Page_Down:
+				return KEY_NPAGE;
+			case XK_Page_Up:
+				return KEY_PPAGE;
+			case XK_Escape:
+				return 033;
+			case XK_Home:
+				return KEY_HOME;
+			case XK_End:
+				return KEY_END;
+			case XK_Return:
+				return '\n';
+			case XK_BackSpace:
+				return KEY_BACKSPACE;
+			case XK_slash:
+				return '/';
+			default:
+				if (isalnum(key))
+					return key;
+			/* finish: translate X keys to curses */
+			}
+			break;
+		case ConfigureNotify:
+			printf("Configure\n");
+			cairoreconfigure(xhovacui, &evt.xconfigure);
+			return KEY_RESIZE;
+		case Expose:
+		case GraphicsExpose:
+		case NoExpose:
+			if (cairoexpose(xhovacui->dsp, &evt))
+				return KEY_REDRAW;
+			break;
+		case MapNotify:
+			printf("NapNotify\n");
+			break;
+		case ReparentNotify:
+			printf("ReparentNotify\n");
+			break;
 		default:
-			if (isalnum(key))
-				return key;
-		/* finish: translate X keys to curses */
+			printf("event of type %d\n", evt.type);
 		}
-		break;
-	case ConfigureNotify:
-		printf("Configure\n");
-		xce = &evt.xconfigure;
-		xhovacui->width = xce->width;
-		xhovacui->height = xce->height;
-
-		XFreePixmap(xhovacui->dsp, xhovacui->dbuf);
-		cairo_destroy(xhovacui->cr);
-		cairo_surface_destroy(xhovacui->surface);
-
-		xhovacui->dbuf = XCreatePixmap(xhovacui->dsp, xhovacui->win,
-			xhovacui->width, xhovacui->height,
-			DefaultDepth(xhovacui->dsp, 0));
-		xhovacui->surface = cairo_xlib_surface_create(xhovacui->dsp,
-				xhovacui->dbuf,
-				DefaultVisual(xhovacui->dsp, 0),
-				xhovacui->width, xhovacui->height);
-		xhovacui->cr = cairo_create(xhovacui->surface);
-		return KEY_RESIZE;
-	case Expose:
-		printf("Expose\n");
-		return KEY_REDRAW;
-	case GraphicsExpose:
-		printf("GraphicsExpose\n");
-		break;
-	case NoExpose:
-		printf("NoExpose\n");
-		break;
-	case MapNotify:
-		printf("NapNotify\n");
-		break;
-	case ReparentNotify:
-		printf("ReparentNotify\n");
-		break;
-	default:
-		printf("event of type %d\n", evt.type);
 	}
 
 	return KEY_NONE;
@@ -237,7 +325,9 @@ int cairoinput(void *cairo, int timeout) {
 int main(int argn, char *argv[]) {
 	struct cairodevice cairodevice = {
 		cairoinit, cairofinish,
-		cairocontext, cairowidth, cairoheight,
+		cairocontext,
+		cairowidth, cairoheight,
+		cairoscreenwidth, cairoscreenheight,
 		cairoclear, cairoflush, cairoinput
 	};
 

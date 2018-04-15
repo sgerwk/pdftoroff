@@ -37,6 +37,8 @@ struct cairodevice {
 	cairo_t *(*context)(void *cairo);
 	double (*width)(void *cairo);
 	double (*height)(void *cairo);
+	double (*screenwidth)(void *cairo);
+	double (*screenheight)(void *cairo);
 	void (*clear)(void *cairo);
 	void (*flush)(void *cairo);
 	int (*input)(void *cairo, int timeout);

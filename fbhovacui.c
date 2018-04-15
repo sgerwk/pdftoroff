@@ -127,7 +127,9 @@ int cairoinput(void *cairo, int timeout) {
 int main(int argn, char *argv[]) {
 	struct cairodevice cairodevice = {
 		cairoinit, cairofinish,
-		cairocontext, cairowidth, cairoheight,
+		cairocontext,
+		cairowidth, cairoheight,
+		cairowidth, cairoheight,
 		cairoclear, cairoflush, cairoinput
 	};
 
