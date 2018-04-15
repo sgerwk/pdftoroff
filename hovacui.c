@@ -7,7 +7,6 @@
 /*
  * todo:
  *
- * - document the general device
  * - configuration files specific for the framebuffer and x11:
  *   .config/hovacui/{framebuffer.conf,x11.conf}
  * - utf8 or widechar in input_curses() and field()
@@ -301,6 +300,40 @@
  * for this reason, the minwidth is reduced in proportion to the window size;
  * thanks to this multiplication, enlarging a small window the current textbox
  * is enlarged, but at at some points the zoom stops increasing
+ */
+
+/*
+ * note: the cairodevice
+ *
+ * the struct cairodevice allows hovacui to be run whenever a cairo context can
+ * be obtained and input is available
+ *
+ * hovacui() receives one such structure; it uses its functions for creating
+ * the cairo context, for drawing and getting input to the aim of showing the
+ * pdf file until the keystroke 'q' is received
+ *
+ * void *init(char *device);
+ *	create the cairo context;
+ *	return a data structure that is passed to the other functions
+ *
+ * void finish(void *cairo);
+ *	undo what done by init
+ *
+ * cairo_t *context(void *cairo);
+ * double width(void *cairo);
+ * double height(void *cairo);
+ * double screenwidth(void *cairo);
+ * double screenheight(void *cairo);
+ *	return the cairo context and its size
+ *
+ * void clear(void *cairo);
+ * void flush(void *cairo);
+ *	clear and flush
+ *
+ * int input(void *cairo, int timeout);
+ *	return a key;
+ *	if no input is available blocks for timeout millisecond;
+ *	a timeout of zero means indefinitely
  */
 
 #include <stdlib.h>
