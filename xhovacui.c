@@ -11,9 +11,12 @@
 
 /*
  * todo:
- * - double buffering
+ * - event of type 65?
  * - timeout: select on ConnectionNumber(xhovacui->dsp)
- * - use getenv("DISPLAY")
+ * - use getenv("DISPLAY") and parameter, but default for x11 should be :0.0
+ *   and not /dev/fb0
+ * - make default font size dependent on screen size
+ * - ignore aspect? or use screen size instead of window size
  */
 
 /*
@@ -26,6 +29,7 @@ struct xhovacui {
 	int height;
 	Display *dsp;
 	Window win;
+	Pixmap dbuf;
 };
 
 /*
@@ -57,12 +61,16 @@ void *cairoinit(char *device) {
 		BlackPixelOfScreen(scr), WhitePixelOfScreen(scr));
 	XSelectInput(xhovacui->dsp, xhovacui->win,
 	             KeyPressMask | ExposureMask | StructureNotifyMask);
-	XMapWindow(xhovacui->dsp, xhovacui->win);
 
+	xhovacui->dbuf = XCreatePixmap(xhovacui->dsp, xhovacui->win,
+		xhovacui->width, xhovacui->height,
+		DefaultDepth(xhovacui->dsp, 0));
 	xhovacui->surface =
-		cairo_xlib_surface_create(xhovacui->dsp, xhovacui->win, vis,
+		cairo_xlib_surface_create(xhovacui->dsp, xhovacui->dbuf, vis,
 			xhovacui->width, xhovacui->height);
 	xhovacui->cr = cairo_create(xhovacui->surface);
+
+	XMapWindow(xhovacui->dsp, xhovacui->win);
 
 	return xhovacui;
 }
@@ -105,7 +113,6 @@ double cairoheight(void *cairo) {
 	struct xhovacui *xhovacui;
 	xhovacui = (struct xhovacui *) cairo;
 	return xhovacui->height;
-	return 0.0;
 }
 
 /*
@@ -114,14 +121,21 @@ double cairoheight(void *cairo) {
 void cairoclear(void *cairo) {
 	struct xhovacui *xhovacui;
 	xhovacui = (struct xhovacui *) cairo;
-	XClearWindow(xhovacui->dsp, xhovacui->win);
+	cairo_identity_matrix(xhovacui->cr);
+	cairo_set_source_rgb(xhovacui->cr, 1.0, 1.0, 1.0);
+	cairo_rectangle(xhovacui->cr, 0, 0, xhovacui->width, xhovacui->height);
+	cairo_fill(xhovacui->cr);
 }
 
 /*
  * flush a cairo envelope
  */
 void cairoflush(void *cairo) {
-	(void) cairo;
+	struct xhovacui *xhovacui;
+	xhovacui = (struct xhovacui *) cairo;
+	XCopyArea(xhovacui->dsp, xhovacui->dbuf, xhovacui->win,
+		DefaultGC(xhovacui->dsp, 0),
+		0, 0, xhovacui->width, xhovacui->height, 0, 0);
 }
 
 /*
@@ -143,6 +157,7 @@ int cairoinput(void *cairo, int timeout) {
 
 	switch(evt.type) {
 	case KeyPress:
+		printf("Key\n");
 		key = XLookupKeysym(&evt.xkey, 0);
 		switch (key) {
 		case XK_Down:
@@ -176,18 +191,44 @@ int cairoinput(void *cairo, int timeout) {
 		}
 		break;
 	case ConfigureNotify:
+		printf("Configure\n");
 		xce = &evt.xconfigure;
 		xhovacui->width = xce->width;
 		xhovacui->height = xce->height;
-		cairo_xlib_surface_set_size(xhovacui->surface,
-			xhovacui->width, xhovacui->height);
-		/* fallthrough */
+
+		XFreePixmap(xhovacui->dsp, xhovacui->dbuf);
+		cairo_destroy(xhovacui->cr);
+		cairo_surface_destroy(xhovacui->surface);
+
+		xhovacui->dbuf = XCreatePixmap(xhovacui->dsp, xhovacui->win,
+			xhovacui->width, xhovacui->height,
+			DefaultDepth(xhovacui->dsp, 0));
+		xhovacui->surface = cairo_xlib_surface_create(xhovacui->dsp,
+				xhovacui->dbuf,
+				DefaultVisual(xhovacui->dsp, 0),
+				xhovacui->width, xhovacui->height);
+		xhovacui->cr = cairo_create(xhovacui->surface);
+		return KEY_RESIZE;
 	case Expose:
+		printf("Expose\n");
 		return KEY_REDRAW;
+	case GraphicsExpose:
+		printf("GraphicsExpose\n");
 		break;
+	case NoExpose:
+		printf("NoExpose\n");
+		break;
+	case MapNotify:
+		printf("NapNotify\n");
+		break;
+	case ReparentNotify:
+		printf("ReparentNotify\n");
+		break;
+	default:
+		printf("event of type %d\n", evt.type);
 	}
 
-	return KEY_TIMEOUT;
+	return KEY_NONE;
 }
 
 /*
