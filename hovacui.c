@@ -9,7 +9,7 @@
  *
  * - configuration files specific for the framebuffer and x11:
  *   .config/hovacui/{framebuffer.conf,x11.conf}
- * - utf8 or widechar in input_curses() and field()
+ * - utf8 or widechar in cairodevice->input() and field()
  * - bookmarks, with field() for creating and list() for going to
  * - save last position(s) to $HOME/.pdfpositions
  * - allow cursor moves in field()
@@ -65,8 +65,8 @@
  *   moving to the next; it was not needed for search, where the next match is
  *   just the first outside the area of the current textbox that is currently
  *   displayed
- * - detect file changes via inotify included in the select() called in
- *   input_curses(); return KEY_FILECHANGE
+ * - detect file changes via inotify; this requires the file descriptor to be
+ *   passed to cairodevice->input(); return KEY_FILECHANGE
  * - next/previous match does not work with fit=none; do not fix, cannot work
  *   in general (see below); it can however be done by the same system of the
  *   next or previous anchor used for annotations and links
