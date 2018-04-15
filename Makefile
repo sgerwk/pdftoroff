@@ -3,8 +3,8 @@ PROGS=pdftoroff pdffit pdfrects hovacui xhovacui
 CFLAGS+=-g -Wall -Wextra
 CFLAGS+=${shell pkg-config --cflags poppler-glib}
 LDFLAGS+=${shell pkg-config --libs poppler-glib}
-hovacui: LDFLAGS+=${shell pkg-config --libs ncurses}
-xhovacui: LDFLAGS+=${shell pkg-config --libs x11}
+fbhovacui hovacui: LDFLAGS+=${shell pkg-config --libs ncurses}
+xhovacui hovacui: LDFLAGS+=${shell pkg-config --libs x11}
 
 all: ${PROGS}
 
@@ -15,8 +15,9 @@ install: all
 pdftoroff: pdftext.o
 pdfrects: pdfrects-main.o
 pdftoroff pdffit pdfrects hovacui xhovacui: pdfrects.o
-hovacui: cairofb.o vt.o hovacui.o fbhovacui.o
+fbhovacui: cairofb.o vt.o hovacui.o fbhovacui.o
 xhovacui: cairofb.o vt.o hovacui.o xhovacui.o
+hovacui: cairofb.o vt.o hovacui.o hovacui-main.o
 
 clean:
 	rm -f *.o ${PROGS}

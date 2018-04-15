@@ -7,6 +7,10 @@
  */
 #include <curses.h>
 
+#ifdef _HOVACUI_H
+#else
+#define _HOVACUI_H
+
 /*
  * imaginary keys
  */
@@ -48,4 +52,6 @@ struct cairodevice {
  * show a pdf file on an arbitrary cairo device
  */
 int hovacui(int argn, char *argv[], struct cairodevice *cairodevice);
+
+#endif
 

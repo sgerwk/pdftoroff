@@ -13,9 +13,6 @@
  * todo:
  * - use getenv("DISPLAY") and parameter, but default for x11 should be :0.0
  *   and not /dev/fb0
- * - collect fbhovacui.c and xhovacui.c in hovacui-main.c;
- *   decide output based on DISPLAY;
- *   make a separate program fbhovacui for a framebuffer-only version
  */
 
 /*
@@ -41,7 +38,7 @@ struct xhovacui {
 /*
  * create a cairo context
  */
-void *cairoinit(char *device) {
+void *cairoinit_x11(char *device) {
 	struct xhovacui *xhovacui;
 	Screen *scr;
 	Visual *vis;
@@ -86,7 +83,7 @@ void *cairoinit(char *device) {
 /*
  * close a cairo context
  */
-void cairofinish(void *cairo) {
+void cairofinish_x11(void *cairo) {
 	struct xhovacui *xhovacui;
 	xhovacui = (struct xhovacui *) cairo;
 	XDestroyWindow(xhovacui->dsp, xhovacui->win);
@@ -99,7 +96,7 @@ void cairofinish(void *cairo) {
 /*
  * get the cairo context
  */
-cairo_t *cairocontext(void *cairo) {
+cairo_t *cairocontext_x11(void *cairo) {
 	struct xhovacui *xhovacui;
 	xhovacui = (struct xhovacui *) cairo;
 	return xhovacui->cr;
@@ -108,7 +105,7 @@ cairo_t *cairocontext(void *cairo) {
 /*
  * get the width of the window
  */
-double cairowidth(void *cairo) {
+double cairowidth_x11(void *cairo) {
 	struct xhovacui *xhovacui;
 	xhovacui = (struct xhovacui *) cairo;
 	return xhovacui->width;
@@ -117,7 +114,7 @@ double cairowidth(void *cairo) {
 /*
  * get the heigth of the window
  */
-double cairoheight(void *cairo) {
+double cairoheight_x11(void *cairo) {
 	struct xhovacui *xhovacui;
 	xhovacui = (struct xhovacui *) cairo;
 	return xhovacui->height;
@@ -126,7 +123,7 @@ double cairoheight(void *cairo) {
 /*
  * get the width of the screen
  */
-double cairoscreenwidth(void *cairo) {
+double cairoscreenwidth_x11(void *cairo) {
 	struct xhovacui *xhovacui;
 	xhovacui = (struct xhovacui *) cairo;
 	return xhovacui->screenwidth;
@@ -135,7 +132,7 @@ double cairoscreenwidth(void *cairo) {
 /*
  * get the heigth of the screen
  */
-double cairoscreenheight(void *cairo) {
+double cairoscreenheight_x11(void *cairo) {
 	struct xhovacui *xhovacui;
 	xhovacui = (struct xhovacui *) cairo;
 	return xhovacui->screenheight;
@@ -144,7 +141,7 @@ double cairoscreenheight(void *cairo) {
 /*
  * clear
  */
-void cairoclear(void *cairo) {
+void cairoclear_x11(void *cairo) {
 	struct xhovacui *xhovacui;
 	xhovacui = (struct xhovacui *) cairo;
 	cairo_identity_matrix(xhovacui->cr);
@@ -156,7 +153,7 @@ void cairoclear(void *cairo) {
 /*
  * flush
  */
-void cairoflush(void *cairo) {
+void cairoflush_x11(void *cairo) {
 	struct xhovacui *xhovacui;
 	xhovacui = (struct xhovacui *) cairo;
 	XCopyArea(xhovacui->dsp, xhovacui->dbuf, xhovacui->win,
@@ -248,7 +245,7 @@ int nextevent(Display *dsp, int timeout, XEvent *evt) {
 /*
  * get a single input
  */
-int cairoinput(void *cairo, int timeout) {
+int cairoinput_x11(void *cairo, int timeout) {
 	struct xhovacui *xhovacui;
 	XEvent evt;
 	int key;
@@ -321,15 +318,17 @@ int cairoinput(void *cairo, int timeout) {
 /*
  * main
  */
+#ifdef NOMAIN
+#else
 int main(int argn, char *argv[]) {
 	struct cairodevice cairodevice = {
-		cairoinit, cairofinish,
-		cairocontext,
-		cairowidth, cairoheight,
-		cairoscreenwidth, cairoscreenheight,
-		cairoclear, cairoflush, cairoinput
+		cairoinit_x11, cairofinish_x11,
+		cairocontext_x11,
+		cairowidth_x11, cairoheight_x11,
+		cairoscreenwidth_x11, cairoscreenheight_x11,
+		cairoclear_x11, cairoflush_x11, cairoinput_x11
 	};
 
 	return hovacui(argn, argv, &cairodevice);
 }
-
+#endif

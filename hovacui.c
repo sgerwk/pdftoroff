@@ -7,15 +7,15 @@
 /*
  * todo:
  *
+ * - document the general device
  * - configuration files specific for the framebuffer and x11:
  *   .config/hovacui/{framebuffer.conf,x11.conf}
- * - document the general device
  * - utf8 or widechar in input_curses() and field()
  * - bookmarks, with field() for creating and list() for going to
  * - save last position(s) to $HOME/.pdfpositions
  * - allow cursor moves in field()
  * - reload on SIGHUP
- * - commandline option for inital position: -p page,box,scrollx,scrolly any
+ * - commandline option for initial position: -p page,box,scrollx,scrolly any
  *   part can be empty, even page; every one implies a default for the
  *   folliowing ones; if this option is given, the final position is printed in
  *   the same format at exit; make separate functions for parsing and printing
@@ -2315,7 +2315,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	output.aspect = screenaspect == -1 ?
 		1 : screenaspect * output.screenheight / output.screenwidth;
 	if (output.minwidth == -1)
-		output.minwidth = 350;
+		output.minwidth = 400;
 	if (fontsize == -1)
 		fontsize = output.screenheight / 25;
 
