@@ -59,8 +59,8 @@ void *cairoinit(char *device) {
 	scr = DefaultScreenOfDisplay(xhovacui->dsp);
 	vis = DefaultVisualOfScreen(scr);
 
-	xhovacui->width = 400;
-	xhovacui->height = 300;
+	xhovacui->width = 600;
+	xhovacui->height = 400;
 
 	xhovacui->screenwidth = WidthOfScreen(scr);
 	xhovacui->screenheight = HeightOfScreen(scr);
