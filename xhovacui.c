@@ -13,6 +13,9 @@
  * todo:
  * - use getenv("DISPLAY") and parameter, but default for x11 should be :0.0
  *   and not /dev/fb0
+ * - collect fbhovacui.c and xhovacui.c in hovacui-main.c;
+ *   decide output based on DISPLAY;
+ *   make a separate program fbhovacui for a framebuffer-only version
  */
 
 /*
