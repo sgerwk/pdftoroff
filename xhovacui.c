@@ -206,6 +206,8 @@ int cairoexpose(Display *dsp, XEvent *evt) {
 		case NoExpose:
 			printf("NoExpose\n");
 			break;
+		default:
+			printf("event of type %d\n", evt->type);
 		}
 	}
 	while (XCheckMaskEvent(dsp, ExposureMask, evt));
@@ -303,7 +305,7 @@ int cairoinput_x11(void *cairo, int timeout) {
 				return KEY_REDRAW;
 			break;
 		case MapNotify:
-			printf("NapNotify\n");
+			printf("MapNotify\n");
 			break;
 		case ReparentNotify:
 			printf("ReparentNotify\n");
