@@ -4,6 +4,7 @@ CFLAGS+=-g -Wall -Wextra
 CFLAGS+=${shell pkg-config --cflags poppler-glib}
 LDFLAGS+=${shell pkg-config --libs poppler-glib}
 hovacui: LDFLAGS+=${shell pkg-config --libs ncurses}
+xhovacui: LDFLAGS+=${shell pkg-config --libs x11}
 
 all: ${PROGS}
 
