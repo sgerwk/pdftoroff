@@ -8,9 +8,11 @@
 /*
  * create a cairo context
  */
-void *cairoinit_fb(char *device) {
+void *cairoinit_fb(char *device, void *data) {
 	struct cairofb *cairofb;
 	WINDOW *w;
+
+	(void) data;
 
 	if (device == NULL)
 		device = "/dev/fb0";
@@ -124,20 +126,25 @@ int cairoinput_fb(void *cairo, int timeout) {
 	return KEY_TIMEOUT;
 }
 
+
+/*
+ * the cairo device for the framebuffer
+ */
+struct cairodevice cairodevicefb = {
+	NULL,
+	cairoinit_fb, cairofinish_fb,
+	cairocontext_fb,
+	cairowidth_fb, cairoheight_fb,
+	cairowidth_fb, cairoheight_fb,
+	cairoclear_fb, cairoflush_fb, cairoinput_fb
+};
+
 /*
  * main
  */
 #ifdef NOMAIN
 #else
 int main(int argn, char *argv[]) {
-	struct cairodevice cairodevice = {
-		cairoinit_fb, cairofinish_fb,
-		cairocontext_fb,
-		cairowidth_fb, cairoheight_fb,
-		cairowidth_fb, cairoheight_fb,
-		cairoclear_fb, cairoflush_fb, cairoinput_fb
-	};
-
-	return hovacui(argn, argv, &cairodevice);
+	return hovacui(argn, argv, &cairodevicefb);
 }
 #endif

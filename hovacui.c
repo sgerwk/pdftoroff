@@ -2333,7 +2333,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 
 				/* open fbdev as cairo */
 
-	cairo = cairodevice->init(outdev);
+	cairo = cairodevice->init(outdev, cairodevice->data);
 	if (cairo == NULL) {
 		cairodevice->finish(cairo);
 		exit(EXIT_FAILURE);

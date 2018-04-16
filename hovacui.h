@@ -41,7 +41,8 @@
  * a cairo device
  */
 struct cairodevice {
-	void *(*init)(char *device);
+	void *data;
+	void *(*init)(char *device, void *data);
 	void (*finish)(void *cairo);
 	cairo_t *(*context)(void *cairo);
 	double (*width)(void *cairo);

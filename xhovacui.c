@@ -1,7 +1,8 @@
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 #include <X11/Xlib.h>
-#include<X11/keysym.h>
+#include <X11/keysym.h>
 #include <ctype.h>
 #include <ncurses.h>
 #include <cairo.h>
@@ -38,10 +39,11 @@ struct xhovacui {
 /*
  * create a cairo context
  */
-void *cairoinit_x11(char *device) {
+void *cairoinit_x11(char *device, void *data) {
 	struct xhovacui *xhovacui;
 	Screen *scr;
 	Visual *vis;
+	char *title, *filename;
 
 	if (device == NULL)
 		device = getenv("DISPLAY");
@@ -76,7 +78,12 @@ void *cairoinit_x11(char *device) {
 			xhovacui->width, xhovacui->height);
 	xhovacui->cr = cairo_create(xhovacui->surface);
 
-	XStoreName(xhovacui->dsp, xhovacui->win, "hovacui");
+	filename = (char *) data;
+	title = malloc(strlen("hovacui: ") + strlen(filename) + 1);
+	strcpy(title, "hovacui: ");
+	strcat(title, filename);
+	XStoreName(xhovacui->dsp, xhovacui->win, title);
+
 	XMapWindow(xhovacui->dsp, xhovacui->win);
 
 	return xhovacui;
@@ -322,26 +329,35 @@ int cairoinput_x11(void *cairo, int timeout) {
 }
 
 /*
+ * set window title
+ */
+void setx11title(int argn, char *argv[], struct cairodevice *cairodevice) {
+	int opt;
+
+	while (-1 != (opt = getopt(argn, argv, HOVACUIOPTS))) {
+	}
+	cairodevice->data = argv[optind];
+}
+
+/*
+ * the cairo device for X11
+ */
+struct cairodevice cairodevicex11 = {
+	NULL,
+	cairoinit_x11, cairofinish_x11,
+	cairocontext_x11,
+	cairowidth_x11, cairoheight_x11,
+	cairoscreenwidth_x11, cairoscreenheight_x11,
+	cairoclear_x11, cairoflush_x11, cairoinput_x11
+};
+
+/*
  * main
  */
 #ifdef NOMAIN
 #else
 int main(int argn, char *argv[]) {
-	struct cairodevice cairodevice = {
-		cairoinit_x11, cairofinish_x11,
-		cairocontext_x11,
-		cairowidth_x11, cairoheight_x11,
-		cairoscreenwidth_x11, cairoscreenheight_x11,
-		cairoclear_x11, cairoflush_x11, cairoinput_x11
-	};
-	int opt;
-	char *filename;
-
-	while (-1 != (opt = getopt(argn, argv, HOVACUIOPTS))) {
-	}
-	filename = argv[optind];
-	printf("%s\n", filename);
-
-	return hovacui(argn, argv, &cairodevice);
+	setx11title(argn, argv, &cairodevicex11);
+	return hovacui(argn, argv, &cairodevicex11);
 }
 #endif
