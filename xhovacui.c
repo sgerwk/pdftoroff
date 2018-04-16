@@ -240,9 +240,10 @@ int nextevent(Display *dsp, int timeout, XEvent *evt) {
 		max = ConnectionNumber(dsp);
 
 		tv.tv_sec = timeout / 1000;
-		tv.tv_usec = timeout % 1000;
+		tv.tv_usec = (timeout % 1000) * 1000;
 
-		ret = select(max + 1, &fds, NULL, NULL, timeout != 0 ? &tv : NULL);
+		ret = select(max + 1, &fds, NULL, NULL,
+			timeout != 0 ? &tv : NULL);
 		if (ret == -1)
 			return -2;
 
