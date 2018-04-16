@@ -2274,7 +2274,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 
 				/* cmdline arguments */
 
-	while (-1 != (opt = getopt(argn, argv, "m:f:w:t:d:s:h")))
+	while (-1 != (opt = getopt(argn, argv, HOVACUIOPTS)))
 		switch (opt) {
 		case 'm':
 			output.viewmode = optindex(optarg[0], "tbp");

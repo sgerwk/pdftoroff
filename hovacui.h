@@ -2,14 +2,19 @@
  * hovacui.h
  */
 
+#ifdef _HOVACUI_H
+#else
+#define _HOVACUI_H
+
+/*
+ * the options parse by hovacui itself
+ */
+#define HOVACUIOPTS "m:f:w:t:d:s:h"
+
 /*
  * include curses to get the macro keys
  */
 #include <curses.h>
-
-#ifdef _HOVACUI_H
-#else
-#define _HOVACUI_H
 
 /*
  * imaginary keys
