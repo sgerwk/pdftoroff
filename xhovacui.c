@@ -45,13 +45,11 @@ void *cairoinit_x11(char *device, void *data) {
 	Visual *vis;
 	char *title, *filename;
 
-	if (device == NULL)
-		device = getenv("DISPLAY");
-
 	xhovacui = malloc(sizeof(struct xhovacui));
-	xhovacui->dsp = XOpenDisplay(NULL);
+	xhovacui->dsp = XOpenDisplay(device);
 	if (xhovacui->dsp == NULL) {
-		printf("cannot open display\n");
+		printf("cannot open display %s\n",
+			device == NULL ? getenv("DISPLAY") : device);
 		free(xhovacui);
 		return NULL;
 	}
