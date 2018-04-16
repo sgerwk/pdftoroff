@@ -78,6 +78,7 @@ void *cairoinit_x11(char *device) {
 			xhovacui->width, xhovacui->height);
 	xhovacui->cr = cairo_create(xhovacui->surface);
 
+	XStoreName(xhovacui->dsp, xhovacui->win, "hovacui");
 	XMapWindow(xhovacui->dsp, xhovacui->win);
 
 	return xhovacui;
