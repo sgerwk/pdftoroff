@@ -2197,7 +2197,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	char configfile[4096], configline[1000], s[1000];
 	FILE *config;
 	double d;
-	char *fbdev;
+	char *outdev;
 	void *cairo;
 	double margin;
 	double fontsize;
@@ -2226,7 +2226,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	firstwindow = WINDOW_TUTORIAL;
 	margin = 10.0;
 	fontsize = -1;
-	fbdev = "/dev/fb0";
+	outdev = NULL;
 	noinitlabels = FALSE;
 
 				/* config file */
@@ -2255,7 +2255,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 			if (sscanf(configline, "margin %lg", &d) == 1)
 				margin = d;
 			if (sscanf(configline, "device %s", s) == 1)
-				fbdev = strdup(s);
+				outdev = strdup(s);
 			if (sscanf(configline, "%s", s) == 1 &&
 			    ! strcmp(s, "immediate"))
 				output.immediate = TRUE;
@@ -2307,7 +2307,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 			}
 			break;
 		case 'd':
-			fbdev = optarg;
+			outdev = optarg;
 			break;
 		case 's':
 			screenaspect = fraction(optarg);
@@ -2333,7 +2333,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 
 				/* open fbdev as cairo */
 
-	cairo = cairodevice->init(fbdev);
+	cairo = cairodevice->init(outdev);
 	if (cairo == NULL) {
 		cairodevice->finish(cairo);
 		exit(EXIT_FAILURE);

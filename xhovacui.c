@@ -46,7 +46,8 @@ void *cairoinit_x11(char *device) {
 	Screen *scr;
 	Visual *vis;
 
-	(void) device;
+	if (device == NULL)
+		device = getenv("DISPLAY");
 
 	xhovacui = malloc(sizeof(struct xhovacui));
 	xhovacui->dsp = XOpenDisplay(NULL);

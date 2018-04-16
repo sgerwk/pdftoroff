@@ -12,6 +12,9 @@ void *cairoinit_fb(char *device) {
 	struct cairofb *cairofb;
 	WINDOW *w;
 
+	if (device == NULL)
+		device = "/dev/fb0";
+
 	cairofb = cairofb_init(device, 1);
 	if (cairofb == NULL) {
 		printf("cannot open %s as a cairo surface\n", device);
