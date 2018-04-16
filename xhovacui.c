@@ -334,6 +334,13 @@ int main(int argn, char *argv[]) {
 		cairoscreenwidth_x11, cairoscreenheight_x11,
 		cairoclear_x11, cairoflush_x11, cairoinput_x11
 	};
+	int opt;
+	char *filename;
+
+	while (-1 != (opt = getopt(argn, argv, HOVACUIOPTS))) {
+	}
+	filename = argv[optind];
+	printf("%s\n", filename);
 
 	return hovacui(argn, argv, &cairodevice);
 }
