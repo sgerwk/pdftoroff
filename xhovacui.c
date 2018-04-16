@@ -91,6 +91,8 @@ void *cairoinit_x11(char *device) {
 void cairofinish_x11(void *cairo) {
 	struct xhovacui *xhovacui;
 	xhovacui = (struct xhovacui *) cairo;
+	if (xhovacui == NULL)
+		return;
 	XDestroyWindow(xhovacui->dsp, xhovacui->win);
 	XCloseDisplay(xhovacui->dsp);
 	cairo_destroy(xhovacui->cr);
