@@ -11,10 +11,13 @@
 #include "hovacui.h"
 
 /*
- * todo:
- * - "hovacui: document.pdf" as the x11 window title
- * - turn option -display into -d
+ * structure for init data
  */
+struct initdata {
+	char *display;
+	char *geometry;
+	char *title;
+};
 
 /*
  * structure for a window
@@ -22,8 +25,8 @@
 struct xhovacui {
 	cairo_surface_t *surface;
 	cairo_t *cr;
-	int width;
-	int height;
+	unsigned int width;
+	unsigned int height;
 	int screenwidth;
 	int screenheight;
 	Display *dsp;
@@ -40,10 +43,17 @@ struct xhovacui {
  * create a cairo context
  */
 void *cairoinit_x11(char *device, void *data) {
+	struct initdata *initdata;
 	struct xhovacui *xhovacui;
 	Screen *scr;
 	Visual *vis;
-	char *title, *filename;
+	int x, y;
+	char *title;
+
+	initdata = (struct initdata *) data;
+
+	if (initdata->display != NULL)
+		device = initdata->display;
 
 	xhovacui = malloc(sizeof(struct xhovacui));
 	xhovacui->dsp = XOpenDisplay(device);
@@ -56,15 +66,22 @@ void *cairoinit_x11(char *device, void *data) {
 	scr = DefaultScreenOfDisplay(xhovacui->dsp);
 	vis = DefaultVisualOfScreen(scr);
 
+	x = 200;
+	y = 200;
 	xhovacui->width = 600;
 	xhovacui->height = 400;
+	if (initdata->geometry != NULL)
+		XParseGeometry(initdata->geometry,
+			&x, &y, &xhovacui->width, &xhovacui->height);
+	printf("geometry: %dx%d+%d+%d\n",
+		xhovacui->width, xhovacui->height, x, y);
 
 	xhovacui->screenwidth = WidthOfScreen(scr);
 	xhovacui->screenheight = HeightOfScreen(scr);
 
 	xhovacui->win = XCreateSimpleWindow(xhovacui->dsp,
 		DefaultRootWindow(xhovacui->dsp),
-		200, 200, xhovacui->width, xhovacui->height, 1,
+		x, y, xhovacui->width, xhovacui->height, 1,
 		BlackPixelOfScreen(scr), WhitePixelOfScreen(scr));
 	XSelectInput(xhovacui->dsp, xhovacui->win, EVENTMASK);
 
@@ -76,10 +93,9 @@ void *cairoinit_x11(char *device, void *data) {
 			xhovacui->width, xhovacui->height);
 	xhovacui->cr = cairo_create(xhovacui->surface);
 
-	filename = (char *) data;
-	title = malloc(strlen("hovacui: ") + strlen(filename) + 1);
+	title = malloc(strlen("hovacui: ") + strlen(initdata->title) + 1);
 	strcpy(title, "hovacui: ");
-	strcat(title, filename);
+	strcat(title, initdata->title);
 	XStoreName(xhovacui->dsp, xhovacui->win, title);
 
 	XMapWindow(xhovacui->dsp, xhovacui->win);
@@ -340,14 +356,48 @@ struct cairodevice cairodevicex11 = {
 };
 
 /*
+ * check whether b is a prefix of a
+ */
+int prefix(char *a, char *b) {
+	return strncmp(a, b, strlen(b));
+}
+
+/*
+ * extract the last part of a string
+ */
+char *second(char *a) {
+	char *p;
+	p = rindex(a, ' ');
+	return p == NULL ? p : p + 1;
+}
+
+/*
  * set window title
  */
-void setx11title(int argn, char *argv[], struct cairodevice *cairodevice) {
+int setinitdata(int argn, char *argv[], struct cairodevice *cairodevice) {
 	int opt;
+	struct initdata *initdata;
 
-	while (-1 != (opt = getopt(argn, argv, HOVACUIOPTS))) {
+	initdata = malloc(sizeof(struct initdata));
+	initdata->display = NULL;
+	initdata->geometry = NULL;
+	while (-1 != (opt = getopt(argn, argv, HOVACUIOPTS "x:"))) {
+		switch (opt) {
+		case 'x':
+			if (! prefix(optarg, "display "))
+				initdata->display = second(optarg);
+			else if (! prefix(optarg, "geometry "))
+				initdata->geometry = second(optarg);
+			else {
+				printf("unknown -x suboption: %s\n", optarg);
+				return -1;
+			}
+			break;
+		}
 	}
-	cairodevice->initdata = argv[optind];
+	initdata->title = argv[optind];
+	cairodevice->initdata = initdata;
+	return 0;
 }
 
 /*
@@ -356,7 +406,7 @@ void setx11title(int argn, char *argv[], struct cairodevice *cairodevice) {
 #ifdef NOMAIN
 #else
 int main(int argn, char *argv[]) {
-	setx11title(argn, argv, &cairodevicex11);
+	setinitdata(argn, argv, &cairodevicex11);
 	return hovacui(argn, argv, &cairodevicex11);
 }
 #endif

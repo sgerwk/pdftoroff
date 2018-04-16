@@ -341,6 +341,14 @@ content of the environment variable \fIDISPLAY\fP for X11
 the screen aspect; it can be specified as \fI16:9\fP or \fI4:3\fP, for example;
 only necessary when pixels are non-square
 .TP
+.BI -x " suboption
+x11 options \fIdisplay\fP and \fIgeometry\fP;
+for example, the command line to run hovacui in a 400x300 window positioned at
+200,100 on display :1 is:
+.nf
+\fIhovacui -x'display :1' -x'geometry 400x300+200+100' file.pdf\fI
+.fi
+.TP
 .BI -h
 show a summary of the command line options and the main keys
 
