@@ -314,7 +314,10 @@
  * the cairo context, for drawing and getting input to the aim of showing the
  * pdf file until the keystroke 'q' is received
  *
- * void *init(char *device);
+ * void *initdata
+ *	passed to the init function
+ *
+ * void *init(char *device, void *initdata);
  *	create the cairo context;
  *	return a data structure that is passed to the other functions
  *
@@ -2333,7 +2336,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 
 				/* open fbdev as cairo */
 
-	cairo = cairodevice->init(outdev, cairodevice->data);
+	cairo = cairodevice->init(outdev, cairodevice->initdata);
 	if (cairo == NULL) {
 		cairodevice->finish(cairo);
 		exit(EXIT_FAILURE);

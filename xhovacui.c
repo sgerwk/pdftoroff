@@ -329,17 +329,6 @@ int cairoinput_x11(void *cairo, int timeout) {
 }
 
 /*
- * set window title
- */
-void setx11title(int argn, char *argv[], struct cairodevice *cairodevice) {
-	int opt;
-
-	while (-1 != (opt = getopt(argn, argv, HOVACUIOPTS))) {
-	}
-	cairodevice->data = argv[optind];
-}
-
-/*
  * the cairo device for X11
  */
 struct cairodevice cairodevicex11 = {
@@ -350,6 +339,17 @@ struct cairodevice cairodevicex11 = {
 	cairoscreenwidth_x11, cairoscreenheight_x11,
 	cairoclear_x11, cairoflush_x11, cairoinput_x11
 };
+
+/*
+ * set window title
+ */
+void setx11title(int argn, char *argv[], struct cairodevice *cairodevice) {
+	int opt;
+
+	while (-1 != (opt = getopt(argn, argv, HOVACUIOPTS))) {
+	}
+	cairodevice->initdata = argv[optind];
+}
 
 /*
  * main
