@@ -7,6 +7,7 @@
 /*
  * todo:
  *
+ * - DESTDIR, package files for rpm, dpkg, pacman
  * - arbitrary configuration file, specified as a commandline option
  * - configuration files specific for the framebuffer and x11, passed as
  *   additional arguments to hovacui()
@@ -25,6 +26,8 @@
  *   consequently the box is the last of the page; extract and complete this
  *   part of the code from reloadpdf()
  *
+ * - config option for disabling the ui
+ * - list() yes/no to confirm exit; disabled by config option
  * - man page: compare with fbpdf and jfbview
  * - field() for executing a shell command
  * - allow tabs in list(), make it display a table rather than a list;
