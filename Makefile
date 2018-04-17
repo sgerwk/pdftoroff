@@ -9,7 +9,7 @@ xhovacui hovacui: LDFLAGS+=${shell pkg-config --libs x11}
 all: ${PROGS}
 
 install: all
-	cp hovacui pdftoroff pdftoebook pdffit ${DESTDIR}/usr/bin
+	cp hovacui pdftoroff pdftoebook pdffit pdfrects ${DESTDIR}/usr/bin
 	cp hovacui.1 pdftoroff.1 pdffit.1 pdfrects.1 ${DESTDIR}/usr/share/man/man1
 
 pdftoroff: pdftext.o
