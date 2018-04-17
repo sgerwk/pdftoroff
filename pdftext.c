@@ -61,7 +61,7 @@ struct format format_text = {
 gboolean debugpar = FALSE;
 void dnewpar(FILE *fd, char *why) {
 	if (debugpar)
-		fprintf(fd, why);
+		fputs(why, fd);
 }
 void delement(FILE *fd, char *what, int num) {
 	if (debugpar)
@@ -93,30 +93,30 @@ void face(FILE *fd, gboolean start, gboolean reset,
 
 	if (start) {
 		if (! newitalic && ! newbold)
-			fprintf(fd, format->plain);
+			fputs(format->plain, fd);
 		else if (newitalic && ! newbold)
-			fprintf(fd, format->italic);
+			fputs(format->italic, fd);
 		else if (! newitalic && newbold)
-			fprintf(fd, format->bold);
+			fputs(format->bold, fd);
 		if (newitalic && newbold)
-			fprintf(fd, format->bolditalic);
+			fputs(format->bolditalic, fd);
 	}
 	if (! start && reset)
-		fprintf(fd, format->plain);
+		fputs(format->plain, fd);
 
 				/* font start-end */
 
 	if (! start) {
 		if (*bold && newbold == reset)
-			fprintf(fd, format->boldend);
+			fputs(format->boldend, fd);
 		if (*italic && newitalic == reset)
-			fprintf(fd, format->italicend);
+			fputs(format->italicend, fd);
 	}
 	else {
 		if (*italic == reset && newitalic)
-			fprintf(fd, format->italicbegin);
+			fputs(format->italicbegin, fd);
 		if (*bold == reset && newbold)
-			fprintf(fd, format->boldbegin);
+			fputs(format->boldbegin, fd);
 	}
 
 				/* update current font */
@@ -135,15 +135,15 @@ void showcharacter(FILE *fd, char *cur, char *next, char *rest,
 		gboolean newpar, struct format *format) {
 	*rest = NONE;
 	if (*cur == '\\')
-		fprintf(fd, format->backslash);
+		fputs(format->backslash, fd);
 	else if (newpar && *cur == '.')
-		fprintf(fd, format->firstdot);
+		fputs(format->firstdot, fd);
 	else if (*cur == '<')
-		fprintf(fd, format->less);
+		fputs(format->less, fd);
 	else if (*cur == '>')
-		fprintf(fd, format->greater);
+		fputs(format->greater, fd);
 	else if (*cur == '&')
-		fprintf(fd, format->and);
+		fputs(format->and, fd);
 	else if (*cur == '-' && (*next == '\0' || *next == '\n'))
 		*rest = '-';
 	else
@@ -346,8 +346,8 @@ void showbox(FILE *fd, PopplerPage *page, PopplerRectangle *zone,
 				face(fd, FALSE, TRUE,
 					&italic, &bold, attr, format);
 				if (*prev != START)
-					fprintf(fd, format->parend);
-				fprintf(fd, format->parstart);
+					fputs(format->parend, fd);
+				fputs(format->parstart, fd);
 				face(fd, TRUE, TRUE,
 					&italic, &bold, attr, format);
 			}
@@ -449,7 +449,7 @@ void enddocument(FILE *fd,
 	(void)measure;
 	(void)newpar;
 	if (*prev != START)
-		fprintf(fd, format->parend);
+		fputs(format->parend, fd);
 }
 
 /*

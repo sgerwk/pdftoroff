@@ -1,6 +1,6 @@
 PROGS=pdftoroff pdffit pdfrects hovacui xhovacui
 
-CFLAGS+=-g -Wall -Wextra
+CFLAGS+=-g -Wall -Wextra -Wformat -Werror=format-security
 CFLAGS+=${shell pkg-config --cflags poppler-glib}
 LDFLAGS+=${shell pkg-config --libs poppler-glib}
 fbhovacui hovacui: LDFLAGS+=${shell pkg-config --libs ncurses}
