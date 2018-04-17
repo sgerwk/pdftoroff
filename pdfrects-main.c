@@ -47,7 +47,7 @@ int main(int argc, char *argv[]) {
 	PopplerRectangle wholepage = {0.0, 0.0, width, height};
 
 	PopplerRectangle insert = {200.0, 200.0, 300.0, 300.0}, moved;
-	gboolean fits;
+	gboolean fits = FALSE;
 
 	cairo_surface_t *surface;
 	cairo_t *cr;

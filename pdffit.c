@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
 	PopplerDocument *doc;
 	PopplerPage *page;
 	int npages, n;
-	PopplerRectangle *boundingbox, *pageboundingbox;
+	PopplerRectangle *boundingbox = NULL, *pageboundingbox;
 	PopplerRectangle psize = {0.0, 0.0, 0.0, 0.0};
 
 	cairo_surface_t *surface;
