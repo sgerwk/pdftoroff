@@ -7,7 +7,7 @@
 /*
  * todo:
  *
- * - DESTDIR, package files for rpm, dpkg, pacman
+ * - package files for rpm, dpkg, pacman
  * - arbitrary configuration file, specified as a commandline option
  * - configuration files specific for the framebuffer and x11, passed as
  *   additional arguments to hovacui()
