@@ -62,7 +62,7 @@
  *   (generalize sorting function in pdfrects.c)
  * - i18n
  * - function to be possibly called before list() to wrap lines too long
- * - save a copy of the current document
+ * - save a copy of the current document, possibly only a range of pages
  * - annotations and links:
  *   some key switches to anchor navigation mode, where keyup/keydown move to
  *   the next anchor (annotation or link) in displayed part of the current
