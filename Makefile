@@ -2,10 +2,10 @@ PROGS=pdftoroff pdffit pdfrects hovacui fbhovacui xhovacui
 
 CFLAGS+=-g -Wall -Wextra -Wformat -Wformat-security
 CFLAGS+=${shell pkg-config --cflags poppler-glib}
-LDFLAGS+=${shell pkg-config --libs poppler-glib}
-fbhovacui hovacui: LDFLAGS+=\
+LDLIBS+=${shell pkg-config --libs poppler-glib}
+fbhovacui hovacui: LDLIBS+=\
 	${shell pkg-config --libs ncurses || echo '' -lncurses -ltinfo}
-xhovacui hovacui: LDFLAGS+=${shell pkg-config --libs x11}
+xhovacui hovacui: LDLIBS+=${shell pkg-config --libs x11}
 
 all: ${PROGS}
 
