@@ -15,7 +15,6 @@
  * - bookmarks, with field() for creating and list() for going to
  * - save last position(s) to $HOME/.pdfpositions
  * - allow cursor moves in field()
- * - reload on SIGHUP
  * - commandline option for initial position: -p page,box,scrollx,scrolly any
  *   part can be empty, even page; every one implies a default for the
  *   folliowing ones; if this option is given, the final position is printed in
@@ -2197,6 +2196,16 @@ void usage() {
 }
 
 /*
+ * signal handling: reload on SIGHUP
+ */
+int sig_reload;
+void handler(int s) {
+	if (s != SIGHUP)
+		return;
+	sig_reload = 1;
+}
+
+/*
  * show a pdf file on an arbitrary cairo device
  */
 int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
@@ -2337,6 +2346,11 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	if (position == NULL)
 		exit(EXIT_FAILURE);
 
+				/* signal handling */
+
+	sig_reload = 0;
+	signal(SIGHUP, handler);
+
 				/* open fbdev as cairo */
 
 	cairo = cairodevice->init(outdev, cairodevice->initdata);
@@ -2403,7 +2417,8 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 
 					/* draw document and labels */
 
-		if (output.reload) {
+		if (output.reload || sig_reload) {
+			sig_reload = 0;
 			position = reloadpdf(position, &output);
 			c = KEY_REDRAW;
 		}

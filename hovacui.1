@@ -302,7 +302,7 @@ change the text distance
 .TP
 .B
 r
-reload the document
+reload the document (see also \fIDOCUMENT RELOAD\fP, below)
 .TP
 .B
 q
@@ -410,6 +410,19 @@ show page numbers as "page X of Y" instead of "page X"
 .TP
 .BI noinitlabels
 do not show the file name, the viewing mode etc. at startup
+
+.
+.
+.
+.SH DOCUMENT RELOAD
+
+Key 'r' and signal \fISIGHUP\fP make \fBhovacui\fP reload the current document.
+
+The new version of the document may differ from the previous on its number of
+pages and blocks of text in the current page. In such cases, \fBhovacui\fP may
+need to move to a different page or block of text. For example, if it was
+previously on page nine and the new version of the document has only eight
+pages, it moves to page eight.
 
 .
 .
