@@ -48,7 +48,7 @@ from github.
 
 - go to the [release page](../../releases) and download the latest ``PKGBUILD`` file to an empty directory
 - in that directory, run `makepkg`
-- install: `pacman -U pdftoroff...tar.xz`
+- install: `sudo pacman -U pdftoroff...tar.xz`
 
 ### opensuse
 
@@ -58,7 +58,7 @@ example `1.0.0`:
 - download sources: `curl -L -o $HOME/rpmbuild/SOURCES/pdftoroff-1.0.0.tar.gz https://github.com/sgerwk/pdftoroff/archive/v1.0.0.tar.gz` (replace `1.0.0` with the latest version number)
 - download `pdftoroff.spec` from the [release page](../../releases)
 - make the package: `rpmbuild -bb pdftoroff.spec`
-- install: `rpm -i $HOME/rpmbuild/RPMS/pdftoroff-version-etc.rpm`
+- install: `sudo rpm -i $HOME/rpmbuild/RPMS/pdftoroff-version-etc.rpm`
 
 ### debian
 
@@ -67,5 +67,5 @@ example `1.0.0`:
 - download there the `control` file from the [release page](../../releases)
 - in the pdftoroff source directory run `make DESTDIR=somewhere/pkg install`
 - create the package by `dpkg-deb -b somewhere/pkg .`
-- install by `dpkg -U pdftoroff...deb`
+- install by `sudo dpkg -U pdftoroff...deb`
 
