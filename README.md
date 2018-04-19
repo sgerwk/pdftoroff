@@ -68,5 +68,5 @@ example `1.0.0`:
 - check and possibly replace the field `Architecture:` in `control`
 - in the pdftoroff source directory run `make DESTDIR=somewhere/pkg install`
 - create the package by `dpkg-deb -b somewhere/pkg .`
-- install by `sudo dpkg -U pdftoroff...deb`
+- install by `sudo dpkg -i pdftoroff...deb`
 
