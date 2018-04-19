@@ -1,3 +1,11 @@
+# pdftoroff
+
+This package contains programs that find and use blocks of text in pdf files.
+It includes a program for extracting text, for reformatting it to a different page
+size and for viewing a pdf file in X11 and the Linux framebuffer.
+
+## programs
+
 The **pdftoroff** program extracts text from pdf files, trying to undo page,
 column and paragraph formatting while retaining italic and bold faces. It
 ouputs text in various text formats: groff, html, plain TeX, text, or
@@ -21,4 +29,45 @@ a screenshots of hovacui with the goto page dialog:
 And here is the main menu:
 
 ![hovacui: screenshot of the main manu](/screenshots/fb-23.png?raw=true "hovacui: the main menu")
+curl -L -o $HOME/rpmbuild/SOURCES/pdftoroff-1.0.0.tar.gz
+# https://github.com/sgerwk/pdftoroff/archive/v1.0.0.tar.gz
+
+
+## installation
+
+Generic instructions:
+
+```
+make
+make install
+```
+
+### archlinux
+
+This package is in AUR. Still, the PKGBUILD file is also accessible as an asset
+from github.
+
+- go to the [release page](github.com/sgerwk/pdftoroff/releases) and download the latest ``PKGBUILD`` file to an empty directory
+- in that directory, run `makepkg`
+- install by `pacman -U pdftoroff...tar.xz`
+
+### opensuse
+
+If the latest release in the [release page](github.com/sgerwk/pdftoroff/releases) is for
+example `1.0.0`:
+
+- download sources: `curl -L -o $HOME/rpmbuild/SOURCES/pdftoroff-1.0.0.tar.gz https://github.com/sgerwk/pdftoroff/archive/v1.0.0.tar.gz` (replace `1.0.0` with the latest version number)
+- download pdftoroff.spec from the [release page](github.com/sgerwk/pdftoroff/releases)
+- make the package by `rpmbuild -bb pdftoroff.spec`
+- install by `rpm -i $HOME/rpmbuild/RPMS/pdftoroff-version-etc.rpm`
+
+
+### debian
+
+- download the sources and compile them (do not install yet)
+- make a directory `somewhere/pkg/DEBIAN`
+- download there the `control` file from the [release page](github.com/sgerwk/pdftoroff/releases)
+- in the pdftoroff source directory run `make DESTDIR=somewhere/pkg install`
+- create the package by `dpkg-deb -b somewhere/pkg .`
+- install by `dpkg -U pdftoroff...deb`
 
