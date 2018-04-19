@@ -65,6 +65,7 @@ example `1.0.0`:
 - download the sources, unpack and compile them (do not install yet)
 - make a directory `somewhere/pkg/DEBIAN`
 - download there the `control` file from the [release page](../../releases)
+- check and possibly replace the field `Architecture:` in `control`
 - in the pdftoroff source directory run `make DESTDIR=somewhere/pkg install`
 - create the package by `dpkg-deb -b somewhere/pkg .`
 - install by `sudo dpkg -U pdftoroff...deb`
