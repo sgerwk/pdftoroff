@@ -29,8 +29,6 @@ a screenshots of hovacui with the goto page dialog:
 And here is the main menu:
 
 ![hovacui: screenshot of the main manu](/screenshots/fb-23.png?raw=true "hovacui: the main menu")
-curl -L -o $HOME/rpmbuild/SOURCES/pdftoroff-1.0.0.tar.gz
-# https://github.com/sgerwk/pdftoroff/archive/v1.0.0.tar.gz
 
 
 ## installation
