@@ -1887,20 +1887,50 @@ void helplabel(struct position *position, struct output *output) {
 }
 
 /*
+ * check whether the current page contains annotations that are not links
+ */
+int checkannotations(struct position *position) {
+	GList *annots, *s;
+	int present = FALSE;
+	PopplerAnnotMapping *m;
+
+	if (! POPPLER_IS_PAGE(position->page))
+		return FALSE;
+
+	annots = poppler_page_get_annot_mapping(position->page);
+
+	for (s = annots; s != NULL && ! present; s = s->next) {
+		m = (PopplerAnnotMapping *) s->data;
+		switch (poppler_annot_get_annot_type(m->annot)) {
+		case POPPLER_ANNOT_LINK:
+			break;
+		default:
+			present = TRUE;
+		}
+	}
+
+	poppler_page_free_annot_mapping(annots);
+	return present;
+}
+
+/*
  * show the current page number
  */
 void pagenumber(struct position *position, struct output *output) {
 	static int prev = -1;
 	char s[100];
+	char *annots;
 
 	if (position->npage == prev && ! output->pagenumber)
 		return;
 
+	annots = checkannotations(position) ? " - contains annotations" : "";
+
 	if (output->totalpages)
-		sprintf(s, "page %d of %d",
-			position->npage + 1, position->totpages);
+		sprintf(s, "page %d of %d %s",
+			position->npage + 1, position->totpages, annots);
 	else
-		sprintf(s, "page %d", position->npage + 1);
+		sprintf(s, "page %d %s", position->npage + 1, annots);
 	label(output, s, 2);
 
 	if (output->timeout == 0)
@@ -2410,6 +2440,8 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	output.flush = TRUE;
 	output.redraw = firstwindow == WINDOW_DOCUMENT;
 	c = firstwindow == WINDOW_DOCUMENT ? KEY_NONE : KEY_INIT;
+	if (checkannotations(position))
+		output.pagenumber = TRUE;
 
 				/* event loop */
 
