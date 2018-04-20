@@ -2319,6 +2319,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 
 				/* cmdline arguments */
 
+	optind = 1;
 	while (-1 != (opt = getopt(argn, argv, HOVACUIOPTS)))
 		switch (opt) {
 		case 'm':
