@@ -1927,10 +1927,10 @@ void pagenumber(struct position *position, struct output *output) {
 	annots = checkannotations(position) ? " - contains annotations" : "";
 
 	if (output->totalpages)
-		sprintf(s, "page %d of %d %s",
+		sprintf(s, "page %d of %d%s",
 			position->npage + 1, position->totpages, annots);
 	else
-		sprintf(s, "page %d %s", position->npage + 1, annots);
+		sprintf(s, "page %d%s", position->npage + 1, annots);
 	label(output, s, 2);
 
 	if (output->timeout == 0)
