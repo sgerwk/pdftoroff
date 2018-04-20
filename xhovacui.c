@@ -390,6 +390,7 @@ int setinitdata(int argn, char *argv[], struct cairodevice *cairodevice) {
 				initdata->geometry = second(optarg);
 			else {
 				printf("unknown -x suboption: %s\n", optarg);
+				free(initdata);
 				return -1;
 			}
 			break;
@@ -406,7 +407,8 @@ int setinitdata(int argn, char *argv[], struct cairodevice *cairodevice) {
 #ifdef NOMAIN
 #else
 int main(int argn, char *argv[]) {
-	setinitdata(argn, argv, &cairodevicex11);
+	if (! setinitdata(argn, argv, &cairodevicex11))
+		return -1;
 	return hovacui(argn, argv, &cairodevicex11);
 }
 #endif
