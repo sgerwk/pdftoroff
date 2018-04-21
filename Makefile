@@ -1,4 +1,4 @@
-PROGS=pdftoroff pdffit pdfrects hovacui fbhovacui xhovacui
+PROGS=pdftoroff pdffit pdfrects pdfannot hovacui fbhovacui xhovacui
 
 CFLAGS+=-g -Wall -Wextra -Wformat -Wformat-security
 CFLAGS+=${shell pkg-config --cflags poppler-glib}
@@ -11,7 +11,7 @@ all: ${PROGS}
 
 install: all
 	mkdir -p ${DESTDIR}/usr/bin
-	cp hovacui pdftoroff pdftoebook pdffit pdfrects ${DESTDIR}/usr/bin
+	cp hovacui pdftoroff pdftoebook pdffit pdfrects pdfannot ${DESTDIR}/usr/bin
 	mkdir -p ${DESTDIR}/usr/share/man/man1
 	cp hovacui.1 pdftoroff.1 pdffit.1 pdfrects.1 ${DESTDIR}/usr/share/man/man1
 
