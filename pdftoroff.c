@@ -1,5 +1,5 @@
 /*
- * pdftext.c
+ * pdftoroff.c
  *
  * convert a pdf into various text formats, trying to undo page, column and
  * paragraph formatting while retaining italic and bold face
