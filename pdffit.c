@@ -268,6 +268,8 @@ int main(int argc, char *argv[]) {
 
 		if (individual && ! wholepage)
 			poppler_rectangle_free(boundingbox);
+
+		g_object_unref(page);
 	}
 
 	if (! individual && ! wholepage)

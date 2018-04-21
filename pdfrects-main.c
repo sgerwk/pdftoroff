@@ -189,6 +189,8 @@ int main(int argc, char *argv[]) {
 
 		rectanglelist_free(textarea);
 		poppler_rectangle_free(boundingbox);
+
+		g_object_unref(page);
 	}
 
 	cairo_surface_destroy(surface);

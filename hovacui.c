@@ -511,8 +511,8 @@ int pagematch(struct position *position, struct output *output) {
  * read the current page without its textarea
  */
 int readpageraw(struct position *position, struct output *output) {
-	position->page =
-		poppler_document_get_page(position->doc, position->npage);
+	g_set_object(&position->page,
+		poppler_document_get_page(position->doc, position->npage));
 	pagematch(position, output);
 	return 0;
 }

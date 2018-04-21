@@ -467,6 +467,7 @@ void showdocumentpart(FILE *fd, PopplerDocument *doc, int first, int last,
 		page = poppler_document_get_page(doc, npage);
 		delement(fd, "[PAGE %d]", npage);
 		showpage(fd, page, method, measure, format, &newpar, &prev);
+		g_object_unref(page);
 	}
 	enddocument(fd, method, measure, format, &newpar, &prev);
 }
