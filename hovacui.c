@@ -1914,23 +1914,58 @@ int checkannotations(struct position *position) {
 }
 
 /*
+ * check whether the current page contains actions that are not internal links
+ */
+int checkactions(struct position *position) {
+	GList *actions, *s;
+	int present = FALSE;
+	PopplerLinkMapping *m;
+
+	if (! POPPLER_IS_PAGE(position->page))
+		return FALSE;
+
+	actions = poppler_page_get_link_mapping(position->page);
+
+	for (s = actions; s != NULL && ! present; s = s->next) {
+		m = (PopplerLinkMapping *) s->data;
+		switch (m->action->type) {
+		case POPPLER_ACTION_GOTO_DEST:
+		case POPPLER_ACTION_NAMED:
+			break;
+		default:
+			present = TRUE;
+		}
+	}
+
+	poppler_page_free_link_mapping(actions);
+	return present;
+}
+
+/*
  * show the current page number
  */
 void pagenumber(struct position *position, struct output *output) {
 	static int prev = -1;
 	char s[100];
-	char *annots;
+	int hasannots, hasactions;
+	char *other, *annots, *actions;
 
 	if (position->npage == prev && ! output->pagenumber)
 		return;
 
-	annots = checkannotations(position) ? " - contains annotations" : "";
+	hasannots = checkannotations(position);
+	hasactions = checkactions(position);
+	other = hasannots || hasactions ? " - contains" : "";
+	annots = hasannots ? " annotations" : "";
+	actions = hasactions ? hasannots ? " and actions" : " actions" : "";
 
 	if (output->totalpages)
-		sprintf(s, "page %d of %d%s",
-			position->npage + 1, position->totpages, annots);
+		sprintf(s, "page %d of %d%s%s%s",
+			position->npage + 1, position->totpages,
+			other, annots, actions);
 	else
-		sprintf(s, "page %d%s", position->npage + 1, annots);
+		sprintf(s, "page %d%s%s%s", position->npage + 1,
+			other, annots, actions);
 	label(output, s, 2);
 
 	if (output->timeout == 0)
