@@ -151,11 +151,24 @@ gboolean rectangle_overlap(PopplerRectangle *a, PopplerRectangle *b) {
 }
 
 /*
+ * check if rectangles touch (meet or overlap) horizontally
+ */
+gboolean rectangle_htouch(PopplerRectangle *a, PopplerRectangle *b) {
+	return ! (a->x2 < b->x1 || a->x1 > b->x2);
+}
+
+/*
+ * check if rectangles touch (meet or overlap) vertically
+ */
+gboolean rectangle_vtouch(PopplerRectangle *a, PopplerRectangle *b) {
+	return ! (a->y2 < b->y1 || a->y1 > b->y2);
+}
+
+/*
  * check if rectangles touch (meet or overlap)
  */
 gboolean rectangle_touch(PopplerRectangle *a, PopplerRectangle *b) {
-	return ! (a->x2 < b->x1 || a->x1 > b->x2 ||
-		  a->y2 < b->y1 || a->y1 > b->y2);
+	return rectangle_htouch(a, b) && rectangle_vtouch(a, b);
 }
 
 /*
@@ -191,16 +204,10 @@ void rectangle_join(PopplerRectangle *a, PopplerRectangle *b) {
  * compare the position of two rectangles
  */
 int rectangle_compare(PopplerRectangle *a, PopplerRectangle *b) {
-	gboolean hoverlap;
-
-	hoverlap = FALSE;
-	hoverlap |= b->x1 <= a->x1 && a->x1 <= b->x2;
-	hoverlap |= a->x1 <= b->x1 && b->x1 <= a->x2;
-
-	if (hoverlap)
+	if (rectangle_htouch(a, b))
 		return a->y1 < b->y1 ? -1 : a->y1 == b->y1 ? 0 : 1;
-
-	return a->x1 < b->x1 ? -1 : a->x1 == b->x1 ? 0 : 1;
+	else
+		return a->x1 < b->x1 ? -1 : a->x1 == b->x1 ? 0 : 1;
 }
 int rectangle_comparevoid(const void *va, const void *vb) {
 	PopplerRectangle *a, *b;

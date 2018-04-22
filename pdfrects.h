@@ -31,6 +31,8 @@ gboolean rectangle_contain(PopplerRectangle *, PopplerRectangle *);
 gboolean rectangle_overlap(PopplerRectangle *, PopplerRectangle *);
 
 /* check if rectangles touch (meet or overlap) */
+gboolean rectangle_htouch(PopplerRectangle *a, PopplerRectangle *b);
+gboolean rectangle_vtouch(PopplerRectangle *a, PopplerRectangle *b);
 gboolean rectangle_touch(PopplerRectangle *, PopplerRectangle *);
 
 /* copy a rectangle onto another */
