@@ -179,6 +179,16 @@ void rectangle_copy(PopplerRectangle *dest, PopplerRectangle *orig) {
 }
 
 /*
+ * swap two rectangles
+ */
+void rectangle_swap(PopplerRectangle *a, PopplerRectangle *b) {
+	PopplerRectangle temp;
+	temp = *a;
+	*a = *b;
+	*b = temp;
+}
+
+/*
  * shift a rectangle
  */
 void rectangle_shift(PopplerRectangle *r, gdouble x, gdouble y) {
