@@ -70,15 +70,20 @@
  * 1. by their positions
  * 2. by the order their characters occur in the document
  *
- * in theory, the order between rectangles should be obtained by progressively
- * refining an order between rectangles:
+ * the order based on the position of the rectangles can be obtained by
+ * progressively refining an order between rectangles:
  *
  * a. if two rectangles overlap horizontally, order them by their y1
  * b. transitively close the resulting ordering
  * c. if two rectangles are still incomparable, order them by x1
  *
- * the currently implemented algorithm skips step b. for the sake of code
- * simplicity
+ * rectanglelist_quicksort() skips step b. for the sake of code simplicity
+ *
+ * rectanglelist_twosort() implements the ordering in two steps: first, a
+ * variant of insertionsort that keeps into account the lack of transitive
+ * closure sorts the elements that overlap horizontally based on their y1;
+ * second, a variant of bubblesort sorts the elements according to their x1
+ * while not swapping elements that overlap horizontally
  */
 
 /*
