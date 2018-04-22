@@ -540,7 +540,7 @@ int textarea(struct position *position, struct output *output) {
 			position->boundingbox = NULL;
 			break;
 		}
-		rectanglelist_sort(position->textarea);
+		rectanglelist_twosort(position->textarea);
 		position->boundingbox =
 			rectanglelist_joinall(position->textarea);
 		break;

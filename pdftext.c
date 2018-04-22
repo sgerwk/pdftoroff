@@ -417,7 +417,7 @@ void showpage(FILE *fd, PopplerPage *page,
 
 	textarea =
 		rectanglelist_textarea_distance(page, measure->blockdistance);
-	rectanglelist_sort(textarea);
+	rectanglelist_twosort(textarea);
 	for (r = 0; r < textarea->num; r++) {
 		delement(fd, "[=== BLOCK %d]", r);
 		showbox(fd, page, &textarea->rect[r], 3, measure, format,

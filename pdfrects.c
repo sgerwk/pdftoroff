@@ -403,13 +403,13 @@ gint rectanglelist_overlap(RectangleList *rl, PopplerRectangle *r) {
 /*
  * sort a rectangle list by position, quick and approximate
  */
-void rectanglelist_sort(RectangleList *rl) {
+void rectanglelist_quicksort(RectangleList *rl) {
 	qsort(rl->rect, rl->num, sizeof(PopplerRectangle),
 		rectangle_comparevoid);
 }
 
 /*
- * sort a rectangle list by position in two steps
+ * sort a rectangle list by position, in two steps
  */
 void rectanglelist_twosort(RectangleList *rl) {
 	int i, j;
