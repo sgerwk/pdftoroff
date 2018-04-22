@@ -401,11 +401,50 @@ gint rectanglelist_overlap(RectangleList *rl, PopplerRectangle *r) {
 }
 
 /*
- * sort a rectangle list by position
+ * sort a rectangle list by position, quick and approximate
  */
 void rectanglelist_sort(RectangleList *rl) {
 	qsort(rl->rect, rl->num, sizeof(PopplerRectangle),
 		rectangle_comparevoid);
+}
+
+/*
+ * sort a rectangle list by position in two steps
+ */
+void rectanglelist_twosort(RectangleList *rl) {
+	int i, j;
+	int sorted;
+	PopplerRectangle *r, *s;
+
+	/* sort vertically if horizontally overlapping */
+	for (i = 0; i < rl->num - 1; i++) {
+		r = &rl->rect[i];
+		for (j = i + 1; j < rl->num; j++) {
+			s = &rl->rect[j];
+			if (rectangle_htouch(r, s) &&
+			    rectangle_vcompare(r, s) == 1) {
+				r = s;
+				j = i + 1; // order is not transitivity closed
+			}
+		}
+		rectangle_swap(&rl->rect[i], r);
+	}
+
+	/* sort horizontally, but respect the previous ordering */
+	sorted = 0;
+	for (i = 0; i < rl->num - 1 && ! sorted; i++) {
+		sorted = 1;
+		for (j = 0; j < rl->num - 1; j++) {
+			r = &rl->rect[j];
+			s = &rl->rect[j + 1];
+			if (rectangle_htouch(r, s))
+				continue;
+			if (rectangle_hcompare(r, s) != 1)
+				continue;
+			rectangle_swap(r, s);
+			sorted = 0;
+		}
+	}
 }
 
 /*
