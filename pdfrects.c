@@ -64,9 +64,28 @@
  */
 
 /*
+ * rectangle sorting
+ *
+ * rectangles can be sorted in two ways:
+ * 1. by their positions
+ * 2. by the order their characters occur in the document
+ *
+ * in theory, the order between rectangles should be obtained by progressively
+ * refining an order between rectangles:
+ *
+ * a. if two rectangles overlap horizontally, order them by their y1
+ * b. transitively close the resulting ordering
+ * c. if two rectangles are still incomparable, order them by x1
+ *
+ * the currently implemented algorithm skips step b. for the sake of code
+ * simplicity
+ */
+
+/*
  * todo:
  *	images
- *	sort the rectangles
+ *	fix rectangle sorting by position
+ *	rectangle sorting by characters
  *	page size (from cmdline or from original file)
  */
 
