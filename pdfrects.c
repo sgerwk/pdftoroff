@@ -203,11 +203,16 @@ void rectangle_join(PopplerRectangle *a, PopplerRectangle *b) {
 /*
  * compare the position of two rectangles
  */
+int rectangle_hcompare(PopplerRectangle *a, PopplerRectangle *b) {
+	return a->x1 < b->x1 ? -1 : a->x1 == b->x1 ? 0 : 1;
+}
+int rectangle_vcompare(PopplerRectangle *a, PopplerRectangle *b) {
+	return a->y1 < b->y1 ? -1 : a->y1 == b->y1 ? 0 : 1;
+}
 int rectangle_compare(PopplerRectangle *a, PopplerRectangle *b) {
-	if (rectangle_htouch(a, b))
-		return a->y1 < b->y1 ? -1 : a->y1 == b->y1 ? 0 : 1;
-	else
-		return a->x1 < b->x1 ? -1 : a->x1 == b->x1 ? 0 : 1;
+	return rectangle_htouch(a, b) ?
+		rectangle_vcompare(a, b) :
+		rectangle_hcompare(a, b);
 }
 int rectangle_comparevoid(const void *va, const void *vb) {
 	PopplerRectangle *a, *b;
