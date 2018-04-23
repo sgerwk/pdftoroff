@@ -436,8 +436,7 @@ void rectanglelist_twosort(RectangleList *rl) {
 	}
 
 	/* sort horizontally, but respect the previous ordering */
-	sorted = 0;
-	for (i = 0; ! sorted; i++) {
+	for (i = 0, sorted = 0; i < rl->num && ! sorted; i++) {
 		sorted = 1;
 		for (j = 0; j < rl->num - 1; j++) {
 			r = &rl->rect[j];
