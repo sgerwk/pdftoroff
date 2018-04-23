@@ -2319,9 +2319,9 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 			if (configline[0] == '#')
 				continue;
 			if (sscanf(configline, "mode %s", s) == 1)
-				output.viewmode = optindex(optarg[0], "tbp");
+				output.viewmode = optindex(s[0], "tbp");
 			if (sscanf(configline, "fit %s", s) == 1)
-				output.fit = optindex(optarg[0], "nhvb");
+				output.fit = optindex(s[0], "nhvb");
 			if (sscanf(configline, "minwidth %lg", &d) == 1)
 				output.minwidth = d;
 			if (sscanf(configline, "distance %lg", &d) == 1)
