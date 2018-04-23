@@ -50,14 +50,11 @@
  * - numbermode: 2 is a, 22 is b, 222 is c, etc.
  * - remote control (via socket)
  * - split pdf viewing functions to pdfview.c and gui stuff to cairogui.c
- * - improve column-sorting rectangles (to be done in pdfrects.c)
- * - sort a rectangle list by another rectangle list (in pdfrects.c); this is
- *   for sorting the textboxes by the occurrence of their first character
  * - include images (in pdfrects.c)
  * - key to reset viewmode and fit direction to initial values
  * - history of positions
  * - order of rectangles for right-to-left and top-to-bottom scripts
- *   (generalize sorting function in pdfrects.c)
+ *   (generalize sorting functions in pdfrects.c)
  * - i18n
  * - function to be possibly called before list() to wrap lines too long
  * - save a copy of the current document, possibly only a range of pages
@@ -525,9 +522,10 @@ int readpageraw(struct position *position, struct output *output) {
  * determine the textarea of the current page
  */
 int textarea(struct position *position, struct output *output) {
-	void (*order[])(RectangleList *rl) = {
+	void (*order[])(RectangleList *, PopplerPage *) = {
 		rectanglelist_quicksort,
-		rectanglelist_twosort
+		rectanglelist_twosort,
+		rectanglelist_charsort
 	};
 
 	if (! POPPLER_IS_PAGE(position->page)) {
@@ -549,7 +547,7 @@ int textarea(struct position *position, struct output *output) {
 			position->boundingbox = NULL;
 			break;
 		}
-		order[output->order](position->textarea);
+		order[output->order](position->textarea, position->page);
 		position->boundingbox =
 			rectanglelist_joinall(position->textarea);
 		break;
@@ -1509,6 +1507,7 @@ int order(int c, struct position *position, struct output *output) {
 		"block ordering algorithm",
 		"quick",
 		"two-step",
+		"char",
 		NULL
 	};
 	static int line = 0;
@@ -2378,7 +2377,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 			if (sscanf(configline, "minwidth %lg", &d) == 1)
 				output.minwidth = d;
 			if (sscanf(configline, "order %s", s) == 1)
-				output.order = optindex(s[0], "qt");
+				output.order = optindex(s[0], "qtc");
 			if (sscanf(configline, "distance %lg", &d) == 1)
 				output.distance = d;
 			if (sscanf(configline, "aspect %s", s) == 1)
@@ -2443,7 +2442,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 			}
 			break;
 		case 'o':
-			output.order = optindex(optarg[0], "qt");
+			output.order = optindex(optarg[0], "qtc");
 			if (output.order == -1) {
 				printf("unsupported ordering: %s\n", optarg);
 				usage();

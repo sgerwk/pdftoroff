@@ -90,8 +90,9 @@ gint rectanglelist_touch(RectangleList *, PopplerRectangle *);
 gint rectanglelist_overlap(RectangleList *, PopplerRectangle *);
 
 /* sort a rectangle list by position */
-void rectanglelist_quicksort(RectangleList *);
-void rectanglelist_twosort(RectangleList *);
+void rectanglelist_quicksort(RectangleList *, PopplerPage *);
+void rectanglelist_twosort(RectangleList *, PopplerPage *);
+void rectanglelist_charsort(RectangleList *, PopplerPage *);
 
 /* position a rectangle in a page partially filled by others */
 gboolean rectanglelist_place(PopplerRectangle *page,

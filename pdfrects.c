@@ -70,6 +70,10 @@
  * 1. by their positions
  * 2. by the order their characters occur in the document
  *
+ * rectanglelist_charsort() is of the second kind: the block that contains the
+ * first character in the page is the first block; the second block is that
+ * containing the first character not in the first block, and so on
+ *
  * the order based on the position of the rectangles can be obtained by
  * progressively refining an order between rectangles:
  *
@@ -408,7 +412,8 @@ gint rectanglelist_overlap(RectangleList *rl, PopplerRectangle *r) {
 /*
  * sort a rectangle list by position, quick and approximate
  */
-void rectanglelist_quicksort(RectangleList *rl) {
+void rectanglelist_quicksort(RectangleList *rl, PopplerPage *page) {
+	(void) page;
 	qsort(rl->rect, rl->num, sizeof(PopplerRectangle),
 		rectangle_comparevoid);
 }
@@ -416,10 +421,11 @@ void rectanglelist_quicksort(RectangleList *rl) {
 /*
  * sort a rectangle list by position, in two steps
  */
-void rectanglelist_twosort(RectangleList *rl) {
+void rectanglelist_twosort(RectangleList *rl, PopplerPage *page) {
 	int i, j;
 	int sorted;
 	PopplerRectangle *r, *s;
+	(void) page;
 
 	/*
 	 * sort vertically if horizontally overlapping
@@ -485,6 +491,25 @@ void rectanglelist_twosort(RectangleList *rl) {
 			sorted = 0;
 		}
 	}
+}
+
+/*
+ * sort rectangles according to the order of their characters in the page
+ */
+void rectanglelist_charsort(RectangleList *rl, PopplerPage *page) {
+	PopplerRectangle *rect;
+	unsigned i, n;
+	int j, p;
+
+	poppler_page_get_text_layout(page, &rect, &n);
+	for (i = 0, p = 0; i < n && p < rl->num; i++)
+		for (j = p; j < rl->num; j++)
+			if (rectangle_contain(&rl->rect[j], &rect[i])) {
+				rectangle_swap(&rl->rect[p], &rl->rect[j]);
+				p++;
+				break;
+			}
+	g_free(rect);
 }
 
 /*

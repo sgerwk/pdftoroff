@@ -163,7 +163,7 @@ int main(int argc, char *argv[]) {
 			textarea = rectanglelist_textarea_distance(page,
 					distance);
 			if (sort)
-				rectanglelist_twosort(textarea);
+				rectanglelist_twosort(textarea, page);
 			printf("    textarea:\n");
 			rectanglelist_printyaml(stdout,
 				"      - ", "        ", textarea);
