@@ -8,9 +8,10 @@ pdftoroff - convert pdf to various text formats (roff, html, TeX, text)
 .
 .
 .SH SYNOPSIS
+.TP 10
 \fBpdftoroff\fP
 [\fI-r\fP|\fI-w\fP|\fI-p\fP|\fI-f\fP|\fI-t\fP|\fI-s fmt\fP]
-[\fI-m method\fP [\fI-d distance\fP]]
+[\fI-m method\fP [\fI-d distance\fP] [\fI-o order\fP]]
 [\fI-v\fP]
 \fIfile.pdf\fP
 .
@@ -93,6 +94,19 @@ minimal distance between blocks of text in the page; the default is 15; a
 smaller value like 10 may be appropriate when the document uses small fonts or
 has little space between columns or between the header/footer and the text;
 this value only affects methods 2 and 3
+
+.TP
+\fB-o\fP \fIorder\fP
+the method used for sorting the blocks of text in the page:
+
+.RS
+.IP 0 4
+by their position, quick and approximate
+.IP 1
+by their position, exact
+.IP 2
+by the occurrence of their characters in the file
+.RE
 
 .TP
 .B -v
@@ -285,6 +299,18 @@ slower than method 2 not because of the sorting but because the whole page
 needs to be scanned in search of characters in the first block, again for the
 second, the third, etc. This may be necessary if the characters in the file are
 not in the order they shold be printed.
+
+Three sorting algorithms can be used: the first two try to guess the order of
+the blocks based on their position on the page; the third does it based on the
+occurrence of their characters in the page. In particular, the algorithms based
+on the position of the box sort boxes vertically if they overlap horizontally,
+otherwise they order them horizontally. This usually gives reasonable results
+on single-column and multiple-column documents. The difference between the two
+is that the first is quick and approximate, the second is slower and exact. The
+third method scans the characters as they occurr in the file; the block
+containing the first is the first block; the block containing the first
+character not in the first block is the second, and so on.
+
 .
 .
 .

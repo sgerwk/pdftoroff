@@ -12,6 +12,7 @@
  *	-t	text
  *	-s fmt	arbitrary struct format as fmt
  *	-m met	method for converting: 0-3
+ *	-o ord	method for sorting: 0-2
  *	-d dis	minimal distance between blocks of text in the page
  *
  * the format is a comma-separate list of strings
@@ -36,9 +37,10 @@
  */
 int main(int argc, char *argv[]) {
 	gboolean usage, opterr;
-	gboolean method = 1;
+	int method = 1, order = 1;
 	struct measure measure = {8, 25, 80, 30, 40, 6, 20, 15};
 	struct format *format;
+
 				/* arguments */
 
 	format = &format_roff;
@@ -79,13 +81,13 @@ int main(int argc, char *argv[]) {
 			argv++;
 			break;
 		case 'm':
-			if (argc - 1 < 2) {
-				printf("-m requires a format (0-3)\n");
+			method = atoi(argv[2]);
+			if (argc - 1 < 2 || method < 0 || method > 3) {
+				printf("-m requires a method (0-3)\n");
 				usage = TRUE;
 				opterr = TRUE;
 				break;
 			}
-			method = atoi(argv[2]);
 			argc--;
 			argv++;
 			break;
@@ -97,6 +99,17 @@ int main(int argc, char *argv[]) {
 				break;
 			}
 			measure.blockdistance = atoi(argv[2]);
+			argc--;
+			argv++;
+			break;
+		case 'o':
+			order = atoi(argv[2]);
+			if (argc - 1 < 2 || order < 0 || order > 2) {
+				printf("-o requires an algorithm (0-2)\n");
+				usage = TRUE;
+				opterr = TRUE;
+				break;
+			}
 			argc--;
 			argv++;
 			break;
@@ -119,7 +132,8 @@ int main(int argc, char *argv[]) {
 	if (argc - 1 < 1 || usage) {
 		printf("pdftoroff converts pdf to various text formats\n");
 		printf("usage:\n\tpdftoroff [-r|-w|-p|-f|-t|-s fmt]");
-		printf(" [-m method [-d dist]] [-v] file.pdf\n");
+		printf(" [-m method [-d dist] [-o order]]\n");
+		printf("\t          [-v] file.pdf\n");
 		printf("\t\t-r\t\tconvert to roff (default)\n");
 		printf("\t\t-w\t\tconvert to html\n");
 		printf("\t\t-p\t\tconvert to plain TeX\n");
@@ -129,6 +143,7 @@ int main(int argc, char *argv[]) {
 		printf("\t\t-m method\tconversion method (0-3)\n");
 		printf("\t\t-d distance\tminimal distance between ");
 		printf("blocks of text\n");
+		printf("\t\t-o order\tblock sorting algorithm (0-2)\n");
 		printf("\t\t-v\t\treason for line breaks\n");
 
 		exit(opterr || ! usage ? EXIT_FAILURE : EXIT_SUCCESS);
@@ -136,7 +151,7 @@ int main(int argc, char *argv[]) {
 
 				/* show file */
 
-	showfile(stdout, argv[1], method, &measure, format);
+	showfile(stdout, argv[1], method, order, &measure, format);
 
 	return EXIT_SUCCESS;
 }

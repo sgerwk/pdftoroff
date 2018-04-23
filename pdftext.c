@@ -405,10 +405,16 @@ void showbox(FILE *fd, PopplerPage *page, PopplerRectangle *zone,
  * show the characters in a page
  */
 void showpage(FILE *fd, PopplerPage *page,
-		int method, struct measure *measure, struct format *format,
+		int method, int order,
+		struct measure *measure, struct format *format,
 		gboolean *newpar, char *prev) {
 	RectangleList *textarea;
 	gint r;
+	void (*sort[])(RectangleList *, PopplerPage *) = {
+		rectanglelist_quicksort,
+		rectanglelist_twosort,
+		rectanglelist_charsort
+	};
 
 	if (method != 3) {
 		showbox(fd, page, NULL, method, measure, format, newpar, prev);
@@ -417,7 +423,7 @@ void showpage(FILE *fd, PopplerPage *page,
 
 	textarea =
 		rectanglelist_textarea_distance(page, measure->blockdistance);
-	rectanglelist_twosort(textarea, page);
+	sort[order](textarea, page);
 	for (r = 0; r < textarea->num; r++) {
 		delement(fd, "[=== BLOCK %d]", r);
 		showbox(fd, page, &textarea->rect[r], 3, measure, format,
@@ -456,7 +462,8 @@ void enddocument(FILE *fd,
  * show some pages of a pdf document
  */
 void showdocumentpart(FILE *fd, PopplerDocument *doc, int first, int last,
-		int method, struct measure *measure, struct format *format) {
+		int method, int order,
+		struct measure *measure, struct format *format) {
 	gboolean newpar;
 	char prev;
 	int npage;
@@ -466,7 +473,8 @@ void showdocumentpart(FILE *fd, PopplerDocument *doc, int first, int last,
 	for (npage = first; npage <= last; npage++) {
 		page = poppler_document_get_page(doc, npage);
 		delement(fd, "[PAGE %d]", npage);
-		showpage(fd, page, method, measure, format, &newpar, &prev);
+		showpage(fd, page, method, order,
+			measure, format, &newpar, &prev);
 		g_object_unref(page);
 	}
 	enddocument(fd, method, measure, format, &newpar, &prev);
@@ -476,16 +484,18 @@ void showdocumentpart(FILE *fd, PopplerDocument *doc, int first, int last,
  * show a pdf document
  */
 void showdocument(FILE *fd, PopplerDocument *doc,
-		int method, struct measure *measure, struct format *format) {
+		int method, int order,
+		struct measure *measure, struct format *format) {
 	showdocumentpart(fd, doc, 0, poppler_document_get_n_pages(doc) - 1,
-		method, measure, format);
+		method, order, measure, format);
 }
 
 /*
  * show a pdf file
  */
 void showfile(FILE *fd, char *filename,
-		int method, struct measure *measure, struct format *format) {
+		int method, int order,
+		struct measure *measure, struct format *format) {
 	char *uri;
 	PopplerDocument *doc;
 
@@ -497,7 +507,7 @@ void showfile(FILE *fd, char *filename,
 		exit(EXIT_FAILURE);
 	}
 
-	showdocument(fd, doc, method, measure, format);
+	showdocument(fd, doc, method, order, measure, format);
 	free(uri);
 }
 
