@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
 	gboolean numbers = FALSE;
 	gboolean bb = FALSE;
 	gboolean add = FALSE;
-	gboolean sort = FALSE;
+	int sort = -1;
 	int first = -1, last = -1;
 	char *infile, *outfile;
 
@@ -45,6 +45,11 @@ int main(int argc, char *argv[]) {
 	RectangleList *textarea = NULL, *singlechars;
 	PopplerRectangle *boundingbox = NULL;
 	PopplerRectangle wholepage = {0.0, 0.0, width, height};
+	void (*order[])(RectangleList *, PopplerPage *) = {
+		rectanglelist_quicksort,
+		rectanglelist_twosort,
+		rectanglelist_charsort
+	};
 
 	PopplerRectangle insert = {200.0, 200.0, 300.0, 300.0}, moved;
 	gboolean fits = FALSE;
@@ -54,7 +59,7 @@ int main(int argc, char *argv[]) {
 
 				/* arguments */
 
-	while ((opt = getopt(argc, argv, "f:l:nsbd:r:ah")) != -1)
+	while ((opt = getopt(argc, argv, "f:l:ns:bd:r:ah")) != -1)
 		switch(opt) {
 		case 'f':
 			first = atoi(optarg);
@@ -66,7 +71,7 @@ int main(int argc, char *argv[]) {
 			numbers = TRUE;
 			break;
 		case 's':
-			sort = TRUE;
+			sort = atoi(optarg);
 			break;
 		case 'b':
 			bb = TRUE;
@@ -92,7 +97,7 @@ int main(int argc, char *argv[]) {
 	if (usage) {
 		printf("usage:\n");
 		printf("\tpdfrects [-f page] [-l page] ");
-		printf("[-b] [-d distance] [-n [-s]]\n");
+		printf("[-b] [-d distance] [-n [-s n]]\n");
 		printf("\t         [-a] [-r level] [-h] ");
 		printf("file.pdf\n");
 		printf("\t\t-f page\t\tfirst page\n");
@@ -100,7 +105,7 @@ int main(int argc, char *argv[]) {
 		printf("\t\t-b\t\tbounding box instead of textarea\n");
 		printf("\t\t-d distance\tminimal distance of text boxes\n");
 		printf("\t\t-n\t\tnumber boxes\n");
-		printf("\t\t-s\t\tsort boxes\n");
+		printf("\t\t-s n\t\tsort boxes by method n\n");
 		printf("\t\t-a\t\tadd a test box\n");
 		printf("\t\t-r level\tdebug textarea algorithm\n");
 		printf("\t\t-h\t\tthis help\n");
@@ -162,8 +167,8 @@ int main(int argc, char *argv[]) {
 		else {
 			textarea = rectanglelist_textarea_distance(page,
 					distance);
-			if (sort)
-				rectanglelist_twosort(textarea, page);
+			if (sort >= 0)
+				order[sort](textarea, page);
 			printf("    textarea:\n");
 			rectanglelist_printyaml(stdout,
 				"      - ", "        ", textarea);
