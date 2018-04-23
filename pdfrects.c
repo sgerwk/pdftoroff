@@ -429,7 +429,7 @@ void rectanglelist_twosort(RectangleList *rl) {
 			if (rectangle_htouch(r, s) &&
 			    rectangle_vcompare(r, s) == 1) {
 				r = s;
-				j = i + 1; // order is not transitivity closed
+				j = i; // order is not transitivity closed
 			}
 		}
 		rectangle_swap(&rl->rect[i], r);
@@ -437,7 +437,7 @@ void rectanglelist_twosort(RectangleList *rl) {
 
 	/* sort horizontally, but respect the previous ordering */
 	sorted = 0;
-	for (i = 0; i < rl->num - 1 && ! sorted; i++) {
+	for (i = 0; ! sorted; i++) {
 		sorted = 1;
 		for (j = 0; j < rl->num - 1; j++) {
 			r = &rl->rect[j];
