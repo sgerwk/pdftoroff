@@ -232,6 +232,21 @@ Nevertheless, the text distance can be changed by the \fI't'\fP keystroke, from
 the menu, by the \fI-t\fP command line option and by the \fIdistance\fP
 configuration file line.
 
+.SS Block order
+
+Once the blocks of text are detected, they are sorted so that viewing can be
+switched correctly from one to the next. Two methods are currently supported:
+\fIquick\fP and \fItwo-step\fP. They are both based on sorting blocks
+vertically if the overlap horizontally, otherwise they are ordered
+horizontally. This guarantees a reasonable ordering on both single-column and
+multiple-column documents. The \fIquick\fP algorithm is an approximated
+algorithm for finding this ordering, the \fItwo-step\fP is an exact but
+slightly less efficient algorithm.
+
+The default is the \fItwo-step\fP method, but can be changed by the \fI'o'\fP
+keystroke, from the menu, by the \fI-o\fP command line option and the
+\fIorder\fP configuration file line.
+
 .
 .
 .
@@ -301,6 +316,11 @@ change the text distance
 (see \fIText distance\fP, above)
 .TP
 .B
+o
+change the block order
+(see \fIBlock order\fP, above)
+.TP
+.B
 r
 reload the document (see also \fIDOCUMENT RELOAD\fP, below)
 .TP
@@ -332,6 +352,10 @@ minimal width
 .BI -t " distance
 text distance
 (see \fIText distance\fP, above)
+.TP
+.BI -o " (quick|twostep)
+block order
+(see \fIBlock order\fP, above)
 .TP
 .BI -d " device
 the device to use, by default \fI/dev/fb0\fP for the framebuffer and the
@@ -378,6 +402,10 @@ see \fIMinimal width\fP, above)
 .BI distance " d
 letters closer than this are in the same block of text;
 see \fIText distance\fP, above
+.TP
+.BI order " (quick|twostep)
+the algorithm used to find the order among the blocks of text:
+see \fIBlock order\fP, above
 .TP
 .BI immediate
 pressing enter in a menu immediately executes the required change

@@ -366,6 +366,7 @@ enum window {
 	WINDOW_SEARCH,
 	WINDOW_VIEWMODE,
 	WINDOW_FITDIRECTION,
+	WINDOW_ORDER,
 	WINDOW_MENU,
 	WINDOW_WIDTH,
 	WINDOW_DISTANCE,
@@ -1115,6 +1116,8 @@ int document(int c, struct position *position, struct output *output) {
 		return WINDOW_WIDTH;
 	case 't':
 		return WINDOW_DISTANCE;
+	case 'o':
+		return WINDOW_ORDER;
 	case KEY_FIND:
 	case '/':
 	case '?':
@@ -1499,6 +1502,43 @@ int fitdirection(int c, struct position *position, struct output *output) {
 }
 
 /*
+ * sorting algorithm menu
+ */
+int order(int c, struct position *position, struct output *output) {
+	static char *fitdirectiontext[] = {
+		"block ordering algorithm",
+		"quick",
+		"two-step",
+		NULL
+	};
+	static int line = 0;
+	static int selected = 1;
+	int res;
+	(void) position;
+
+	if (c == KEY_INIT)
+		selected = output->order + 1;
+
+	res = list(c, output, fitdirectiontext, &line, &selected);
+	switch (res) {
+	case 0:
+		return WINDOW_ORDER;
+	case 1:
+	case 2:
+	case 3:
+	case 4:
+		output->order = res - 1;
+		textarea(position, output);
+		firsttextbox(position, output);
+		if (output->immediate)
+			return WINDOW_REFRESH;
+		/* fallthrough */
+	default:
+		return WINDOW_DOCUMENT;
+	}
+}
+
+/*
  * main menu
  */
 int menu(int c, struct position *position, struct output *output) {
@@ -1510,11 +1550,12 @@ int menu(int c, struct position *position, struct output *output) {
 		"(f) fit direction",
 		"(w) minimal width",
 		"(t) text distance",
+		"(o) block order",
 		"(h) help",
 		"(q) quit",
 		NULL
 	};
-	static char *shortcuts = "g/vfwthq", *s;
+	static char *shortcuts = "g/vfwtohq", *s;
 	static int menunext[] = {
 		WINDOW_MENU,
 		WINDOW_GOTOPAGE,
@@ -1523,6 +1564,7 @@ int menu(int c, struct position *position, struct output *output) {
 		WINDOW_FITDIRECTION,
 		WINDOW_WIDTH,
 		WINDOW_DISTANCE,
+		WINDOW_ORDER,
 		WINDOW_HELP,
 		WINDOW_EXIT,
 		-1,
@@ -1851,6 +1893,8 @@ int selectwindow(int window, int c,
 		return minwidth(c, position, output);
 	case WINDOW_DISTANCE:
 		return textdistance(c, position, output);
+	case WINDOW_ORDER:
+		return order(c, position, output);
 	default:
 		return WINDOW_DOCUMENT;
 	}
