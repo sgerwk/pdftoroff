@@ -402,6 +402,9 @@ struct output {
 	/* fit horizontally (1), vertically (2) or both (0) */
 	int fit;
 
+	/* sorting algorithm */
+	int order;
+
 	/* scroll distance, as a fraction of the screen size */
 	double scroll;
 
@@ -521,6 +524,11 @@ int readpageraw(struct position *position, struct output *output) {
  * determine the textarea of the current page
  */
 int textarea(struct position *position, struct output *output) {
+	void (*order[])(RectangleList *rl) = {
+		rectanglelist_quicksort,
+		rectanglelist_twosort
+	};
+
 	if (! POPPLER_IS_PAGE(position->page)) {
 		output->reload = TRUE;
 		return -1;
@@ -540,7 +548,7 @@ int textarea(struct position *position, struct output *output) {
 			position->boundingbox = NULL;
 			break;
 		}
-		rectanglelist_twosort(position->textarea);
+		order[output->order](position->textarea);
 		position->boundingbox =
 			rectanglelist_joinall(position->textarea);
 		break;
@@ -2300,6 +2308,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	output.fit = 1;
 	output.minwidth = -1;
 	output.distance = 15.0;
+	output.order = 1;
 	output.scroll = 1.0 / 4.0;
 	output.immediate = FALSE;
 	screenaspect = -1;
@@ -2324,6 +2333,8 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 				output.fit = optindex(s[0], "nhvb");
 			if (sscanf(configline, "minwidth %lg", &d) == 1)
 				output.minwidth = d;
+			if (sscanf(configline, "order %s", s) == 1)
+				output.order = optindex(s[0], "qt");
 			if (sscanf(configline, "distance %lg", &d) == 1)
 				output.distance = d;
 			if (sscanf(configline, "aspect %s", s) == 1)
@@ -2384,6 +2395,14 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 			output.distance = atof(optarg);
 			if (output.distance < 0) {
 				printf("error: negative text distance\n");
+				exit(EXIT_FAILURE);
+			}
+			break;
+		case 'o':
+			output.order = optindex(optarg[0], "qt");
+			if (output.order == -1) {
+				printf("unsupported ordering: %s\n", optarg);
+				usage();
 				exit(EXIT_FAILURE);
 			}
 			break;
