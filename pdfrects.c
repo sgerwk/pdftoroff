@@ -421,7 +421,16 @@ void rectanglelist_twosort(RectangleList *rl) {
 	int sorted;
 	PopplerRectangle *r, *s;
 
-	/* sort vertically if horizontally overlapping */
+	/*
+	 * sort vertically if horizontally overlapping
+	 *
+	 * iteratively find the minimum among i+1...rl->num-1
+	 *
+	 * when replacing the current minimum restart since the order is not
+	 * transitively closed; e.g., {2, 0, 1} with 0<1 and 1<2 but not 0<2;
+	 * without the restart the current minimum starts as 2, is not replaced
+	 * by 0 but is then replaced by 1; minimum ends as 1 instead of 0
+	 */
 	for (i = 0; i < rl->num - 1; i++) {
 		r = &rl->rect[i];
 		for (j = i + 1; j < rl->num; j++) {
@@ -435,7 +444,34 @@ void rectanglelist_twosort(RectangleList *rl) {
 		rectangle_swap(&rl->rect[i], r);
 	}
 
-	/* sort horizontally, but respect the previous ordering */
+	/*
+	 * sort horizontally, but respect the previous ordering
+	 *
+	 * this step is correct for the same reason of regular bubblesort: the
+	 * first scan of the list moves the element that should go last at the
+	 * end of the list; the same for the other scans for the remaining part
+	 * of the list
+	 *
+	 * let k be the rectangle that should be placed last in the list: no
+	 * other rectangle is greater than it according to the order < of the
+	 * first step and no incomparable rectangle has greater x1
+	 *
+	 * the previous step placed all rectangles lower than k according to <
+	 * before k in the list; for example, if i<j<k then i is before j and j
+	 * is before k; the second step never swaps horizontally-overlapping
+	 * rectangles, so it does not move i ahead of j and j ahead of k; as a
+	 * result, k cannot be overtaken by a rectangle that is directly (like
+	 * j) or indirectly (like i) lower than it according to the order <; in
+	 * the same way, a rectangle that is incomparable with k cannot
+	 * overtake it since no incomparable rectangle has x1 larger than that
+	 * of k by assumption; all of this proves that when the element
+	 * preceding k is compared with k, they are not swapped
+	 *
+	 * as a result, the scan proceeds with k and not with its preceding
+	 * element; since the elements following k are incomparable with k
+	 * according to <, they all have lower x1; the scan therefore moves k
+	 * to the last position
+	 */
 	for (i = 0, sorted = 0; i < rl->num && ! sorted; i++) {
 		sorted = 1;
 		for (j = 0; j < rl->num - 1; j++) {
