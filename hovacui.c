@@ -67,7 +67,11 @@
  *   just the first outside the area of the current textbox that is currently
  *   displayed
  * - detect file changes via inotify; this requires the file descriptor to be
- *   passed to cairodevice->input(); return KEY_FILECHANGE
+ *   passed to cairodevice->input(); return KEY_FILECHANGE; the pdf file may
+ *   not being fully written at that point, which results in a sequence of
+ *   opening failures before being able to read it again; the current method
+ *   using SIGHUP is better, if there is some way to send a signal when the
+ *   file change is completed
  * - next/previous match does not work with fit=none; do not fix, cannot work
  *   in general (see below); it can however be done by the same system of the
  *   next or previous anchor used for annotations and links
