@@ -7,6 +7,10 @@
 /*
  * todo:
  *
+ * - viewmode auto: detect single-column documents, switch to boundingbox mode;
+ *   single-column = the boxes that contain most of the text overlap
+ *   horizontally with each other; allow some boxes with little text not to
+ *   overlap, as they may be headers and footers
  * - arbitrary configuration file, specified as a commandline option
  * - configuration files specific for the framebuffer and x11, passed as
  *   additional arguments to hovacui()
