@@ -1374,6 +1374,7 @@ int help(int c, struct position *position, struct output *output) {
 		"w z Z      minimal width: set, -, +",
 		"           (determines the maximal zoom)",
 		"t          text-to-text distance",
+		"o          order of the blocks of text",
 		"g          go to page",
 		"/ ?        search forward or backward",
 		"n p        next or previous search match",
