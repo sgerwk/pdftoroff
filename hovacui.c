@@ -7,10 +7,6 @@
 /*
  * todo:
  *
- * - viewmode auto: detect single-column documents, switch to boundingbox mode;
- *   single-column = the boxes that contain most of the text overlap
- *   horizontally with each other; allow some boxes with little text not to
- *   overlap, as they may be headers and footers
  * - arbitrary configuration file, specified as a commandline option
  * - configuration files specific for the framebuffer and x11, passed as
  *   additional arguments to hovacui()
@@ -528,6 +524,29 @@ int readpageraw(struct position *position, struct output *output) {
 }
 
 /*
+ * estimate whether the page is multiple-column or not
+ */
+double interoverlap(struct position *position) {
+	RectangleList *rl;
+	int i, j;
+	double height, index;
+
+	rl = position->textarea;
+	height = position->boundingbox->y2 - position->boundingbox->y1;
+	index = 0;
+	for (i = 0; i < rl->num; i++)
+		for (j = 0; j < rl->num; j++)
+			if (! rectangle_htouch(&rl->rect[i], &rl->rect[j]))
+				index +=
+					(rl->rect[i].y2 - rl->rect[i].y1) /
+						height *
+					(rl->rect[j].y2 - rl->rect[j].y1) /
+						height;
+
+	return index;
+}
+
+/*
  * determine the textarea of the current page
  */
 int textarea(struct position *position, struct output *output) {
@@ -547,6 +566,7 @@ int textarea(struct position *position, struct output *output) {
 
 	switch (output->viewmode) {
 	case 0:
+	case 1:
 		position->textarea =
 			rectanglelist_textarea_distance(position->page,
 				output->distance);
@@ -556,16 +576,21 @@ int textarea(struct position *position, struct output *output) {
 			position->boundingbox = NULL;
 			break;
 		}
-		order[output->order](position->textarea, position->page);
 		position->boundingbox =
 			rectanglelist_joinall(position->textarea);
+		if (output->viewmode == 0 && interoverlap(position) < 0.8) {
+			rectanglelist_free(position->textarea);
+			position->textarea = NULL;
+			break;
+		}
+		order[output->order](position->textarea, position->page);
 		break;
-	case 1:
+	case 2:
 		position->boundingbox =
 			rectanglelist_boundingbox(position->page);
 		position->textarea = NULL;
 		break;
-	case 2:
+	case 3:
 		position->boundingbox = pagerectangle(position->page);
 		position->textarea = NULL;
 		break;
@@ -1168,7 +1193,7 @@ int document(int c, struct position *position, struct output *output) {
 		prevpage(position, output);
 		break;
 	case 'v':
-		output->viewmode = (output->viewmode + 1) % 3;
+		output->viewmode = (output->viewmode + 1) % 4;
 		firsttextbox(position, output);
 		readpage(position, output);
 		break;
@@ -1440,6 +1465,7 @@ int tutorial(int c, struct position *position, struct output *output) {
 int viewmode(int c, struct position *position, struct output *output) {
 	static char *viewmodetext[] = {
 		"view mode",
+		"auto",
 		"text area",
 		"boundingbox",
 		"page",
@@ -1460,6 +1486,7 @@ int viewmode(int c, struct position *position, struct output *output) {
 	case 1:
 	case 2:
 	case 3:
+	case 4:
 		output->viewmode = res - 1;
 		textarea(position, output);
 		firsttextbox(position, output);
@@ -1774,7 +1801,7 @@ int search(int c, struct position *position, struct output *output) {
 			return WINDOW_DOCUMENT;
 		}
 		if (firstmatch(position, output) == -1) {
-			field(KEY_REDRAW, output, prompt, searchstring, 
+			field(KEY_REDRAW, output, prompt, searchstring,
 				"no match", NULL);
 			return WINDOW_SEARCH;
 		}
@@ -2041,14 +2068,18 @@ void pagenumber(struct position *position, struct output *output) {
 void showmode(struct position *position, struct output *output) {
 	static int prev = -1;
 	char s[100];
-	char *modes[] = {"textarea", "boundingbox", "page"};
+	char *modes[] = {"auto", "textarea", "boundingbox", "page"};
+	char *actual;
 
 	(void) position;
 
 	if (output->viewmode == prev && ! output->showmode)
 		return;
 
-	sprintf(s, "viewmode: %s", modes[output->viewmode]);
+	actual = output->viewmode != 0 ? "" :
+		position->textarea == NULL || position->textarea->num == 1 ?
+			" (boundingbox)" : " (textarea)";
+	sprintf(s, "viewmode: %s%s", modes[output->viewmode], actual);
 	label(output, s, 3);
 
 	if (output->timeout == 0)
@@ -2381,7 +2412,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 			if (configline[0] == '#')
 				continue;
 			if (sscanf(configline, "mode %s", s) == 1)
-				output.viewmode = optindex(s[0], "tbp");
+				output.viewmode = optindex(s[0], "atbp");
 			if (sscanf(configline, "fit %s", s) == 1)
 				output.fit = optindex(s[0], "nhvb");
 			if (sscanf(configline, "minwidth %lg", &d) == 1)
@@ -2422,7 +2453,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	while (-1 != (opt = getopt(argn, argv, HOVACUIOPTS)))
 		switch (opt) {
 		case 'm':
-			output.viewmode = optindex(optarg[0], "tbp");
+			output.viewmode = optindex(optarg[0], "atbp");
 			if (output.viewmode == -1) {
 				printf("unsupported mode: %s\n", optarg);
 				usage();

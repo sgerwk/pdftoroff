@@ -164,10 +164,16 @@ text or their order, switching to this mode allows for a more conventional view
 of the page. Still, the white border of the page is suppressed, making the text
 larger than the "fit to width" mode.
 
-Fitting the whole page to the width of the screen is the third mode of
-operation, obtained by pressing \fI'v'\fP a second time, by the menu, by the
-command line option \fI-v page\fP and by the configuration file line \fImode
-page\fP.
+The default is that \fBhovacui\fP chooses between these two reading modes (by
+blocks of text and by the boundingbox) depending on whether the page looks
+multiple-column or not. This is the mode \fIauto\fP. Reading by blocks of text
+can be forced by the keystroke \fI'v'\fP, the \fI'view mode'\fP entry in the
+menu, by the command line option \fI-v textarea\fP and by the configuration
+file line \fImode textarea\fP.
+
+Fitting the whole page to the width of the screen is another mode of operation,
+obtained by the keystroke \fI'v'\fP, by the menu, by the command line option
+\fI-v page\fP and by the configuration file line \fImode page\fP.
 
 .SS Fit direction
 
@@ -283,7 +289,7 @@ enter the main menu
 .TP
 .B
 v
-change view mode: text area (default), boundingbox, page
+change view mode: auto (default), textarea, boundingbox, page
 (see \fIView mode\fP, above)
 .TP
 .B
@@ -343,7 +349,7 @@ Not all parameters can be given in the command line. Some can only be set in
 the configuration file (see below).
 
 .TP
-.BI -m " (textarea|boundingbox|page)
+.BI -m " (auto|textarea|boundingbox|page)
 view mode
 (see \fIView mode\fP, above)
 .TP
@@ -393,7 +399,7 @@ Command line options take precedence over the configuration file. Most options
 can also be changed at runtime via keys or the menu (keystroke \fI'm'\fP).
 
 .TP
-.BI mode " (textarea|boundingbox|page)
+.BI mode " (auto|textarea|boundingbox|page)
 view by the blocks of text in the page, by the bounding box of the page or by
 the whole page; see \fIView mode\fP, above
 .TP
@@ -518,7 +524,7 @@ If something goes wrong, press 'v' to change view mode.
 
 The horizontal fit mode is intended for horizontal scripts, but \fBhovacui\fP
 also allows for vertical fit mode. It however has no support for sorting blocks
-of text for vertical scripts yet.
+of text for vertical scripts yet, nor for detecting multiple columns.
 
 The cursor left and cursor right keys may not work as expected. Yet, they are
 coherent with the general rule: when moving in a direction and the edge of the
