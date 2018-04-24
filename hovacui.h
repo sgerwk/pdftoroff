@@ -40,18 +40,19 @@
 /*
  * a cairo device
  */
+struct cairooutput;
 struct cairodevice {
 	void *initdata;
-	void *(*init)(char *device, void *initdata);
-	void (*finish)(void *cairo);
-	cairo_t *(*context)(void *cairo);
-	double (*width)(void *cairo);
-	double (*height)(void *cairo);
-	double (*screenwidth)(void *cairo);
-	double (*screenheight)(void *cairo);
-	void (*clear)(void *cairo);
-	void (*flush)(void *cairo);
-	int (*input)(void *cairo, int timeout);
+	struct cairooutput *(*init)(char *device, void *initdata);
+	void (*finish)(struct cairooutput *cairo);
+	cairo_t *(*context)(struct cairooutput *cairo);
+	double (*width)(struct cairooutput *cairo);
+	double (*height)(struct cairooutput *cairo);
+	double (*screenwidth)(struct cairooutput *cairo);
+	double (*screenheight)(struct cairooutput *cairo);
+	void (*clear)(struct cairooutput *cairo);
+	void (*flush)(struct cairooutput *cairo);
+	int (*input)(struct cairooutput *cairo, int timeout);
 };
 
 /*

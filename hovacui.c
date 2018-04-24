@@ -321,25 +321,25 @@
  * void *initdata
  *	passed to the init function
  *
- * void *init(char *device, void *initdata);
+ * struct cairooutput *init(char *device, void *initdata);
  *	create the cairo context;
  *	return a data structure that is passed to the other functions
  *
- * void finish(void *cairo);
+ * void finish(struct cairooutput *cairo);
  *	undo what done by init
  *
- * cairo_t *context(void *cairo);
- * double width(void *cairo);
- * double height(void *cairo);
- * double screenwidth(void *cairo);
- * double screenheight(void *cairo);
+ * cairo_t *context(struct cairooutput *cairo);
+ * double width(struct cairooutput *cairo);
+ * double height(struct cairooutput *cairo);
+ * double screenwidth(struct cairooutput *cairo);
+ * double screenheight(struct cairooutput *cairo);
  *	return the cairo context and its size
  *
- * void clear(void *cairo);
- * void flush(void *cairo);
+ * void clear(struct cairooutput *cairo);
+ * void flush(struct cairooutput *cairo);
  *	clear and flush
  *
- * int input(void *cairo, int timeout);
+ * int input(struct cairooutput *cairo, int timeout);
  *	return a key;
  *	if no input is available blocks for timeout millisecond;
  *	a timeout of zero means indefinitely
@@ -2140,9 +2140,9 @@ int changedpdf(struct position *position) {
 /*
  * draw the document with the labels on top
  */
-void draw(void *cairo,
-		void cairoclear(void *cairo),
-		void cairoflush(void *cairo),
+void draw(struct cairooutput *cairo,
+		void cairoclear(struct cairooutput *cairo),
+		void cairoflush(struct cairooutput *cairo),
 		struct position *position, struct output *output) {
 	if (output->redraw) {
 		cairoclear(cairo);
@@ -2335,7 +2335,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	FILE *config;
 	double d;
 	char *outdev;
-	void *cairo;
+	struct cairooutput *cairo;
 	double margin;
 	double fontsize;
 	char *filename;
