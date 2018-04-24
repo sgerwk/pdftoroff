@@ -25,6 +25,7 @@
  *   part of the code from reloadpdf()
  *
  * - config option for disabling the ui
+ * - make minwidth depend on the size of the letters
  * - list() yes/no to confirm exit; disabled by config option
  * - man page: compare with fbpdf and jfbview
  * - field() for executing a shell command
