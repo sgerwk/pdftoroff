@@ -2173,6 +2173,17 @@ int changedpdf(struct position *position) {
 }
 
 /*
+ * draw the page border
+ */
+void pageborder(struct position *position, struct output *output) {
+	double width, height;
+	poppler_page_get_size(position->page, &width, &height);
+	cairo_set_source_rgb(output->cr, 1.0, 0.8, 0.8);
+	cairo_rectangle(output->cr, 0, 0, width, height);
+	cairo_stroke(output->cr);
+}
+
+/*
  * draw the document with the labels on top
  */
 void draw(struct cairooutput *cairo,
@@ -2194,6 +2205,7 @@ void draw(struct cairooutput *cairo,
 		rectangle_draw(output->cr,
 			&position->textarea->rect[position->box],
 			FALSE, FALSE, TRUE);
+		pageborder(position, output);
 		selection(position, output, output->found);
 		output->redraw = FALSE;
 	}
