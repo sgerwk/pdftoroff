@@ -23,6 +23,10 @@
  *   for example, a page number too large is reduced to the last, and
  *   consequently the box is the last of the page; extract and complete this
  *   part of the code from reloadpdf()
+ * - maintain the position when changing mode: choose a character that is close
+ *   to the center of the screen before changing mode; afterward, select the
+ *   box that contains it, set scrollx,scrolly so that the character is in the
+ *   center of the screen; then adjust the scroll
  *
  * - config option for disabling the ui
  * - make minwidth depend on the size of the letters
@@ -78,6 +82,13 @@
  *   opening failures before being able to read it again; the current method
  *   using SIGHUP is better, if there is some way to send a signal when the
  *   file change is completed
+ * - selection by cursor: requires cursor navigation, to be activated by some
+ *   key; then mark start and end of selection
+ * - select what shown: cheap alternative for selecting text: copy to file only
+ *   the text that is in the screen and in the current textbox
+ * - make the margins (what determine the destination rectangle) customizable
+ *   by field() or configuration file
+ * - alternative to fit=none: wrap the lines that are longer than the minwidth
  * - next/previous match does not work with fit=none; do not fix, cannot work
  *   in general (see below); it can however be done by the same system of the
  *   next or previous anchor used for annotations and links
