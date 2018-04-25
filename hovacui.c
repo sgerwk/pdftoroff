@@ -29,6 +29,8 @@
  * - list() yes/no to confirm exit; disabled by config option
  * - man page: compare with fbpdf and jfbview
  * - field() for executing a shell command
+ * - automatically determine the text-to-text distance based on the distance
+ *   between characters
  * - allow tabs in list(), make it display a table rather than a list;
  *   use in help() to separate keys from functions,
  *   in menu() to show the current values for viewmode, fit, etc.
@@ -43,6 +45,9 @@
  * - multiple files, list()-based window; return WINDOW_NEXT+n to tell main()
  *   which file to switch to; and/or have a field in struct output for the new
  *   file index or name
+ * - optionally, show opening error as a window instead of fprintf
+ * - allow for a password (field() or commandline)
+ * - last two require document() to show a black screen if no document is open
  * - non-expert mode: every unassigned key calls WINDOW_MENU
  * - in list(): separator, skip it when using a selected line
  * - add an optional help to the bottom of list()
