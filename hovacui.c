@@ -2258,6 +2258,7 @@ void resize(struct position *position, struct output *output,
 struct position *openpdf(char *filename) {
 	char *uri;
 	struct position *position;
+	GError *err;
 
 	position = malloc(sizeof(struct position));
 
@@ -2266,10 +2267,11 @@ struct position *openpdf(char *filename) {
 	uri = filenametouri(position->filename);
 	if (uri == NULL)
 		exit(EXIT_FAILURE);
-	position->doc = poppler_document_new_from_file(uri, NULL, NULL);
+	position->doc = poppler_document_new_from_file(uri, NULL, &err);
 	free(uri);
 	if (position->doc == NULL) {
-		printf("error opening pdf file\n");
+		printf("error opening %s: %s\n", filename, err->message);
+		g_free(err);
 		free(position);
 		return NULL;
 	}
