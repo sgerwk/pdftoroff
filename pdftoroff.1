@@ -12,7 +12,7 @@ pdftoroff - convert pdf to various text formats (roff, html, TeX, text)
 \fBpdftoroff\fP
 [\fI-r\fP|\fI-w\fP|\fI-p\fP|\fI-f\fP|\fI-t\fP|\fI-s fmt\fP]
 [\fI-m method\fP [\fI-d distance\fP] [\fI-o order\fP]]
-[\fI-v\fP]
+[\fI-i range\fP] [\fI-v\fP]
 \fIfile.pdf\fP
 .
 .
@@ -107,6 +107,12 @@ by their position, exact
 .IP 2
 by the occurrence of their characters in the file
 .RE
+
+.TP
+\fB-i\fP \fIrange\fP
+pages to convert, in the format \fIfirst:last\fP;
+negative or zero is from the last page backwards;
+for example, \fI-2:0\fP is the range for converting the last three pages
 
 .TP
 .B -v

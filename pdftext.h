@@ -103,7 +103,7 @@ void showdocument(FILE *fd, PopplerDocument *doc,
 		struct measure *measure, struct format *format);
 
 /* show a pdf file */
-void showfile(FILE *fd, char *filename,
+void showfile(FILE *fd, char *filename, int first, int last,
 		int method, int order,
 		struct measure *measure, struct format *format);
 

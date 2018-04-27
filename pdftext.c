@@ -469,6 +469,16 @@ void showdocumentpart(FILE *fd, PopplerDocument *doc, int first, int last,
 	int npage;
 	PopplerPage *page;
 
+	if (first < 0)
+		first = poppler_document_get_n_pages(doc) + first;
+	if (last < 0)
+		last = poppler_document_get_n_pages(doc) + last;
+
+	if (first < 0)
+		first = 0;
+	if (last >= poppler_document_get_n_pages(doc))
+		last = poppler_document_get_n_pages(doc) - 1;
+
 	startdocument(fd, method, measure, format, &newpar, &prev);
 	for (npage = first; npage <= last; npage++) {
 		page = poppler_document_get_page(doc, npage);
@@ -486,14 +496,13 @@ void showdocumentpart(FILE *fd, PopplerDocument *doc, int first, int last,
 void showdocument(FILE *fd, PopplerDocument *doc,
 		int method, int order,
 		struct measure *measure, struct format *format) {
-	showdocumentpart(fd, doc, 0, poppler_document_get_n_pages(doc) - 1,
-		method, order, measure, format);
+	showdocumentpart(fd, doc, 0, -1, method, order, measure, format);
 }
 
 /*
  * show a pdf file
  */
-void showfile(FILE *fd, char *filename,
+void showfile(FILE *fd, char *filename, int first, int last,
 		int method, int order,
 		struct measure *measure, struct format *format) {
 	char *uri;
@@ -502,13 +511,13 @@ void showfile(FILE *fd, char *filename,
 	uri = filenametouri(filename);
 
 	doc = poppler_document_new_from_file(uri, NULL, NULL);
+	free(uri);
 	if (doc == NULL) {
 		printf("error opening file %s\n", filename);
 		exit(EXIT_FAILURE);
 	}
 
-	showdocument(fd, doc, method, order, measure, format);
-	free(uri);
+	showdocumentpart(fd, doc, first, last, method, order, measure, format);
 }
 
 /*
