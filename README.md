@@ -16,7 +16,7 @@ is especially handy for multiple-columns documents. Details in the
 - a screenshots of hovacui with the goto page dialog:
 
   ![hovacui: screenshot of the goto to page field](/screenshots/fb-12.png?raw=true "hovacui: the gotopage dialog")
-  
+
 - the main menu:
 
   ![hovacui: screenshot of the main manu](/screenshots/fb-23.png?raw=true "hovacui: the main menu")

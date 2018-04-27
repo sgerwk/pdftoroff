@@ -38,7 +38,7 @@
  * - allow tabs in list(), make it display a table rather than a list;
  *   use in help() to separate keys from functions,
  *   in menu() to show the current values for viewmode, fit, etc.
- * - info(), based on list(): filename, number of pages, page format, etc.
+ * - info(), based on list(): filename, number of pages, page size, etc.
  * - rotate
  * - line of next scroll: where the top/bottom of the screen will be after
  *   scrolling up or down
@@ -92,6 +92,7 @@
  * - next/previous match does not work with fit=none; do not fix, cannot work
  *   in general (see below); it can however be done by the same system of the
  *   next or previous anchor used for annotations and links
+ * - prefer showing white area outside bounding box than outside page
  *
  * regressions:
  * - open a long document, open gotopage window, replace file with a short
