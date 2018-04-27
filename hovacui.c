@@ -40,8 +40,8 @@
  *   in menu() to show the current values for viewmode, fit, etc.
  * - info(), based on list(): filename, number of pages, page size, etc.
  * - rotate
- * - line of next scroll: where the top/bottom of the screen will be after
- *   scrolling up or down
+ * - lines of previous and next scroll: where the top or bottom of the screen
+ *   were before the last scroll, or will be after scrolling up or down
  * - stack of windows; a window returns WINDOW_PREVIOUS to go back
  * - support 8bpp framebuffers (via a fixed colormap)
  * - cache the textarea list of pages already scanned
