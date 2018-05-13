@@ -29,6 +29,7 @@
  *   center of the screen; then adjust the scroll
  *
  * - config option for disabling the ui
+ * - printf format string for page numbers, with total pages
  * - make minwidth depend on the size of the letters
  * - list() yes/no to confirm exit; disabled by config option
  * - man page: compare with fbpdf and jfbview
