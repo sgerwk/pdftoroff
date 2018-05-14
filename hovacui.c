@@ -29,7 +29,7 @@
  *   center of the screen; then adjust the scroll
  *
  * - config option for disabling the ui
- * - printf format string for page numbers, with total pages
+ * - printf format string for page number label, with total pages
  * - make minwidth depend on the size of the letters
  * - list() yes/no to confirm exit; disabled by config option
  * - man page: compare with fbpdf and jfbview
@@ -94,6 +94,11 @@
  *   in general (see below); it can however be done by the same system of the
  *   next or previous anchor used for annotations and links
  * - prefer showing white area outside bounding box than outside page
+ * - thread for page rendering, so that the ui remains responsive even on
+ *   complex pages; the page and the ui render on different surfaces, that are
+ *   then copied to the output
+ * - thread for progress indicator: tells that the program is still working,
+ *   and nothing is shown because rendering is in progress
  *
  * regressions:
  * - open a long document, open gotopage window, replace file with a short
