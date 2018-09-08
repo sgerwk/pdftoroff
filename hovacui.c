@@ -1,7 +1,7 @@
 /*
  * hovacui.c
  *
- * view a pdf document, autozooming to the text
+ * view a pdf document, autozooming to text
  */
 
 /*
@@ -1143,6 +1143,33 @@ int boundingboxinscreen(struct position *position, struct output *output) {
 }
 
 /*
+ * append the current box to file
+ */
+int savebox(struct position *position, struct output *output) {
+	PopplerRectangle r;
+	char line[200];
+	char *filename = "hovacui-boxes.txt";
+	FILE *fd;
+
+	r = position->textarea->rect[position->box];
+	sprintf(line, "%g %g %g %g", r.x1, r.y1, r.x2, r.y2);
+	strcpy(output->help, line);
+	output->timeout = 2000;
+
+	fd = fopen(filename, "a");
+	if (fd == NULL) {
+		strcat(output->help, " - error saving current box to file");
+		return -1;
+	}
+	fprintf(fd, "%s\n", line);
+	fclose(fd);
+
+	strcat(output->help, " - saved to ");
+	strcat(output->help, filename);
+	return 0;
+}
+
+/*
  * document window
  */
 int document(int c, struct position *position, struct output *output) {
@@ -1245,6 +1272,9 @@ int document(int c, struct position *position, struct output *output) {
 		output->showmode = TRUE;
 		output->showfit = TRUE;
 		output->filename = TRUE;
+		break;
+	case 'b':
+		savebox(position, output);
 		break;
 	default:
 		;
