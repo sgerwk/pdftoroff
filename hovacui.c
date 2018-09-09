@@ -1161,7 +1161,7 @@ int savebox(struct position *position, struct output *output) {
 		strcat(output->help, " - error saving current box to file");
 		return -1;
 	}
-	fprintf(fd, "%s\n", line);
+	rectangle_print(fd, &r);
 	fclose(fd);
 
 	strcat(output->help, " - saved to ");
