@@ -452,6 +452,8 @@ void showpage(FILE *fd, PopplerPage *page, PopplerRectangle *zone,
 		region = poppler_rectangle_new();
 		for (r = 0; r < textarea->num; r++) {
 			delement(fd, "[=== BLOCK %d]", r);
+			if (! rectangle_overlap(zone, &textarea->rect[r]))
+				continue;
 			rectangle_intersect(region, zone, &textarea->rect[r]);
 			showregion(fd, region, textarea,
 				text, attrlist, rects, nrects,
