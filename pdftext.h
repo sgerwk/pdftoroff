@@ -80,9 +80,11 @@ void startdocument(FILE *fd,
 void startpage(struct scandata *scanpage);
 
 /* show the characters in a box in a page */
-void showpagebox(FILE *fd, PopplerPage *page, PopplerRectangle *zone,
-		int method, struct measure *measure, struct format *format,
-		struct scandata *scandata);
+void showregion(FILE *fd, PopplerRectangle *zone, RectangleList *textarea,
+		char *text, GList *attrlist,
+		PopplerRectangle *rects, guint nrects,
+		struct measure *measure, struct format *format,
+		struct scandata *scandata, gboolean detectcolumn);
 
 /* show the characters in a page */
 void showpage(FILE *fd, PopplerPage *page,

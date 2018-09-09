@@ -206,64 +206,33 @@ void startpage(struct scandata *scanpage) {
 
 /*
  * show the characters of a page contained in a box
+ *	zone		only characters in this box are shown
+ * 			NULL = all characters in page
+ *	textarea	the blocks of text in the page
+ *			may also be the whole page or its bounding box
+ *	text, attrlist, rects, nrects
+ *			characters and their fonts and positions
+ *	detectcolumns	whether to detect the start of a new column by
+ *			comparing the coordinates of the current column and the
+ *			next character; only used when textarea=page
  */
-void showpagebox(FILE *fd, PopplerPage *page, PopplerRectangle *zone,
-		int method, struct measure *measure, struct format *format,
-		struct scandata *scandata) {
-	char *text, *cur, *next;
+void showregion(FILE *fd, PopplerRectangle *zone, RectangleList *textarea,
+		char *text, GList *attrlist,
+		PopplerRectangle *rects, guint nrects,
+		struct measure *measure, struct format *format,
+		struct scandata *scandata, gboolean detectcolumn) {
+	char *cur, *next;
 	int count;
 	gdouble left, y;
 
-	GList *attrlist, *attrelem;
-	RectangleList *textarea;
+	GList *attrelem;
 	int ti = -1;
 	PopplerRectangle *tr;
 	PopplerTextAttributes *attr;
-	gboolean detectcolumn;
 	gboolean startcolumn, shortline, newline;
 
-	PopplerRectangle *rects, crect;
-	guint nrects, r;
-
-				/* page content */
-
-	text = poppler_page_get_text(page);
-	attrlist = poppler_page_get_text_attributes(page);
-	if (! text || ! attrlist)
-		return;		/* no text in page */
-	if (! poppler_page_get_text_layout(page, &rects, &nrects))
-		return;		/* no text in page */
-
-				/* text area to print */
-
-	switch (method) {
-	case 0:
-		tr = poppler_rectangle_new();
-		poppler_page_get_crop_box(page, tr);
-		textarea = rectanglelist_new(1);
-		rectanglelist_add(textarea, tr);
-		detectcolumn = TRUE;
-		break;
-	case 1:
-		tr = rectanglelist_boundingbox(page);
-		textarea = rectanglelist_new(1);
-		rectanglelist_add(textarea, tr);
-		detectcolumn = FALSE;
-		break;
-	case 2:
-		textarea = rectanglelist_textarea_distance(page,
-				measure->blockdistance);
-		detectcolumn = FALSE;
-		break;
-	case 3:
-		textarea = rectanglelist_new(1);
-		rectanglelist_add(textarea, zone);
-		detectcolumn = FALSE;
-		break;
-	default:
-		fprintf(stderr, "no such conversion method: %d\n", method);
-		exit(EXIT_FAILURE);
-	}
+	PopplerRectangle crect;
+	guint r;
 
 				/* cycle over (utf-8) characters in page */
 
@@ -385,7 +354,7 @@ void showpagebox(FILE *fd, PopplerPage *page, PopplerRectangle *zone,
 			showcharacter(fd, cur, next,
 				&scandata->prev, scandata->newpar, format);
 
-					/* update status veriables */
+					/* update status variables */
 
 			shortline = isshortline(crect, left, tr->x2, measure);
 			scandata->newpar = FALSE;
@@ -410,16 +379,12 @@ void showpagebox(FILE *fd, PopplerPage *page, PopplerRectangle *zone,
 		}
 	}
 
-				/* shortline at the end of box or page */
+				/* shortline at end */
 
 	if (shortline) {
 		dnewpar(fd, "[4]");
 		scandata->newpar = TRUE;
 	}
-
-	poppler_page_free_text_attributes(attrlist);
-	g_free(rects);
-	free(text);
 }
 
 /*
@@ -429,6 +394,10 @@ void showpage(FILE *fd, PopplerPage *page,
 		int method, int order,
 		struct measure *measure, struct format *format,
 		struct scandata *scandata) {
+	char *text;
+	GList *attrlist;
+	PopplerRectangle *rects, *tr;
+	guint nrects;
 	RectangleList *textarea;
 	gint r;
 	void (*sort[])(RectangleList *, PopplerPage *) = {
@@ -437,21 +406,62 @@ void showpage(FILE *fd, PopplerPage *page,
 		rectanglelist_charsort
 	};
 
+				/* initalize output font */
+
 	startpage(scandata);
 
-	if (method != 3) {
-		showpagebox(fd, page, NULL, method, measure, format, scandata);
-		return;
+				/* get page content */
+
+	text = poppler_page_get_text(page);
+	attrlist = poppler_page_get_text_attributes(page);
+	if (! text || ! attrlist)
+		return;		/* no text in page */
+	if (! poppler_page_get_text_layout(page, &rects, &nrects))
+		return;		/* no text in page */
+
+				/* analyze text */
+
+	switch (method) {
+	case 0:
+		tr = poppler_rectangle_new();
+		poppler_page_get_crop_box(page, tr);
+		textarea = rectanglelist_new(1);
+		rectanglelist_add(textarea, tr);
+		showregion(fd, NULL, textarea, text, attrlist, rects, nrects,
+			measure, format, scandata, TRUE);
+		break;
+	case 1:
+		tr = rectanglelist_boundingbox(page);
+		textarea = rectanglelist_new(1);
+		rectanglelist_add(textarea, tr);
+		showregion(fd, NULL, textarea, text, attrlist, rects, nrects,
+			measure, format, scandata, FALSE);
+		break;
+	case 2:
+		textarea = rectanglelist_textarea_distance(page,
+				measure->blockdistance);
+		showregion(fd, NULL, textarea, text, attrlist, rects, nrects,
+			measure, format, scandata, FALSE);
+		break;
+	case 3:
+		textarea = rectanglelist_textarea_distance(page,
+				measure->blockdistance);
+		sort[order](textarea, page);
+		for (r = 0; r < textarea->num; r++) {
+			delement(fd, "[=== BLOCK %d]", r);
+			showregion(fd, &textarea->rect[r], textarea,
+				text, attrlist, rects, nrects,
+				measure, format, scandata, FALSE);
+		}
+		break;
+	default:
+		fprintf(stderr, "no such conversion method: %d\n", method);
+		exit(EXIT_FAILURE);
 	}
 
-	textarea =
-		rectanglelist_textarea_distance(page, measure->blockdistance);
-	sort[order](textarea, page);
-	for (r = 0; r < textarea->num; r++) {
-		delement(fd, "[=== BLOCK %d]", r);
-		showpagebox(fd, page, &textarea->rect[r], 3, measure, format,
-			scandata);
-	}
+	poppler_page_free_text_attributes(attrlist);
+	g_free(rects);
+	free(text);
 }
 
 /*
