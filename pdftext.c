@@ -185,13 +185,31 @@ void boxnotfound(char *cur, PopplerRectangle *crect, RectangleList *textarea) {
 }
 
 /*
- * show the characters in a box
- *	newpar	paragraph in previous box/page is already known to be over
- *	prev	unprinted character from previous box, possibly NONE or START
+ * data for processing the characters
  */
-void showbox(FILE *fd, PopplerPage *page, PopplerRectangle *zone,
+struct scandata {
+	gboolean newpar;	// last paragraph in previous box/page is over
+	char prev;		// unprinted char, possibly NONE or START
+	gboolean italic;	// current font is italic
+	gboolean bold;		// current font is bold
+	gboolean newface;	// font changed
+};
+
+/*
+ * start processing a page (no end needed)
+ */
+void startpage(struct scandata *scanpage) {
+	scanpage->italic = FALSE;
+	scanpage->bold = FALSE;
+	scanpage->newface = TRUE;
+}
+
+/*
+ * show the characters of a page contained in a box
+ */
+void showpagebox(FILE *fd, PopplerPage *page, PopplerRectangle *zone,
 		int method, struct measure *measure, struct format *format,
-		gboolean *newpar, char *prev) {
+		struct scandata *scandata) {
 	char *text, *cur, *next;
 	int count;
 	gdouble left, y;
@@ -203,7 +221,6 @@ void showbox(FILE *fd, PopplerPage *page, PopplerRectangle *zone,
 	PopplerTextAttributes *attr;
 	gboolean detectcolumn;
 	gboolean startcolumn, shortline, newline;
-	gboolean italic, bold, newface;
 
 	PopplerRectangle *rects, crect;
 	guint nrects, r;
@@ -252,9 +269,6 @@ void showbox(FILE *fd, PopplerPage *page, PopplerRectangle *zone,
 
 	shortline = FALSE;
 	startcolumn = TRUE;
-	italic = FALSE;
-	bold = FALSE;
-	newface = TRUE;
 
 	attrelem = attrlist;
 	attr = (PopplerTextAttributes *) (attrelem->data);
@@ -290,11 +304,13 @@ void showbox(FILE *fd, PopplerPage *page, PopplerRectangle *zone,
 		if (*cur == '\n' || newline) {
 			if (shortline) {
 				dnewpar(fd, "[1]");
-				*newpar = TRUE;
+				scandata->newpar = TRUE;
 			}
 			else {
 				dnewpar(fd, "[]");
-				*prev = *prev == '-' || *prev == START ?
+				scandata->prev =
+					scandata->prev == '-' ||
+					scandata->prev == START ?
 						NONE : ' ';
 			}
 		}
@@ -330,45 +346,49 @@ void showbox(FILE *fd, PopplerPage *page, PopplerRectangle *zone,
 			if (crect.y1 - y > measure->newline) {
 				if (crect.y1 - y > measure->newpar) {
 					dnewpar(fd, "[2]");
-					*newpar = TRUE;
+					scandata->newpar = TRUE;
 				}
 				y = crect.y1;
 				if (crect.x1 - left > measure->indent) {
 					dnewpar(fd, "[3]");
-					*newpar = TRUE;
+					scandata->newpar = TRUE;
 				}
 			}
 
 					/* new paragraph */
 
-			if (*newpar) {
+			if (scandata->newpar) {
 				face(fd, FALSE, TRUE,
-					&italic, &bold, attr, format);
-				if (*prev != START)
+					&scandata->italic, &scandata->bold,
+					attr, format);
+				if (scandata->prev != START)
 					fputs(format->parend, fd);
 				fputs(format->parstart, fd);
 				face(fd, TRUE, TRUE,
-					&italic, &bold, attr, format);
+					&scandata->italic, &scandata->bold,
+					attr, format);
 			}
-			else if (*prev > START)
-				fprintf(fd, "%c", *prev);
+			else if (scandata->prev > START)
+				fprintf(fd, "%c", scandata->prev);
 
 					/* start a new font face */
 
-			if (newface && *cur != ' ') {
+			if (scandata->newface && *cur != ' ') {
 				face(fd, TRUE, FALSE,
-					&italic, &bold, attr, format);
-				newface = FALSE;
+					&scandata->italic, &scandata->bold,
+					attr, format);
+				scandata->newface = FALSE;
 			}
 
 					/* print character */
 
-			showcharacter(fd, cur, next, prev, *newpar, format);
+			showcharacter(fd, cur, next,
+				&scandata->prev, scandata->newpar, format);
 
 					/* update status veriables */
 
 			shortline = isshortline(crect, left, tr->x2, measure);
-			*newpar = FALSE;
+			scandata->newpar = FALSE;
 		}
 
 				/* end of text with current font; read next */
@@ -378,13 +398,15 @@ void showbox(FILE *fd, PopplerPage *page, PopplerRectangle *zone,
 			attrelem = g_list_next(attrelem);
 			if (! attrelem) {
 				face(fd, FALSE, TRUE,
-					&italic, &bold, attr, format);
+					&scandata->italic, &scandata->bold,
+					attr, format);
 				break;
 			}
 			attr = (PopplerTextAttributes *) (attrelem->data);
 			face(fd, FALSE, FALSE,
-				&italic, &bold, attr, format);
-			newface = TRUE;
+				&scandata->italic, &scandata->bold,
+				attr, format);
+			scandata->newface = TRUE;
 		}
 	}
 
@@ -392,7 +414,7 @@ void showbox(FILE *fd, PopplerPage *page, PopplerRectangle *zone,
 
 	if (shortline) {
 		dnewpar(fd, "[4]");
-		*newpar = TRUE;
+		scandata->newpar = TRUE;
 	}
 
 	poppler_page_free_text_attributes(attrlist);
@@ -406,7 +428,7 @@ void showbox(FILE *fd, PopplerPage *page, PopplerRectangle *zone,
 void showpage(FILE *fd, PopplerPage *page,
 		int method, int order,
 		struct measure *measure, struct format *format,
-		gboolean *newpar, char *prev) {
+		struct scandata *scandata) {
 	RectangleList *textarea;
 	gint r;
 	void (*sort[])(RectangleList *, PopplerPage *) = {
@@ -415,8 +437,10 @@ void showpage(FILE *fd, PopplerPage *page,
 		rectanglelist_charsort
 	};
 
+	startpage(scandata);
+
 	if (method != 3) {
-		showbox(fd, page, NULL, method, measure, format, newpar, prev);
+		showpagebox(fd, page, NULL, method, measure, format, scandata);
 		return;
 	}
 
@@ -425,8 +449,8 @@ void showpage(FILE *fd, PopplerPage *page,
 	sort[order](textarea, page);
 	for (r = 0; r < textarea->num; r++) {
 		delement(fd, "[=== BLOCK %d]", r);
-		showbox(fd, page, &textarea->rect[r], 3, measure, format,
-			newpar, prev);
+		showpagebox(fd, page, &textarea->rect[r], 3, measure, format,
+			scandata);
 	}
 }
 
@@ -435,13 +459,13 @@ void showpage(FILE *fd, PopplerPage *page,
  */
 void startdocument(FILE *fd,
 		int method, struct measure *measure, struct format *format,
-		gboolean *newpar, char *prev) {
+		struct scandata *scandata) {
 	(void)fd;
 	(void)method;
 	(void)measure;
 	(void)format;
-	*newpar = FALSE;
-	*prev = START;
+	scandata->newpar = FALSE;
+	scandata->prev = START;
 }
 
 /*
@@ -449,11 +473,10 @@ void startdocument(FILE *fd,
  */
 void enddocument(FILE *fd,
 		int method, struct measure *measure, struct format *format,
-		gboolean *newpar, char *prev) {
+		struct scandata *scandata) {
 	(void)method;
 	(void)measure;
-	(void)newpar;
-	if (*prev != START)
+	if (scandata->prev != START)
 		fputs(format->parend, fd);
 }
 
@@ -463,8 +486,7 @@ void enddocument(FILE *fd,
 void showdocumentpart(FILE *fd, PopplerDocument *doc, int first, int last,
 		int method, int order,
 		struct measure *measure, struct format *format) {
-	gboolean newpar;
-	char prev;
+	struct scandata scandata;
 	int npage;
 	PopplerPage *page;
 
@@ -478,15 +500,14 @@ void showdocumentpart(FILE *fd, PopplerDocument *doc, int first, int last,
 	if (last >= poppler_document_get_n_pages(doc))
 		last = poppler_document_get_n_pages(doc) - 1;
 
-	startdocument(fd, method, measure, format, &newpar, &prev);
+	startdocument(fd, method, measure, format, &scandata);
 	for (npage = first; npage <= last; npage++) {
 		page = poppler_document_get_page(doc, npage);
 		delement(fd, "[PAGE %d]", npage);
-		showpage(fd, page, method, order,
-			measure, format, &newpar, &prev);
+		showpage(fd, page, method, order, measure, format, &scandata);
 		g_object_unref(page);
 	}
-	enddocument(fd, method, measure, format, &newpar, &prev);
+	enddocument(fd, method, measure, format, &scandata);
 }
 
 /*

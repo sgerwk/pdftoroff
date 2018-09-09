@@ -68,29 +68,32 @@ extern gboolean debugpar;
 #define NONE '\0'
 #define START '\1'
 
-/* in the functions for extracting text from boxes or pages, define newpar
- * and prev; then pass &newpar, &prev unchanged from one call to the next */
+/* data for processing the characters */
+struct scandata;
 
 /* start processing a document */
 void startdocument(FILE *fd,
 		int method, struct measure *measure, struct format *format,
-		gboolean *newpar, char *prev);
+		struct scandata *scandata);
+
+/* start processing a page (no end needed) */
+void startpage(struct scandata *scanpage);
 
 /* show the characters in a box in a page */
-void showbox(FILE *fd, PopplerPage *page, PopplerRectangle *zone,
+void showpagebox(FILE *fd, PopplerPage *page, PopplerRectangle *zone,
 		int method, struct measure *measure, struct format *format,
-		gboolean *newpar, char *prev);
+		struct scandata *scandata);
 
 /* show the characters in a page */
 void showpage(FILE *fd, PopplerPage *page,
 		int method, int order,
 		struct measure *measure, struct format *format,
-		gboolean *newpar, char *prev);
+		struct scandata *scandata);
 
 /* end processing a document */
 void enddocument(FILE *fd,
 		int method, struct measure *measure, struct format *format,
-		gboolean *newpar, char *prev);
+		struct scandata *scandata);
 
 /* show some pages of a pdf document */
 void showdocumentpart(FILE *fd, PopplerDocument *doc, int first, int last,
