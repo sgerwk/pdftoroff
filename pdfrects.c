@@ -131,7 +131,7 @@ void rectangle_print(FILE *fd, PopplerRectangle *r) {
 	if (r == NULL)
 		fprintf(fd, "[]");
 	else
-		fprintf(fd, "[%g,%g - %g,%g]", r->x1, r->y1, r->x2, r->y2);
+		fprintf(fd, "[%g,%g-%g,%g]", r->x1, r->y1, r->x2, r->y2);
 }
 void rectangle_printyaml(FILE *fd, char *first, char *indent,
 		PopplerRectangle *r) {
@@ -152,7 +152,7 @@ PopplerRectangle *rectangle_parse(char *s) {
 	gdouble x1, y1, x2, y2;
 	PopplerRectangle *res;
 
-	if (sscanf(s, "[%lg,%lg - %lg,%lg]", &x1, &y1, &x2, &y2) != 4)
+	if (sscanf(s, "[%lg,%lg-%lg,%lg]", &x1, &y1, &x2, &y2) != 4)
 		return NULL;
 
 	res = poppler_rectangle_new();
