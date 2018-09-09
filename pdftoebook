@@ -10,17 +10,19 @@ WIDTH=200
 HEIGHT=250
 MARGIN=5
 
-while getopts "?w:h:m:" opt;
+while getopts "?w:h:m:p:" opt;
 do
 	case $opt in
 	w)	WIDTH=$OPTARG;;
 	h)	HEIGHT=$OPTARG;;
 	m)	MARGIN=$OPTARG;;
+	p)	CONVOPTS="$OPTARG";;
 	*)	echo -en "usage:\n\tpdftoebook [-w width] [-h height] "
 		echo -e "[-m margin] in.pdf [out.pdf]"
 		echo -e "\t\t-w width\twidth in points, default 200"
 		echo -e "\t\t-w height\theight in points, default 250"
 		echo -e "\t\t-w margin\tmargin in points, default 5"
+		echo -e "\t\t-p options\tpass options to pdftoroff"
 		exit 1;;
 	esac
 done
@@ -55,7 +57,7 @@ cat <<!
 .fam H
 !
 
-pdftoroff "$IN";
+pdftoroff $CONVOPTS "$IN";
 } | \
 groff -Dutf8 -Tpdf - > "$OUT"
 
