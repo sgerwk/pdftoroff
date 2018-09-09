@@ -44,6 +44,10 @@ void rectangle_copy(PopplerRectangle *dest, PopplerRectangle *orig);
 /* shift a rectangle */
 void rectangle_shift(PopplerRectangle *, gdouble x, gdouble y);
 
+/* make the first rectangle the intersection of the other two */
+void rectangle_intersect(PopplerRectangle *r,
+		PopplerRectangle *a, PopplerRectangle *b);
+
 /* join rectangles: the first becomes the smallest rectangle containing both */
 void rectangle_join(PopplerRectangle *, PopplerRectangle *);
 

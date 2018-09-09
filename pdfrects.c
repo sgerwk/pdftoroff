@@ -245,6 +245,17 @@ void rectangle_shift(PopplerRectangle *r, gdouble x, gdouble y) {
 }
 
 /*
+ * make the first rectangle the intersection of the other two
+ */
+void rectangle_intersect(PopplerRectangle *r,
+		PopplerRectangle *a, PopplerRectangle *b) {
+	r->x1 = MAX(a->x1, b->x1);
+	r->y1 = MAX(a->y1, b->y1);
+	r->x2 = MIN(a->x2, b->x2);
+	r->y2 = MIN(a->y2, b->y2);
+}
+
+/*
  * join rectangles: the first becomes the smallest rectangle containing both
  */
 void rectangle_join(PopplerRectangle *a, PopplerRectangle *b) {
