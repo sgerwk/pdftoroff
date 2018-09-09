@@ -4,8 +4,9 @@
 #
 # -h for inline help
 #
-# to select only a region of each page:
+# to select only a region of each page, either:
 #	pdftoebook -p '-m 2 -b [2,3-460,682]' file.pdf
+#	pdftoebook -p '-m 3 -b [2,3-460,682]' file.pdf
 # to obtain the coordinates, press key 'b' in hovacui to save the current box
 # in hovacui-boxes.txt; enlarge slightly (~5.0) since only characters that fall
 # completely in the box are included, and the current box may lack for example
