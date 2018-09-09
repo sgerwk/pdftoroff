@@ -1162,6 +1162,7 @@ int savebox(struct position *position, struct output *output) {
 		return -1;
 	}
 	rectangle_print(fd, &r);
+	fputs("\n", fd);
 	fclose(fd);
 
 	strcat(output->help, " - saved to ");
