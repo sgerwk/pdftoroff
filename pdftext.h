@@ -88,6 +88,7 @@ void showregion(FILE *fd, PopplerRectangle *zone, RectangleList *textarea,
 
 /* show the characters in a page */
 void showpage(FILE *fd, PopplerPage *page,
+		PopplerRectangle *zone,
 		int method, int order,
 		struct measure *measure, struct format *format,
 		struct scandata *scandata);
@@ -99,16 +100,19 @@ void enddocument(FILE *fd,
 
 /* show some pages of a pdf document */
 void showdocumentpart(FILE *fd, PopplerDocument *doc, int first, int last,
+		PopplerRectangle *zone,
 		int method, int order,
 		struct measure *measure, struct format *format);
 
 /* show a pdf document */
 void showdocument(FILE *fd, PopplerDocument *doc,
+		PopplerRectangle *zone,
 		int method, int order,
 		struct measure *measure, struct format *format);
 
 /* show a pdf file */
 void showfile(FILE *fd, char *filename, int first, int last,
+		PopplerRectangle *zone,
 		int method, int order,
 		struct measure *measure, struct format *format);
 

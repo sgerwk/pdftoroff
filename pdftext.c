@@ -390,13 +390,13 @@ void showregion(FILE *fd, PopplerRectangle *zone, RectangleList *textarea,
 /*
  * show the characters in a page
  */
-void showpage(FILE *fd, PopplerPage *page,
+void showpage(FILE *fd, PopplerPage *page, PopplerRectangle *zone,
 		int method, int order,
 		struct measure *measure, struct format *format,
 		struct scandata *scandata) {
 	char *text;
 	GList *attrlist;
-	PopplerRectangle *rects, *tr;
+	PopplerRectangle *rects, *tr, *region;
 	guint nrects;
 	RectangleList *textarea;
 	gint r;
@@ -427,32 +427,37 @@ void showpage(FILE *fd, PopplerPage *page,
 		poppler_page_get_crop_box(page, tr);
 		textarea = rectanglelist_new(1);
 		rectanglelist_add(textarea, tr);
-		showregion(fd, NULL, textarea, text, attrlist, rects, nrects,
+		showregion(fd, zone, textarea, text, attrlist, rects, nrects,
 			measure, format, scandata, TRUE);
+		poppler_rectangle_free(tr);
 		break;
 	case 1:
 		tr = rectanglelist_boundingbox(page);
 		textarea = rectanglelist_new(1);
 		rectanglelist_add(textarea, tr);
-		showregion(fd, NULL, textarea, text, attrlist, rects, nrects,
+		showregion(fd, zone, textarea, text, attrlist, rects, nrects,
 			measure, format, scandata, FALSE);
+		poppler_rectangle_free(tr);
 		break;
 	case 2:
 		textarea = rectanglelist_textarea_distance(page,
 				measure->blockdistance);
-		showregion(fd, NULL, textarea, text, attrlist, rects, nrects,
+		showregion(fd, zone, textarea, text, attrlist, rects, nrects,
 			measure, format, scandata, FALSE);
 		break;
 	case 3:
 		textarea = rectanglelist_textarea_distance(page,
 				measure->blockdistance);
 		sort[order](textarea, page);
+		region = poppler_rectangle_new();
 		for (r = 0; r < textarea->num; r++) {
 			delement(fd, "[=== BLOCK %d]", r);
-			showregion(fd, &textarea->rect[r], textarea,
+			rectangle_intersect(region, zone, &textarea->rect[r]);
+			showregion(fd, region, textarea,
 				text, attrlist, rects, nrects,
 				measure, format, scandata, FALSE);
 		}
+		poppler_rectangle_free(region);
 		break;
 	default:
 		fprintf(stderr, "no such conversion method: %d\n", method);
@@ -494,6 +499,7 @@ void enddocument(FILE *fd,
  * show some pages of a pdf document
  */
 void showdocumentpart(FILE *fd, PopplerDocument *doc, int first, int last,
+		PopplerRectangle *zone,
 		int method, int order,
 		struct measure *measure, struct format *format) {
 	struct scandata scandata;
@@ -514,7 +520,8 @@ void showdocumentpart(FILE *fd, PopplerDocument *doc, int first, int last,
 	for (npage = first; npage <= last; npage++) {
 		page = poppler_document_get_page(doc, npage);
 		delement(fd, "[PAGE %d]", npage);
-		showpage(fd, page, method, order, measure, format, &scandata);
+		showpage(fd, page, zone,
+			method, order, measure, format, &scandata);
 		g_object_unref(page);
 	}
 	enddocument(fd, method, measure, format, &scandata);
@@ -523,16 +530,17 @@ void showdocumentpart(FILE *fd, PopplerDocument *doc, int first, int last,
 /*
  * show a pdf document
  */
-void showdocument(FILE *fd, PopplerDocument *doc,
+void showdocument(FILE *fd, PopplerDocument *doc, PopplerRectangle *zone,
 		int method, int order,
 		struct measure *measure, struct format *format) {
-	showdocumentpart(fd, doc, 0, -1, method, order, measure, format);
+	showdocumentpart(fd, doc, 0, -1, zone, method, order, measure, format);
 }
 
 /*
  * show a pdf file
  */
 void showfile(FILE *fd, char *filename, int first, int last,
+		PopplerRectangle *zone,
 		int method, int order,
 		struct measure *measure, struct format *format) {
 	char *uri;
@@ -547,7 +555,8 @@ void showfile(FILE *fd, char *filename, int first, int last,
 		exit(EXIT_FAILURE);
 	}
 
-	showdocumentpart(fd, doc, first, last, method, order, measure, format);
+	showdocumentpart(fd, doc, first, last, zone,
+		method, order, measure, format);
 }
 
 /*

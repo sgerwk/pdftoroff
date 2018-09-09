@@ -45,6 +45,7 @@ int main(int argc, char *argv[]) {
 	int first = 1, last = 0;
 	struct measure measure = {8, 25, 80, 30, 40, 6, 20, 15};
 	struct format *format;
+	PopplerRectangle *zone = NULL;
 
 				/* arguments */
 
@@ -129,6 +130,23 @@ int main(int argc, char *argv[]) {
 			argc--;
 			argv++;
 			break;
+		case 'b':
+			if (argc - 1 < 2) {
+				printf("-b requires a box\n");
+				usage = TRUE;
+				opterr = TRUE;
+				break;
+			}
+			zone = rectangle_parse(argv[2]);
+			if (zone == NULL) {
+				printf("error parsing box\n");
+				usage = TRUE;
+				opterr = TRUE;
+				break;
+			}
+			argc--;
+			argv++;
+			break;
 		case 'v':
 			debugpar = TRUE;
 			break;
@@ -149,7 +167,7 @@ int main(int argc, char *argv[]) {
 		printf("pdftoroff converts pdf to various text formats\n");
 		printf("usage:\n\tpdftoroff [-r|-w|-p|-f|-t|-s fmt]");
 		printf(" [-m method [-d dist] [-o order]]\n");
-		printf("\t          [-i range] [-v] file.pdf\n");
+		printf("\t          [-i range] [-b box] [-v] file.pdf\n");
 		printf("\t\t-r\t\tconvert to roff (default)\n");
 		printf("\t\t-w\t\tconvert to html\n");
 		printf("\t\t-p\t\tconvert to plain TeX\n");
@@ -161,6 +179,7 @@ int main(int argc, char *argv[]) {
 		printf("blocks of text\n");
 		printf("\t\t-o order\tblock sorting algorithm (0-2)\n");
 		printf("\t\t-i range\tpages to convert (n:m)\n");
+		printf("\t\t-b box\t\tonly convert characters in box\n");
 		printf("\t\t-v\t\treason for line breaks\n");
 
 		exit(opterr || ! usage ? EXIT_FAILURE : EXIT_SUCCESS);
@@ -168,7 +187,7 @@ int main(int argc, char *argv[]) {
 
 				/* show file */
 
-	showfile(stdout, argv[1], first - 1, last - 1,
+	showfile(stdout, argv[1], first - 1, last - 1, zone,
 		method, order, &measure, format);
 
 	return EXIT_SUCCESS;
