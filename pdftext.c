@@ -276,7 +276,6 @@ void showbox(FILE *fd, PopplerPage *page, PopplerRectangle *zone,
 				tr = &textarea->rect[ti];
 			else if (*cur == ' ') {
 				dnewpar(fd, "_SPACE_");
-				ti = -1;
 				tr = &crect;
 			}
 			else
