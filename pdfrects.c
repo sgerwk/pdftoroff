@@ -146,6 +146,24 @@ void rectangle_printyaml(FILE *fd, char *first, char *indent,
 }
 
 /*
+ * parse a rectangle
+ */
+PopplerRectangle *rectangle_parse(char *s) {
+	gdouble x1, y1, x2, y2;
+	PopplerRectangle *res;
+
+	if (sscanf(s, "[%lg,%lg - %lg,%lg]", &x1, &y1, &x2, &y2) != 4)
+		return NULL;
+
+	res = poppler_rectangle_new();
+	res->x1 = x1;
+	res->y1 = y1;
+	res->x2 = x2;
+	res->y2 = y2;
+	return res;
+}
+
+/*
  * a rectangle as large as the page
  */
 void rectangle_page(PopplerPage *page, PopplerRectangle *rect) {

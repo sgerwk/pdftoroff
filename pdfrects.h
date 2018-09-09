@@ -24,6 +24,9 @@
 void rectangle_print(FILE *, PopplerRectangle *);
 void rectangle_printyaml(FILE *, char *first, char *indent, PopplerRectangle *);
 
+/* parse a rectangle */
+PopplerRectangle *rectangle_parse(char *s);
+
 /* check whether the first rectangle contains the second */
 gboolean rectangle_contain(PopplerRectangle *, PopplerRectangle *);
 
