@@ -212,10 +212,12 @@ void startpage(struct scandata *scanpage) {
  *			may also be the whole page or its bounding box
  *	text, attrlist, rects, nrects
  *			characters and their fonts and positions
- *	detectcolumns	whether to detect the start of a new column by
- *			comparing the coordinates of the current column and the
- *			next character; only used when textarea=page
+ *	detectcolumns	whether to detect the start of a new column during the
+ *			scan, by comparing the position of the current
+ *			character with that of the current column and previous
+ *			character; only used when textarea=page
  */
+
 void showregion(FILE *fd, PopplerRectangle *zone, RectangleList *textarea,
 		char *text, GList *attrlist,
 		PopplerRectangle *rects, guint nrects,
