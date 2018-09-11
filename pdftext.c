@@ -217,7 +217,6 @@ void startpage(struct scandata *scanpage) {
  *			character with that of the current column and previous
  *			character; only used when textarea=page
  */
-
 void showregion(FILE *fd, PopplerRectangle *zone, RectangleList *textarea,
 		char *text, GList *attrlist,
 		PopplerRectangle *rects, guint nrects,
