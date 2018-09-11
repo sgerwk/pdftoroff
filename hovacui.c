@@ -1462,6 +1462,7 @@ int help(int c, struct position *position, struct output *output) {
 		"/ ?        search forward or backward",
 		"n p        next or previous search match",
 		"s          show current mode and page",
+		"b          show and save current box",
 		"r          reload the current document",
 		"h          help",
 		"q          quit",
