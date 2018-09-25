@@ -437,8 +437,8 @@ struct output {
 	/* apply the changes immediately from the ui */
 	int immediate;
 
-	/* do not draw draw the textbox and page box */
-	int nobox;
+	/* draw draw the textbox and page box */
+	int drawbox;
 
 	/* show the page number when it changes */
 	int pagelabel;
@@ -2264,7 +2264,7 @@ void draw(struct cairooutput *cairo,
 			output->reload = TRUE;
 			return;
 		}
-		if (! output->nobox) {
+		if (output->drawbox) {
 			rectangle_draw(output->cr,
 				&position->textarea->rect[position->box],
 				FALSE, FALSE, TRUE);
@@ -2473,7 +2473,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	output.order = 1;
 	output.scroll = 1.0 / 4.0;
 	output.immediate = FALSE;
-	output.nobox = FALSE;
+	output.drawbox = TRUE;
 	output.pagelabel = TRUE;
 	screenaspect = -1;
 	firstwindow = WINDOW_TUTORIAL;
@@ -2515,7 +2515,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 				if (! strcmp(s, "immediate"))
 					output.immediate = TRUE;
 				if (! strcmp(s, "nobox"))
-					output.nobox = TRUE;
+					output.drawbox = FALSE;
 				if (! strcmp(s, "nopagelabel"))
 					output.pagelabel = FALSE;
 				if (! strcmp(s, "notutorial"))
