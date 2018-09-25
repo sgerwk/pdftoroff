@@ -437,6 +437,9 @@ struct output {
 	/* apply the changes immediately from the ui */
 	int immediate;
 
+	/* do not draw draw the textbox and page box */
+	int nobox;
+
 	/* whether the document has to be reloaded */
 	int reload;
 
@@ -2257,10 +2260,12 @@ void draw(struct cairooutput *cairo,
 			output->reload = TRUE;
 			return;
 		}
-		rectangle_draw(output->cr,
-			&position->textarea->rect[position->box],
-			FALSE, FALSE, TRUE);
-		pageborder(position, output);
+		if (! output->nobox) {
+			rectangle_draw(output->cr,
+				&position->textarea->rect[position->box],
+				FALSE, FALSE, TRUE);
+			pageborder(position, output);
+		}
 		selection(position, output, output->found);
 		output->redraw = FALSE;
 	}
@@ -2464,6 +2469,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	output.order = 1;
 	output.scroll = 1.0 / 4.0;
 	output.immediate = FALSE;
+	output.nobox = FALSE;
 	screenaspect = -1;
 	firstwindow = WINDOW_TUTORIAL;
 	margin = 10.0;
@@ -2500,18 +2506,18 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 				margin = d;
 			if (sscanf(configline, "device %s", s) == 1)
 				outdev = strdup(s);
-			if (sscanf(configline, "%s", s) == 1 &&
-			    ! strcmp(s, "immediate"))
-				output.immediate = TRUE;
-			if (sscanf(configline, "%s", s) == 1 &&
-			    ! strcmp(s, "notutorial"))
-				firstwindow = WINDOW_DOCUMENT;
-			if (sscanf(configline, "%s", s) == 1 &&
-			    ! strcmp(s, "totalpages"))
-				output.totalpages = TRUE;
-			if (sscanf(configline, "%s", s) == 1 &&
-			    ! strcmp(s, "noinitlabels"))
-				noinitlabels = TRUE;
+			if (sscanf(configline, "%s", s) == 1) {
+				if (! strcmp(s, "immediate"))
+					output.immediate = TRUE;
+				if (! strcmp(s, "nobox"))
+					output.nobox = TRUE;
+				if (! strcmp(s, "notutorial"))
+					firstwindow = WINDOW_DOCUMENT;
+				if (! strcmp(s, "totalpages"))
+					output.totalpages = TRUE;
+				if (! strcmp(s, "noinitlabels"))
+					noinitlabels = TRUE;
+			}
 		}
 		fclose(config);
 	}
