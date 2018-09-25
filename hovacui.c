@@ -434,6 +434,9 @@ struct output {
 	/* scroll distance, as a fraction of the screen size */
 	double scroll;
 
+	/* show the ui (menu and help) */
+	int ui;
+
 	/* apply the changes immediately from the ui */
 	int immediate;
 
@@ -1194,10 +1197,10 @@ int document(int c, struct position *position, struct output *output) {
 		return WINDOW_EXIT;
 	case KEY_HELP:
 	case 'h':
-		return WINDOW_HELP;
+		return output->ui ? WINDOW_HELP : WINDOW_DOCUMENT;
 	case KEY_OPTIONS:
 	case 'm':
-		return WINDOW_MENU;
+		return output->ui ? WINDOW_MENU : WINDOW_DOCUMENT;
 	case KEY_MOVE:
 	case 'g':
 		return WINDOW_GOTOPAGE;
@@ -2472,6 +2475,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	output.distance = 15.0;
 	output.order = 1;
 	output.scroll = 1.0 / 4.0;
+	output.ui = TRUE;
 	output.immediate = FALSE;
 	output.drawbox = TRUE;
 	output.pagelabel = TRUE;
@@ -2512,6 +2516,8 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 			if (sscanf(configline, "device %s", s) == 1)
 				outdev = strdup(s);
 			if (sscanf(configline, "%s", s) == 1) {
+				if (! strcmp(s, "noui"))
+					output.ui = FALSE;
 				if (! strcmp(s, "immediate"))
 					output.immediate = TRUE;
 				if (! strcmp(s, "nobox"))
@@ -2527,6 +2533,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 				if (! strcmp(s, "presentation")) {
 					output.viewmode = 3;
 					output.fit = 1;
+					output.ui = FALSE;
 					output.drawbox = FALSE;
 					output.pagelabel = FALSE;
 					margin = -1;
