@@ -2524,6 +2524,15 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 					output.totalpages = TRUE;
 				if (! strcmp(s, "noinitlabels"))
 					noinitlabels = TRUE;
+				if (! strcmp(s, "presentation")) {
+					output.viewmode = 3;
+					output.fit = 1;
+					output.drawbox = FALSE;
+					output.pagelabel = FALSE;
+					margin = -1;
+					firstwindow = WINDOW_DOCUMENT;
+					noinitlabels = TRUE;
+				}
 			}
 		}
 		fclose(config);
