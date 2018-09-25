@@ -2421,12 +2421,13 @@ double fraction(char *arg) {
 void usage() {
 	printf("pdf viewer with automatic zoom to text\n");
 	printf("usage:\n\thovacui\t[-m viewmode] [-f direction] ");
-	printf("[-w minwidth] [-t distance]\n");
+	printf("[-w minwidth] [-t distance] [-p]\n");
 	printf("\t\t[-s aspect] [-d device] file.pdf\n");
 	printf("\t\t-m viewmode\tzoom to: text, boundingbox, page\n");
 	printf("\t\t-f direction\tfit: horizontally, vertically, both\n");
 	printf("\t\t-w minwidth\tminimal width (maximal zoom)\n");
 	printf("\t\t-t distance\tminimal text distance\n");
+	printf("\t\t-p\t\tpresentation mode\n");
 	printf("\t\t-s aspect\tthe screen aspect (e.g., 4:3)\n");
 	printf("\t\t-d device\tfbdev device, default /dev/fb0\n");
 	printf("main keys: 'h'=help 'g'=go to page '/'=search 'q'=quit ");
@@ -2587,6 +2588,16 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 				usage();
 				exit(EXIT_FAILURE);
 			}
+			break;
+		case 'p':
+			output.viewmode = 3;
+			output.fit = 1;
+			output.ui = FALSE;
+			output.drawbox = FALSE;
+			output.pagelabel = FALSE;
+			margin = -1;
+			firstwindow = WINDOW_DOCUMENT;
+			noinitlabels = TRUE;
 			break;
 		case 'd':
 			outdev = optarg;

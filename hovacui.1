@@ -373,6 +373,11 @@ text distance
 block order
 (see \fIBlock order\fP, above)
 .TP
+.BI -p
+presentation mode, suitable for an overhead presentation: page mode, horizontal
+fit, no margins, no page labels, no boxes, no initial tutorial, no menu and
+help
+.TP
 .BI -d " device
 the device to use, by default \fI/dev/fb0\fP for the framebuffer and the
 content of the environment variable \fIDISPLAY\fP for X11
@@ -437,9 +442,9 @@ do not draw the textbox and the page box
 do not show the page number when it changes; they are still shown by key 's'
 .TP
 .BI presentation
-set a number of configuration options to show pages as in a overhead
-presentation: page mode, horizontal fit, no margins, no page labels, no boxes,
-no initial tutorial, no menu and help
+set a number of configuration options to show pages in a way suitable for a
+overhead presentation: page mode, horizontal fit, no margins, no page labels,
+no boxes, no initial tutorial, no menu and help
 .TP
 .BI aspect " a
 the screen aspect, like \fI16:9\fP or \fI4:3\fP; allows for non-square pixels
