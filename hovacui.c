@@ -440,6 +440,9 @@ struct output {
 	/* do not draw draw the textbox and page box */
 	int nobox;
 
+	/* show the page number when it changes */
+	int pagelabel;
+
 	/* whether the document has to be reloaded */
 	int reload;
 
@@ -2096,7 +2099,8 @@ void pagenumber(struct position *position, struct output *output) {
 	int hasannots, hasactions;
 	char *other, *annots, *actions;
 
-	if (position->npage == prev && ! output->pagenumber)
+	if ((position->npage == prev || ! output->pagelabel) &&
+	    ! output->pagenumber)
 		return;
 
 	hasannots = checkannotations(position);
@@ -2470,6 +2474,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	output.scroll = 1.0 / 4.0;
 	output.immediate = FALSE;
 	output.nobox = FALSE;
+	output.pagelabel = TRUE;
 	screenaspect = -1;
 	firstwindow = WINDOW_TUTORIAL;
 	margin = 10.0;
@@ -2511,6 +2516,8 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 					output.immediate = TRUE;
 				if (! strcmp(s, "nobox"))
 					output.nobox = TRUE;
+				if (! strcmp(s, "nopagelabel"))
+					output.pagelabel = FALSE;
 				if (! strcmp(s, "notutorial"))
 					firstwindow = WINDOW_DOCUMENT;
 				if (! strcmp(s, "totalpages"))
