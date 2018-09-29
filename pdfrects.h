@@ -157,7 +157,10 @@ PopplerRectangle *get_papersize(char *name);
 /* default paper size, from /etc/papersize */
 char *defaultpapersize();
 
+/* from file name to uri */
 char *filenametouri(char *);
+
+/* turn file.pdf into file-suffix.pdf */
 char *pdfaddsuffix(char *infile, char *suffix);
 
 #endif
