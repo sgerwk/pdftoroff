@@ -164,6 +164,23 @@ PopplerRectangle *rectangle_parse(char *s) {
 }
 
 /*
+ * normalize a rectangle: x1 <= x2 and y1 <= y2
+ */
+void rectangle_normalize(PopplerRectangle *rect) {
+	gdouble temp;
+	if (rect->x1 > rect->x2) {
+		temp = rect->x1;
+		rect->x1 = rect->x2;
+		rect->x2 = temp;
+	}
+	if (rect->y1 > rect->y2) {
+		temp = rect->y1;
+		rect->y1 = rect->y2;
+		rect->y2 = temp;
+	}
+}
+
+/*
  * a rectangle as large as the page
  */
 void rectangle_page(PopplerPage *page, PopplerRectangle *rect) {
@@ -349,6 +366,15 @@ void rectanglelist_delete(RectangleList *rl, gint n) {
 }
 
 /*
+ * append a rectangle to a list
+ */
+void rectanglelist_append(RectangleList *rl, PopplerRectangle *rect) {
+	if (rl->num >= rl->max)
+		return;
+	rectangle_copy(rl->rect + rl->num++, rect);
+}
+
+/*
  * add a rectangle to a list
  *
  * since a RectangleList represents the area that is the union of its
@@ -384,7 +410,7 @@ gboolean rectanglelist_add(RectangleList *rl, PopplerRectangle *rect) {
 	}
 
 	if (! placed)
-		rectangle_copy(rl->rect + rl->num++, rect);
+		rectanglelist_append(rl, rect);
 	return TRUE;
 }
 

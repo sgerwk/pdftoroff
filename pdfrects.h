@@ -27,6 +27,9 @@ void rectangle_printyaml(FILE *, char *first, char *indent, PopplerRectangle *);
 /* parse a rectangle */
 PopplerRectangle *rectangle_parse(char *s);
 
+/* normalize a rectangle: x1 <= x2 and y1 <= y2 */
+void rectangle_normalize(PopplerRectangle *);
+
 /* check whether the first rectangle contains the second */
 gboolean rectangle_contain(PopplerRectangle *, PopplerRectangle *);
 
@@ -53,6 +56,9 @@ void rectangle_join(PopplerRectangle *, PopplerRectangle *);
 
 /* compare the position of two rectangles */
 int rectangle_compare(PopplerRectangle *, PopplerRectangle *);
+
+/* a rectangle as large as the page */
+void rectangle_page(PopplerPage *page, PopplerRectangle *rect);
 
 /*
  * functions on lists of rectangles
@@ -84,6 +90,9 @@ void rectanglelist_printyaml(FILE *, char *first, char *indent,
 
 /* remove a rectangle from a list */
 void rectanglelist_delete(RectangleList *, gint);
+
+/* append a rectangle to a list */
+void rectanglelist_append(RectangleList *rl, PopplerRectangle *rect);
 
 /* add a rectangle to a list, if not redundant */
 gboolean rectanglelist_add(RectangleList *, PopplerRectangle *);
