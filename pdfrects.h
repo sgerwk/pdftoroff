@@ -141,6 +141,9 @@ void rectangle_draw(cairo_t *, PopplerRectangle *,
 void rectanglelist_draw(cairo_t *, RectangleList *,
 	gboolean fill, gboolean enclosing, gboolean num);
 
+/* apply the current transformation to a rectangle */
+void rectangle_transform(cairo_t *cr, PopplerRectangle *r);
+
 /* map a poppler rectangle into a cairo surface */
 void rectangle_map_to_cairo(cairo_t *cr,
 		PopplerRectangle *dst, PopplerRectangle *src,

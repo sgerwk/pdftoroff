@@ -911,6 +911,14 @@ void rectanglelist_draw(cairo_t *cr, RectangleList *rl,
 }
 
 /*
+ * apply the current transformation to a rectangle
+ */
+void rectangle_transform(cairo_t *cr, PopplerRectangle *r) {
+	cairo_user_to_device(cr, &r->x1, &r->y1);
+	cairo_user_to_device(cr, &r->x2, &r->y2);
+}
+
+/*
  * map a poppler rectangle into a cairo surface
  *
  * do no rendering, just modify the transformation matrix so that operations on
