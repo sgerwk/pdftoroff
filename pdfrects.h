@@ -147,15 +147,15 @@ void rectangle_map_to_cairo(cairo_t *cr,
 		gboolean horizontal, gboolean vertical,
 		gboolean ratio, gboolean topalign, gboolean leftalign);
 
+/*
+ * helper functions
+ */
+
 /* from name to paper size (pointer to statically allocated structure) */
 PopplerRectangle *get_papersize(char *name);
 
 /* default paper size, from /etc/papersize */
 char *defaultpapersize();
-
-/*
- * helper filename functions
- */
 
 char *filenametouri(char *);
 char *pdfaddsuffix(char *infile, char *suffix);
