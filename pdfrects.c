@@ -235,6 +235,19 @@ gboolean rectangle_touch(PopplerRectangle *a, PopplerRectangle *b) {
 }
 
 /*
+ * check whether a rectangle satisfies bounds and containment
+ */
+gboolean rectangle_boundcontain(PopplerRectangle *r,
+                                PopplerRectangle *contained,
+                                RectangleBound *bounds) {
+	if (bounds != NULL && ! rectangle_bound(r, bounds))
+		return FALSE;
+	if (contained != NULL && ! rectangle_contain(r, contained))
+		return FALSE;
+	return TRUE;
+}
+
+/*
  * copy a rectangle onto another
  */
 void rectangle_copy(PopplerRectangle *dest, PopplerRectangle *orig) {
@@ -601,11 +614,12 @@ gboolean rectanglelist_place(PopplerRectangle *page,
  *	res += orig - sub
  *
  * for each rectangle in orig, subtract sub from it; this may generate up to
- * four rectangles, which are appended to list res
+ * four rectangles, which are appended to list res if they contain rectangle
+ * cont (if not NULL) and satisfies bounds b (if not NULL)
  */
 gboolean rectanglelist_subtract_append(RectangleList *dest,
 		RectangleList *orig, PopplerRectangle *sub,
-		RectangleBound *b) {
+		PopplerRectangle *cont, RectangleBound *b) {
 	gint i;
 	PopplerRectangle *a, *r;
 
@@ -617,7 +631,7 @@ gboolean rectanglelist_subtract_append(RectangleList *dest,
 		r->y1 = a->y1;
 		r->x2 = MIN(a->x2, sub->x1);
 		r->y2 = a->y2;
-		if (rectangle_bound(r, b))
+		if (rectangle_boundcontain(r, cont, b))
 			if (! rectanglelist_add(dest, r))
 				return FALSE;
 
@@ -626,7 +640,7 @@ gboolean rectanglelist_subtract_append(RectangleList *dest,
 		r->y1 = a->y1;
 		r->x2 = a->x2;
 		r->y2 = MIN(a->y2, sub->y1);
-		if (rectangle_bound(r, b))
+		if (rectangle_boundcontain(r, cont, b))
 			if (! rectanglelist_add(dest, r))
 				return FALSE;
 
@@ -635,7 +649,7 @@ gboolean rectanglelist_subtract_append(RectangleList *dest,
 		r->y1 = a->y1;
 		r->x2 = a->x2;
 		r->y2 = a->y2;
-		if (rectangle_bound(r, b))
+		if (rectangle_boundcontain(r, cont, b))
 			if (! rectanglelist_add(dest, r))
 				return FALSE;
 
@@ -644,7 +658,7 @@ gboolean rectanglelist_subtract_append(RectangleList *dest,
 		r->y1 = MAX(a->y1, sub->y2);
 		r->x2 = a->x2;
 		r->y2 = a->y2;
-		if (rectangle_bound(r, b))
+		if (rectangle_boundcontain(r, cont, b))
 			if (! rectanglelist_add(dest, r))
 				return FALSE;
 	}
@@ -656,14 +670,14 @@ gboolean rectanglelist_subtract_append(RectangleList *dest,
  * subtract a rectangle list from another: orig -= sub
  */
 gboolean rectanglelist_subtract(RectangleList **orig, RectangleList *sub,
-		RectangleBound *b) {
+		PopplerRectangle *cont, RectangleBound *b) {
 	RectangleList *dest;
 	gint r;
 
 	for (r = 0; r < sub->num; r++) {
 		dest = rectanglelist_new(MAXRECT);
 		if (! rectanglelist_subtract_append(dest, *orig, sub->rect + r,
-				b))
+		                                    cont, b))
 			return FALSE;
 		if (debugtextrectangles == -1 && dest->num != (*orig)->num)
 			printf("rectangles: %d\n", dest->num);
@@ -672,6 +686,24 @@ gboolean rectanglelist_subtract(RectangleList **orig, RectangleList *sub,
 	}
 
 	return TRUE;
+}
+
+/*
+ * subtract a rectangle list from a single rectangle: res = r - rl
+ */
+RectangleList *rectanglelist_subrect(PopplerRectangle *r, RectangleList *rl,
+		PopplerRectangle *c, RectangleBound *b) {
+	RectangleList *res;
+
+	res = rectanglelist_new(MAXRECT);
+	rectangle_copy(res->rect, r);
+	res->num = 1;
+
+	if (! rectanglelist_subtract(&res, rl, c, b)) {
+		rectanglelist_free(res);
+		return NULL;
+	}
+	return res;
 }
 
 /*
@@ -754,6 +786,7 @@ RectangleList *rectanglelist_characters(PopplerPage *page) {
 RectangleList *rectanglelist_textarea_bound(PopplerPage *page,
 		gdouble whiteboth, gdouble whiteeach,
 		gdouble blackboth, gdouble blackeach) {
+	PopplerRectangle p;
 	RectangleList *layout, *white, *black;
 	RectangleBound wb, bb;
 
@@ -774,16 +807,13 @@ RectangleList *rectanglelist_textarea_bound(PopplerPage *page,
 	if (debugtextrectangles == 2)
 		return layout;
 
-	white = rectanglelist_new(MAXRECT);
-	rectangle_page(page, white->rect);
-	/* enlarge, otherwise thin white areas at the borders are lost */
-	white->rect[0].x1 -= wb.both - 1.0;
-	white->rect[0].y1 -= wb.both - 1.0;
-	white->rect[0].x2 += wb.both + 1.0;
-	white->rect[0].y2 += wb.both + 1.0;
-	white->num = 1;
-
-	if (! rectanglelist_subtract(&white, layout, &wb))
+	rectangle_page(page, &p);
+	p.x1 -= wb.both - 1.0;	/* enlarge, otherwise thin white areas at */
+	p.y1 -= wb.both - 1.0;  /* the borders are lost */
+	p.x2 += wb.both + 1.0;
+	p.y2 += wb.both + 1.0;
+	white = rectanglelist_subrect(&p, layout, NULL, &wb);
+	if (white == NULL)
 		return NULL;
 	if (debugtextrectangles)
 		printf("white rectangles: %d\n", white->num);
@@ -791,11 +821,9 @@ RectangleList *rectanglelist_textarea_bound(PopplerPage *page,
 	if (debugtextrectangles == 3)
 		return white;
 
-	black = rectanglelist_new(MAXRECT);
-	rectangle_page(page, black->rect);
-	black->num = 1;
-
-	if (! rectanglelist_subtract(&black, white, &bb))
+	rectangle_page(page, &p);
+	black = rectanglelist_subrect(&p, white, NULL, &bb);
+	if (black == NULL)
 		return NULL;
 	if (debugtextrectangles)
 		printf("white rectangles: %d\n", black->num);
