@@ -117,14 +117,6 @@
 int debugtextrectangles = 0;
 
 /*
- * minimal size for both dimensions of a rectangle and for each
- */
-typedef struct {
-	gdouble both;
-	gdouble each;
-} RectangleBound;
-
-/*
  * print a rectangle
  */
 void rectangle_print(FILE *fd, PopplerRectangle *r) {
@@ -615,7 +607,7 @@ gboolean rectanglelist_place(PopplerRectangle *page,
  *
  * for each rectangle in orig, subtract sub from it; this may generate up to
  * four rectangles, which are appended to list res if they contain rectangle
- * cont (if not NULL) and satisfies bounds b (if not NULL)
+ * cont (if not NULL) and satisfy bounds b (if not NULL)
  */
 gboolean rectanglelist_subtract_append(RectangleList *dest,
 		RectangleList *orig, PopplerRectangle *sub,
@@ -673,11 +665,12 @@ gboolean rectanglelist_subtract(RectangleList **orig, RectangleList *sub,
 		PopplerRectangle *cont, RectangleBound *b) {
 	RectangleList *dest;
 	gint r;
+	RectangleBound bd = {0.0, 0.0};
 
 	for (r = 0; r < sub->num; r++) {
 		dest = rectanglelist_new(MAXRECT);
 		if (! rectanglelist_subtract_append(dest, *orig, sub->rect + r,
-		                                    cont, b))
+		                                    cont, b != NULL ? b : &bd))
 			return FALSE;
 		if (debugtextrectangles == -1 && dest->num != (*orig)->num)
 			printf("rectangles: %d\n", dest->num);
@@ -691,15 +684,15 @@ gboolean rectanglelist_subtract(RectangleList **orig, RectangleList *sub,
 /*
  * subtract a rectangle list from a single rectangle: res = r - rl
  */
-RectangleList *rectanglelist_subrect(PopplerRectangle *r, RectangleList *rl,
-		PopplerRectangle *c, RectangleBound *b) {
+RectangleList *rectanglelist_subtract1(PopplerRectangle *r, RectangleList *rl,
+		PopplerRectangle *cont, RectangleBound *b) {
 	RectangleList *res;
 
 	res = rectanglelist_new(MAXRECT);
 	rectangle_copy(res->rect, r);
 	res->num = 1;
 
-	if (! rectanglelist_subtract(&res, rl, c, b)) {
+	if (! rectanglelist_subtract(&res, rl, cont, b)) {
 		rectanglelist_free(res);
 		return NULL;
 	}
@@ -812,7 +805,7 @@ RectangleList *rectanglelist_textarea_bound(PopplerPage *page,
 	p.y1 -= wb.both - 1.0;  /* the borders are lost */
 	p.x2 += wb.both + 1.0;
 	p.y2 += wb.both + 1.0;
-	white = rectanglelist_subrect(&p, layout, NULL, &wb);
+	white = rectanglelist_subtract1(&p, layout, NULL, &wb);
 	if (white == NULL)
 		return NULL;
 	if (debugtextrectangles)
@@ -822,7 +815,7 @@ RectangleList *rectanglelist_textarea_bound(PopplerPage *page,
 		return white;
 
 	rectangle_page(page, &p);
-	black = rectanglelist_subrect(&p, white, NULL, &bb);
+	black = rectanglelist_subtract1(&p, white, NULL, &bb);
 	if (black == NULL)
 		return NULL;
 	if (debugtextrectangles)

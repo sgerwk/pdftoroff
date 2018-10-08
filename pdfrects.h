@@ -74,6 +74,14 @@ typedef struct {
 	gint max;
 } RectangleList;
 
+/*
+ * minimal size for both dimensions of a rectangle and for each
+ */
+typedef struct {
+	gdouble both;
+	gdouble each;
+} RectangleBound;
+
 /* allocate a list with maximum number of elements, currently none */
 RectangleList *rectanglelist_new(int);
 
@@ -114,6 +122,14 @@ void rectanglelist_charsort(RectangleList *, PopplerPage *);
 gboolean rectanglelist_place(PopplerRectangle *page,
 		RectangleList *rl, PopplerRectangle *r,
 		PopplerRectangle *moved);
+
+/* subtract a rectangle list from another: orig -= sub */
+gboolean rectanglelist_subtract(RectangleList **orig, RectangleList *sub,
+		PopplerRectangle *cont, RectangleBound *b);
+
+/* subtract a rectangle list from a single rectangle: res = r - rl */
+RectangleList *rectanglelist_subtract1(PopplerRectangle *r, RectangleList *rl,
+		PopplerRectangle *cont, RectangleBound *b);
 
 /*
  * functions on text-enclosing rectangles
