@@ -2532,8 +2532,8 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 				if (! strcmp(s, "noinitlabels"))
 					noinitlabels = TRUE;
 				if (! strcmp(s, "presentation")) {
-					output.viewmode = 3;
-					output.fit = 1;
+					output.viewmode = optindex('p', "atbp");
+					output.fit = optindex('b', "nhvb");
 					output.ui = FALSE;
 					output.drawbox = FALSE;
 					output.pagelabel = FALSE;
