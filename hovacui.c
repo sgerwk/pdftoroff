@@ -7,10 +7,11 @@
 /*
  * todo:
  *
- * - move to a given position or named destination (POPPLER_DEST_NAMED); the
- *   latter requires locating the textbox the destination is in, and the
- *   scrollx,y within; called for example on SIGHUP: read whether to reload
- *   and/or move from a file, like $HOME/.pdfpositions
+ * - move to a given position or named destination (POPPLER_DEST_NAMED); for
+ *   the latter, generalize nextpagematch() to move to destination: pass an
+ *   arbitrary list of rectangles (currently, it always uses output->found);
+ *   may called for example on SIGHUP: read whether to reload and/or move from
+ *   a file, like $HOME/.pdfpositions
  * - arbitrary configuration file, specified as a commandline option
  * - configuration files specific for the framebuffer and x11, passed as
  *   additional arguments to hovacui()
