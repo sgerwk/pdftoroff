@@ -7,6 +7,10 @@
 /*
  * todo:
  *
+ * - move to a given position or named destination (POPPLER_DEST_NAMED); the
+ *   latter requires locating the textbox the destination is in, and the
+ *   scrollx,y within; called for example on SIGHUP: read whether to reload
+ *   and/or move from a file, like $HOME/.pdfpositions
  * - arbitrary configuration file, specified as a commandline option
  * - configuration files specific for the framebuffer and x11, passed as
  *   additional arguments to hovacui()
@@ -28,7 +32,6 @@
  *   box that contains it, set scrollx,scrolly so that the character is in the
  *   center of the screen; then adjust the scroll
  *
- * - config option for disabling the ui
  * - printf format string for page number label, with total pages
  * - make minwidth depend on the size of the letters
  * - list() yes/no to confirm exit; disabled by config option
