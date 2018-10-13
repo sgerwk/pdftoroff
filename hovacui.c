@@ -7,11 +7,13 @@
 /*
  * todo:
  *
- * - move to a given position or named destination (POPPLER_DEST_NAMED); for
- *   the latter, generalize nextpagematch() to move to destination: pass an
- *   arbitrary list of rectangles (currently, it always uses output->found);
- *   may called for example on SIGHUP: read whether to reload and/or move from
- *   a file, like $HOME/.pdfpositions
+ * - allow another program to move to a given position or named destination
+ *   (POPPLER_DEST_NAMED); may be called for example on SIGHUP: read whether to
+ *   reload and/or move from a file, like $HOME/.pdfpositions; for moving to a
+ *   named destination: rectanglelist_contain() finds the textbox the named
+ *   destination is in, scrolltorectangle() positions the named destination in
+ *   the center of the screen
+ * - pass a configuration option from command line
  * - arbitrary configuration file, specified as a commandline option
  * - configuration files specific for the framebuffer and x11, passed as
  *   additional arguments to hovacui()
@@ -1017,20 +1019,30 @@ int relativescreen(struct output *output, PopplerRectangle *r,
  * position a rectangle in the current textbox at the top or bottom of screen
  */
 void scrolltorectangle(struct position *position, struct output *output,
-		PopplerRectangle *r, gboolean top) {
+		PopplerRectangle *r, gboolean top, gboolean bottom) {
 	PopplerRectangle *t;
 
 	t = &position->textarea->rect[position->box];
 	toptextbox(position, output);
 	moveto(position, output);
 	if (output->fit != 1)
-		position->scrollx = top ?
-			r->x1 - t->x1 - 40 :
-			r->x2 - t->x1 + 40 - xdestsizetodoc(output);
+		position->scrollx =
+			top ?
+				r->x1 - t->x1 - 40 :
+			bottom ?
+				r->x2 - t->x1 + 40 - xdestsizetodoc(output) :
+			/* center */
+				(r->x1 + r->x2) / 2 + t->x1 -
+					xdestsizetodoc(output) / 2;
 	if (output->fit != 2)
-		position->scrolly = top ?
-			r->y1 - t->y1 - 40 :
-			r->y2 - t->y1 + 40 - ydestsizetodoc(output);
+		position->scrolly =
+			top ?
+				r->y1 - t->y1 - 40 :
+			bottom ?
+				r->y2 - t->y1 + 40 - ydestsizetodoc(output) :
+			/* center */
+				(r->y1 + r->y2) / 2 - t->y1 -
+					ydestsizetodoc(output) / 2;
 	adjustscroll(position, output);
 }
 
@@ -1076,7 +1088,8 @@ int nextpagematch(struct position *position, struct output *output,
 				continue;
 
 			position->box = b;
-			scrolltorectangle(position, output, &r, forward);
+			scrolltorectangle(position, output, &r,
+			                  forward, ! forward);
 
 			if (! forward)
 				g_list_free(o);
