@@ -2554,6 +2554,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 					output.ui = FALSE;
 					output.drawbox = FALSE;
 					output.pagelabel = FALSE;
+					output.totalpages = TRUE;
 					margin = 0.0;
 					firstwindow = WINDOW_DOCUMENT;
 					noinitlabels = TRUE;
@@ -2612,6 +2613,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 			output.ui = FALSE;
 			output.drawbox = FALSE;
 			output.pagelabel = FALSE;
+			output.totalpages = TRUE;
 			margin = 0.0;
 			firstwindow = WINDOW_DOCUMENT;
 			noinitlabels = TRUE;
