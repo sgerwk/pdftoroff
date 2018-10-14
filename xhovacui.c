@@ -372,7 +372,7 @@ char *second(char *a) {
 }
 
 /*
- * set window title
+ * x11-specific options
  */
 int setinitdata(int argn, char *argv[], struct cairodevice *cairodevice) {
 	int opt;
