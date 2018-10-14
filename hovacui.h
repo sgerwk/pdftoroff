@@ -9,7 +9,7 @@
 /*
  * the options parsed by hovacui itself
  */
-#define HOVACUIOPTS "m:f:w:t:o:d:s:ph"
+#define HOVACUIOPTS "m:f:w:t:o:d:s:pe:h"
 
 /*
  * include curses to get the macro keys
@@ -36,6 +36,17 @@
 #define KEY_SUSPEND	((KEY_MAX) + 7)
 #endif
 #define KEY_SIGNAL	((KEY_MAX) + 8)
+#define KEY_EXTERNAL	((KEY_MAX) + 9)
+
+/*
+ * external command
+ */
+struct command {
+	int fd;
+	FILE *stream;
+	char *command;
+	int max;
+};
 
 /*
  * a cairo device
@@ -52,7 +63,8 @@ struct cairodevice {
 	double (*screenheight)(struct cairooutput *cairo);
 	void (*clear)(struct cairooutput *cairo);
 	void (*flush)(struct cairooutput *cairo);
-	int (*input)(struct cairooutput *cairo, int timeout);
+	int (*input)(struct cairooutput *cairo, int timeout,
+	             struct command *command);
 };
 
 /*

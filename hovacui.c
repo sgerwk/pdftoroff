@@ -376,6 +376,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <fcntl.h>
 #include <string.h>
 #include <poppler.h>
 #include <cairo.h>
@@ -2430,7 +2431,7 @@ struct position *openpdf(char *filename) {
 }
 
 /*
- * reoload a pdf file
+ * reload a pdf file
  */
 struct position *reloadpdf(struct position *position, struct output *output) {
 	struct position *new;
@@ -2465,6 +2466,17 @@ struct position *reloadpdf(struct position *position, struct output *output) {
 void closepdf(struct position *position) {
 	free(position->filename);
 	free(position);
+}
+
+/*
+ * execute an external command
+ */
+void external(struct position *position, struct output *output,
+              struct command *command) {
+	(void) position;
+	(void) output;
+	fprintf(stderr, "command: %s", command->command);
+	fflush(stderr);
 }
 
 /*
@@ -2540,6 +2552,8 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	int opt;
 	int firstwindow;
 	int noinitlabels;
+	struct command command;
+	int keepopen;
 
 	int c;
 	int window, next;
@@ -2564,6 +2578,9 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	fontsize = -1;
 	outdev = NULL;
 	noinitlabels = FALSE;
+	command.fd = -1;
+	command.stream = NULL;
+	keepopen = -1;
 
 				/* config file */
 
@@ -2685,6 +2702,17 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 		case 's':
 			screenaspect = fraction(optarg);
 			break;
+		case 'e':
+			command.fd = open(optarg, O_RDONLY | O_NONBLOCK);
+			if (command.fd == -1) {
+				perror(optarg);
+				break;
+			}
+			command.stream = fdopen(command.fd, "r");
+			keepopen = open(optarg, O_WRONLY);
+			command.max = 4096;
+			command.command = malloc(command.max);
+			break;
 		case 'h':
 			usage();
 			exit(EXIT_SUCCESS);
@@ -2794,9 +2822,14 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 					/* read input */
 
 		c = c != KEY_NONE ? c :
-			cairodevice->input(cairo, output.timeout);
+			cairodevice->input(cairo, output.timeout, &command);
 		pending = output.timeout != 0;
 		output.timeout = 0;
+		if (c == KEY_EXTERNAL) {
+			external(position, &output, &command);
+			c = KEY_NONE;
+			continue;
+		}
 		if (c == KEY_SUSPEND || c == KEY_SIGNAL || c == KEY_NONE) {
 			c = KEY_NONE;
 			continue;
@@ -2841,5 +2874,8 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 
 	closepdf(position);
 	cairodevice->finish(cairo);
+	close(keepopen);
+	if (command.fd != -1)
+		fclose(command.stream);
 	return EXIT_SUCCESS;
 }

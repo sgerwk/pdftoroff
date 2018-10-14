@@ -88,7 +88,8 @@ void cairoflush_fb(struct cairooutput *cairo) {
 /*
  * get a single input from a cairo envelope
  */
-int cairoinput_fb(struct cairooutput *cairo, int timeout) {
+int cairoinput_fb(struct cairooutput *cairo, int timeout,
+		struct command *command) {
 	fd_set fds;
 	int max, ret;
 	struct timeval tv;
@@ -99,11 +100,20 @@ int cairoinput_fb(struct cairooutput *cairo, int timeout) {
 	FD_ZERO(&fds);
 	FD_SET(STDIN_FILENO, &fds);
 	max = STDIN_FILENO;
+	if (command->fd != -1) {
+		FD_SET(command->fd, &fds);
+		max = max > command->fd ? max : command->fd;
+	}
 
 	tv.tv_sec = timeout / 1000;
 	tv.tv_usec = timeout % 1000;
 
 	ret = select(max + 1, &fds, NULL, NULL, timeout != 0 ? &tv : NULL);
+
+	if (ret != -1 && command->fd != -1 && FD_ISSET(command->fd, &fds)) {
+		fgets(command->command, command->max, command->stream);
+		return KEY_EXTERNAL;
+	}
 
 	if (vt_suspend)
 		return KEY_SUSPEND;
@@ -125,7 +135,6 @@ int cairoinput_fb(struct cairooutput *cairo, int timeout) {
 
 	return KEY_TIMEOUT;
 }
-
 
 /*
  * the cairo device for the framebuffer

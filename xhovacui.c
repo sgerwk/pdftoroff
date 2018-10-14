@@ -273,10 +273,13 @@ int nextevent(Display *dsp, int timeout, XEvent *evt) {
 /*
  * get a single input
  */
-int cairoinput_x11(struct cairooutput *cairo, int timeout) {
+int cairoinput_x11(struct cairooutput *cairo, int timeout,
+		struct command *command) {
 	struct xhovacui *xhovacui;
 	XEvent evt;
 	int key;
+
+	(void) command;
 
 	xhovacui = (struct xhovacui *) cairo;
 
