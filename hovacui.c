@@ -479,6 +479,10 @@ struct output {
 	char search[100];
 	gboolean forward;
 	GList *found;
+
+	/* selection */
+	GList *selection;
+	double texfudge;
 };
 
 /*
@@ -558,6 +562,8 @@ int readpageraw(struct position *position, struct output *output) {
 	g_set_object(&position->page,
 		poppler_document_get_page(position->doc, position->npage));
 	pagematch(position, output);
+	freeglistrectangles(output->selection);
+	output->selection = NULL;
 	return 0;
 }
 
@@ -703,7 +709,7 @@ double ydestsizetodoc(struct output *output) {
 /*
  * change scrollx and scrolly to avoid space outside boundingbox being shown
  */
-void adjustscroll(struct position *position, struct output *output) {
+int adjustscroll(struct position *position, struct output *output) {
 
 	/* some space at the right of the bounding box is shown */
 	if (xdoctoscreen(output, position->boundingbox->x2 - position->scrollx)
@@ -747,7 +753,7 @@ void adjustscroll(struct position *position, struct output *output) {
 			yscreentodoc(output,
 				(output->dest.y1 + output->dest.y2) / 2);
 
-	return;
+	return 0;
 }
 
 /*
@@ -1018,7 +1024,7 @@ int relativescreen(struct output *output, PopplerRectangle *r,
 /*
  * position a rectangle in the current textbox at the top or bottom of screen
  */
-void scrolltorectangle(struct position *position, struct output *output,
+int scrolltorectangle(struct position *position, struct output *output,
 		PopplerRectangle *r, gboolean top, gboolean bottom) {
 	PopplerRectangle *t;
 
@@ -1043,7 +1049,7 @@ void scrolltorectangle(struct position *position, struct output *output,
 			/* center */
 				(r->y1 + r->y2) / 2 - t->y1 -
 					ydestsizetodoc(output) / 2;
-	adjustscroll(position, output);
+	return adjustscroll(position, output);
 }
 
 /*
@@ -1153,6 +1159,57 @@ int firstmatch(struct position *position, struct output *output) {
 }
 int nextmatch(struct position *position, struct output *output) {
 	return gotomatch(position, output, FALSE);
+}
+
+/*
+ * go to a named destination
+ */
+int gotonameddestination(struct position *position, struct output *output,
+		char *name) {
+	PopplerDest *dest;
+	double width, height;
+	PopplerRectangle r, *s, *p;
+	int pos;
+
+	dest = poppler_document_find_dest(position->doc, name);
+	if (dest == NULL)
+		return -1;
+
+	if (position->npage != dest->page_num - 1) {
+		position->npage = dest->page_num - 1;
+		readpage(position, output);
+	}
+
+	poppler_page_get_size(position->page, &width, &height);
+	r.x1 = dest->change_left ? dest->left : 0.0;
+	r.y1 = dest->change_top ? height - dest->top : height;
+	r.x2 = r.x1 + 1;
+	r.y2 = r.y1 + 1;
+
+	pos = rectanglelist_contain(position->textarea, &r);
+	if (pos == -1)
+		pos = rectanglelist_overlap(position->textarea, &r);
+	if (pos == -1) {
+		r.x1 = 0.0;
+		r.x2 = width;
+		pos = rectanglelist_overlap(position->textarea, &r);
+	}
+	if (pos != -1)
+		position->box = pos;
+	scrolltorectangle(position, output, &r, TRUE, FALSE);
+
+	p = &position->textarea->rect[position->box];
+	s = poppler_rectangle_new();
+	s->x1 = dest->change_left ? dest->left : p->x1;
+	s->y1 = dest->change_top ? dest->top - output->texfudge : p->y1;
+	s->x2 = s->x1 + 12;
+	s->y2 = s->y1 + 12;
+	freeglistrectangles(output->selection);
+	output->selection = g_list_append(NULL, s);
+
+	poppler_dest_free(dest);
+
+	return 0;
 }
 
 /*
@@ -1302,6 +1359,9 @@ int document(int c, struct position *position, struct output *output) {
 		break;
 	case 'b':
 		savebox(position, output);
+		break;
+	case '\\':	/* for testing */
+		gotonameddestination(position, output, "abcd");
 		break;
 	default:
 		;
@@ -2291,6 +2351,7 @@ void draw(struct cairooutput *cairo,
 			pageborder(position, output);
 		}
 		selection(position, output, output->found);
+		selection(position, output, output->selection);
 		output->redraw = FALSE;
 	}
 
@@ -2677,6 +2738,8 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 
 	strcpy(output.search, "");
 	output.found = NULL;
+	output.selection = NULL;
+	output.texfudge = 24;
 
 	output.timeout = 0;
 	output.help[0] = '\0';
