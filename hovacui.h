@@ -7,7 +7,7 @@
 #define _HOVACUI_H
 
 /*
- * the options parse by hovacui itself
+ * the options parsed by hovacui itself
  */
 #define HOVACUIOPTS "m:f:w:t:o:d:s:ph"
 
