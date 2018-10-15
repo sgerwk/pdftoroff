@@ -7,12 +7,6 @@
 /*
  * todo:
  *
- * - allow another program to move to a given position or named destination
- *   (POPPLER_DEST_NAMED); may be called for example on SIGHUP: read whether to
- *   reload and/or move from a file, like $HOME/.pdfpositions; for moving to a
- *   named destination: rectanglelist_contain() finds the textbox the named
- *   destination is in, scrolltorectangle() positions the named destination in
- *   the center of the screen
  * - pass a configuration option from command line
  * - arbitrary configuration file, specified as a commandline option
  * - configuration files specific for the framebuffer and x11, passed as
