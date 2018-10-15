@@ -1173,8 +1173,11 @@ int gotonameddestination(struct position *position, struct output *output,
 	int pos;
 
 	dest = poppler_document_find_dest(position->doc, name);
-	if (dest == NULL)
+	if (dest == NULL) {
+		snprintf(output->help, 80, "destination not found: %s", name);
+		output->timeout = 2000;
 		return -1;
+	}
 
 	if (position->npage != dest->page_num - 1) {
 		position->npage = dest->page_num - 1;
