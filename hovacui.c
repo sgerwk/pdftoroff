@@ -2568,6 +2568,7 @@ void usage() {
 	printf("\t\t-p\t\tpresentation mode\n");
 	printf("\t\t-s aspect\tthe screen aspect (e.g., 4:3)\n");
 	printf("\t\t-d device\tfbdev device, default /dev/fb0\n");
+	printf("\t\t-e fifo\t\treceive commands from the given fifo\n");
 	printf("main keys: 'h'=help 'g'=go to page '/'=search 'q'=quit ");
 	printf("'m'=menu\n");
 }

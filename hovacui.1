@@ -386,12 +386,22 @@ content of the environment variable \fIDISPLAY\fP for X11
 the screen aspect; it can be specified as \fI16:9\fP or \fI4:3\fP, for example;
 only necessary when pixels are non-square
 .TP
+.BI -e " fifo
+receive commands from the given existing fifo; this is currently supported only
+in the framebuffer;
+the available commands are "gotopage page" and "gotodestination dest";
+a destination "abcd" can be created by running "dvipdfm -C 0x0010" on a TeX
+file contaning
+.nf
+\fI\\special{pdf: dest (abcd) [ @thispage /XYZ @xpos @ypos ]}\fP
+.fi
+.TP
 .BI -x " suboption
 x11 options \fIdisplay\fP and \fIgeometry\fP;
 for example, the command line to run hovacui in a 400x300 window positioned at
 200,100 on display :1 is:
 .nf
-\fIhovacui -x'display :1' -x'geometry 400x300+200+100' file.pdf\fI
+\fIhovacui -x'display :1' -x'geometry 400x300+200+100' file.pdf\fP
 .fi
 .TP
 .BI -h
