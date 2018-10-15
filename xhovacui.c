@@ -243,7 +243,7 @@ int cairoexpose(Display *dsp, XEvent *evt) {
 /*
  * next event or timeout
  */
-int nextevent(Display *dsp, int timeout, XEvent *evt) {
+int nextevent(Display *dsp, int timeout, XEvent *evt, struct command *command) {
 	fd_set fds;
 	int max, ret;
 	struct timeval tv;
@@ -254,6 +254,10 @@ int nextevent(Display *dsp, int timeout, XEvent *evt) {
 		FD_ZERO(&fds);
 		FD_SET(ConnectionNumber(dsp), &fds);
 		max = ConnectionNumber(dsp);
+		if (command->fd != -1) {
+			FD_SET(command->fd, &fds);
+			max = max > command->fd ? max : command->fd;
+		}
 
 		tv.tv_sec = timeout / 1000;
 		tv.tv_usec = (timeout % 1000) * 1000;
@@ -261,10 +265,16 @@ int nextevent(Display *dsp, int timeout, XEvent *evt) {
 		ret = select(max + 1, &fds, NULL, NULL,
 			timeout != 0 ? &tv : NULL);
 		if (ret == -1)
-			return -2;
+			return -1;
+
+		if (command->fd != -1 && FD_ISSET(command->fd, &fds)) {
+			fgets(command->command, command->max, command->stream);
+			command->active = 1;
+			return KEY_EXTERNAL;
+		}
 
 		if (! FD_ISSET(ConnectionNumber(dsp), &fds))
-			return -1;
+			return KEY_TIMEOUT;
 	}
 
 	return 0;
@@ -276,16 +286,16 @@ int nextevent(Display *dsp, int timeout, XEvent *evt) {
 int cairoinput_x11(struct cairooutput *cairo, int timeout,
 		struct command *command) {
 	struct xhovacui *xhovacui;
+	int res;
 	XEvent evt;
 	int key;
-
-	(void) command;
 
 	xhovacui = (struct xhovacui *) cairo;
 
 	while (1) {
-		if (nextevent(xhovacui->dsp, timeout, &evt))
-			return KEY_TIMEOUT;
+		res = nextevent(xhovacui->dsp, timeout, &evt, command);
+		if (res != 0)
+			return res;
 
 		switch(evt.type) {
 		case KeyPress:
@@ -410,7 +420,7 @@ int setinitdata(int argn, char *argv[], struct cairodevice *cairodevice) {
 #ifdef NOMAIN
 #else
 int main(int argn, char *argv[]) {
-	if (! setinitdata(argn, argv, &cairodevicex11))
+	if (setinitdata(argn, argv, &cairodevicex11))
 		return -1;
 	return hovacui(argn, argv, &cairodevicex11);
 }

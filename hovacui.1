@@ -387,13 +387,16 @@ the screen aspect; it can be specified as \fI16:9\fP or \fI4:3\fP, for example;
 only necessary when pixels are non-square
 .TP
 .BI -e " fifo
-receive commands from the given existing fifo; this is currently supported only
-in the framebuffer;
+receive commands from the given existing fifo;
 the available commands are "gotopage page" and "gotodestination dest";
 a destination "abcd" can be created by running "dvipdfm -C 0x0010" on a TeX
 file contaning
 .nf
 \fI\\special{pdf: dest (abcd) [ @thispage /XYZ @xpos @ypos ]}\fP
+.fi
+move to that position with
+.nf
+\fIecho "gotodestination abcd" > fifo\fP
 .fi
 .TP
 .BI -x " suboption

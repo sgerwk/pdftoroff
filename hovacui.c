@@ -7,7 +7,6 @@
 /*
  * todo:
  *
- * - pipe in xhovacui
  * - pass a configuration option from command line
  * - arbitrary configuration file, specified as a commandline option
  * - configuration files specific for the framebuffer and x11, passed as
