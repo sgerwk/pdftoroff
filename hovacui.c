@@ -1170,8 +1170,10 @@ int movetopage(struct position *position, struct output *output,
 	}
 	if (page - 1 == position->npage)
 		return 0;
-	output->redraw = TRUE;
-	output->flush = TRUE;
+	if (active) {
+		output->redraw = TRUE;
+		output->flush = TRUE;
+	}
 	position->npage = page - 1;
 	readpage(position, output);
 	return firsttextbox(position, output);
@@ -1230,8 +1232,10 @@ int movetonameddestination(struct position *position, struct output *output,
 
 	poppler_dest_free(dest);
 
-	output->redraw = TRUE;
-	output->flush = TRUE;
+	if (active) {
+		output->redraw = TRUE;
+		output->flush = TRUE;
+	}
 
 	return 0;
 }
