@@ -2478,6 +2478,7 @@ void external(struct position *position, struct output *output,
               struct command *command) {
 	(void) position;
 	(void) output;
+	fprintf(stderr, "active: %s ", command->active ? "yes" : "no");
 	fprintf(stderr, "command: %s", command->command);
 	fflush(stderr);
 }

@@ -46,6 +46,7 @@ struct command {
 	FILE *stream;
 	char *command;
 	int max;
+	int active;
 };
 
 /*
