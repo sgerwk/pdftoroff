@@ -2722,8 +2722,9 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 				perror(optarg);
 				break;
 			}
-			command.stream = fdopen(command.fd, "r");
 			keepopen = open(optarg, O_WRONLY);
+			fcntl(command.fd, F_SETFD, O_RDONLY);
+			command.stream = fdopen(command.fd, "r");
 			command.max = 4096;
 			command.command = malloc(command.max);
 			break;
