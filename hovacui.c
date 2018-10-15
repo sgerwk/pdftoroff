@@ -1163,10 +1163,31 @@ int nextmatch(struct position *position, struct output *output) {
 }
 
 /*
- * go to a named destination
+ * move to a given page
  */
-int gotonameddestination(struct position *position, struct output *output,
-		char *name) {
+int movetopage(struct position *position, struct output *output,
+		int active, int page) {
+	if (page < 1 || page > position->totpages) {
+		snprintf(output->help, 80, "no such page: %d", page);
+		output->timeout = 2000;
+		if (active)
+			output->flush = 1;
+		return -1;
+	}
+	if (page - 1 == position->npage)
+		return 0;
+	output->redraw = TRUE;
+	output->flush = TRUE;
+	position->npage = page - 1;
+	readpage(position, output);
+	return firsttextbox(position, output);
+}
+
+/*
+ * move to a named destination
+ */
+int movetonameddestination(struct position *position, struct output *output,
+		int active, char *name) {
 	PopplerDest *dest;
 	double width, height;
 	PopplerRectangle r, *s, *p;
@@ -1174,8 +1195,10 @@ int gotonameddestination(struct position *position, struct output *output,
 
 	dest = poppler_document_find_dest(position->doc, name);
 	if (dest == NULL) {
-		snprintf(output->help, 80, "destination not found: %s", name);
+		snprintf(output->help, 80, "no such destination: %s", name);
 		output->timeout = 2000;
+		if (active)
+			output->flush = 1;
 		return -1;
 	}
 
@@ -1212,6 +1235,9 @@ int gotonameddestination(struct position *position, struct output *output,
 	output->selection = g_list_append(NULL, s);
 
 	poppler_dest_free(dest);
+
+	output->redraw = TRUE;
+	output->flush = TRUE;
 
 	return 0;
 }
@@ -1365,7 +1391,7 @@ int document(int c, struct position *position, struct output *output) {
 		savebox(position, output);
 		break;
 	case '\\':	/* for testing */
-		gotonameddestination(position, output, "abcd");
+		movetonameddestination(position, output, 1, "abcd");
 		break;
 	default:
 		;
@@ -2477,13 +2503,21 @@ void closepdf(struct position *position) {
 void external(struct position *position, struct output *output,
               struct command *command) {
 	char *newline;
-	(void) position;
+	int page;
+	char dest[100];
 
 	newline = strchr(command->command, '\n');
 	if (newline)
 		*newline = '\0';
 
-	/* process external command */
+	if (1 == sscanf(command->command, "gotopage %d", &page)) {
+		movetopage(position, output, command->active, page);
+		return;
+	}
+	if (1 == sscanf(command->command, "gotodestination %90s", dest)) {
+		movetonameddestination(position, output, command->active, dest);
+		return;
+	}
 
 	if (! command->active)
 		return;
@@ -2782,7 +2816,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	strcpy(output.search, "");
 	output.found = NULL;
 	output.selection = NULL;
-	output.texfudge = 24;
+	output.texfudge = 0; // 24;
 
 	output.timeout = 0;
 	output.help[0] = '\0';
