@@ -2476,11 +2476,21 @@ void closepdf(struct position *position) {
  */
 void external(struct position *position, struct output *output,
               struct command *command) {
+	char *newline;
 	(void) position;
-	(void) output;
-	fprintf(stderr, "active: %s ", command->active ? "yes" : "no");
-	fprintf(stderr, "command: %s", command->command);
-	fflush(stderr);
+
+	newline = strchr(command->command, '\n');
+	if (newline)
+		*newline = '\0';
+
+	/* process external command */
+
+	if (! command->active)
+		return;
+	snprintf(output->help, 80, "error in command: %s [%s]",
+		command->command, command->active ? "active" : "nonactive");
+	output->timeout = 4000;
+	output->flush = 1;
 }
 
 /*
