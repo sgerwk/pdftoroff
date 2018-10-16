@@ -387,17 +387,31 @@ the screen aspect; it can be specified as \fI16:9\fP or \fI4:3\fP, for example;
 only necessary when pixels are non-square
 .TP
 .BI -e " fifo
-receive commands from the given existing fifo;
-the available commands are "gotopage page" and "gotodestination dest";
-a destination "abcd" can be created by running "dvipdfm -C 0x0010" on a TeX
-file contaning
+receive commands from the given existing fifo
+.RS
+.TP
+.I reload
+reload the document
+.TP
+.I gotopage n
+go to page \fIn\fP
+.TP
+.I gotodestination name
+go to the named destination \fIname\fP
+.IP
+a destination named "abcd" can be created by running \fIdvipdfm file.dvi\fP or
+\fIdvipdfm -C 0x0010 file.dvi\fP on the dvi file resulting from a TeX file that
+contains
 .nf
 \fI\\special{pdf: dest (abcd) [ @thispage /XYZ @xpos @ypos ]}\fP
 .fi
+.IP
+if running \fIhovacui -e fifo file.pdf\fP,
 move to that position with
 .nf
 \fIecho "gotodestination abcd" > fifo\fP
 .fi
+.RE
 .TP
 .BI -x " suboption
 x11 options \fIdisplay\fP and \fIgeometry\fP;

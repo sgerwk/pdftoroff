@@ -2511,6 +2511,10 @@ void external(struct position *position, struct output *output,
 	if (newline)
 		*newline = '\0';
 
+	if (! strcmp(command->command, "reload")) {
+		output->reload = TRUE;
+		return;
+	}
 	if (1 == sscanf(command->command, "gotopage %d", &page)) {
 		movetopage(position, output, command->active, page);
 		return;
