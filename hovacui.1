@@ -338,7 +338,8 @@ reload the document (see also \fIDOCUMENT RELOAD\fP, below)
 .TP
 .B
 b
-show the current box and append it to file \fIhovacui-boxes.txt\fP
+show the current box and append it to the output file, which
+by default is \fIhovacui-out.txt\fP but can be changed by \fI-z\fP
 .TP
 .B
 q
@@ -412,6 +413,11 @@ move to that position with
 \fIecho "gotodestination abcd" > fifo\fP
 .fi
 .RE
+.TP
+.BI -z " out
+the output file name;
+it is a text file that contains the boxes saved by key 'b';
+the default is \fIhovacui-out.txt\fP
 .TP
 .BI -x " suboption
 x11 options \fIdisplay\fP and \fIgeometry\fP;

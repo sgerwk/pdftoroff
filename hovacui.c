@@ -483,6 +483,10 @@ struct output {
 	/* selection */
 	GList *selection;
 	double texfudge;
+
+	/* output file */
+	char *outname;
+	FILE *outfile;
 };
 
 /*
@@ -1259,30 +1263,37 @@ int boundingboxinscreen(struct position *position, struct output *output) {
 }
 
 /*
+ * ensure the output file is open
+ */
+int ensureoutputfile(struct output *output) {
+	if (output->outfile != NULL)
+		return 0;
+	output->outfile = fopen(output->outname, "a");
+	return output->outfile == NULL;
+}
+
+/*
  * append the current box to file
  */
 int savebox(struct position *position, struct output *output) {
 	PopplerRectangle r;
 	char line[200];
-	char *filename = "hovacui-boxes.txt";
-	FILE *fd;
+	char *result;
 
 	r = position->textarea->rect[position->box];
 	sprintf(line, "%g %g %g %g", r.x1, r.y1, r.x2, r.y2);
-	strcpy(output->help, line);
-	output->timeout = 2000;
 
-	fd = fopen(filename, "a");
-	if (fd == NULL) {
-		strcat(output->help, " - error saving current box to file");
-		return -1;
+	if (ensureoutputfile(output))
+		result = "- error opening output file";
+	else {
+		rectangle_print(output->outfile, &r);
+		fputs("\n", output->outfile);
+		fflush(output->outfile);
+		result = "- saved to";
 	}
-	rectangle_print(fd, &r);
-	fputs("\n", fd);
-	fclose(fd);
 
-	strcat(output->help, " - saved to ");
-	strcat(output->help, filename);
+	snprintf(output->help, 80, "%s %s %s", line, result, output->outname);
+	output->timeout = 2000;
 	return 0;
 }
 
@@ -2581,6 +2592,7 @@ void usage() {
 	printf("\t\t-s aspect\tthe screen aspect (e.g., 4:3)\n");
 	printf("\t\t-d device\tfbdev device, default /dev/fb0\n");
 	printf("\t\t-e fifo\t\treceive commands from the given fifo\n");
+	printf("\t\t-z out\t\toutput file or pipe\n");
 	printf("main keys: 'h'=help 'g'=go to page '/'=search 'q'=quit ");
 	printf("'m'=menu\n");
 }
@@ -2633,6 +2645,8 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	output.immediate = FALSE;
 	output.drawbox = TRUE;
 	output.pagelabel = TRUE;
+	output.outname = "hovacui-out.txt";
+	output.outfile = NULL;
 	screenaspect = -1;
 	firstwindow = WINDOW_TUTORIAL;
 	margin = 10.0;
@@ -2774,6 +2788,9 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 			command.stream = fdopen(command.fd, "r");
 			command.max = 4096;
 			command.command = malloc(command.max);
+			break;
+		case 'z':
+			output.outname = optarg;
 			break;
 		case 'h':
 			usage();
@@ -2941,5 +2958,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	close(keepopen);
 	if (command.fd != -1)
 		fclose(command.stream);
+	if (output.outfile != NULL)
+		fclose(output.outfile);
 	return EXIT_SUCCESS;
 }

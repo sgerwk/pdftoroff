@@ -9,7 +9,7 @@
 /*
  * the options parsed by hovacui itself
  */
-#define HOVACUIOPTS "m:f:w:t:o:d:s:pe:h"
+#define HOVACUIOPTS "m:f:w:t:o:d:s:pe:z:h"
 
 /*
  * include curses to get the macro keys
