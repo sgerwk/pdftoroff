@@ -257,6 +257,9 @@
  * KEY_SIGNAL
  *	the input select() was interrupted by a signal; none of the windows use
  *	this value
+ *
+ * KEY_EXTERNAL
+ *	an external command was read from the pipe; no window receives this
  */
 
 /*
@@ -362,10 +365,10 @@
  * void flush(struct cairooutput *cairo);
  *	clear and flush
  *
- * int input(struct cairooutput *cairo, int timeout);
+ * int input(struct cairooutput *cairo, int timeout, struct command *command);
  *	return a key;
- *	if no input is available blocks for timeout millisecond;
- *	a timeout of zero means indefinitely
+ *	on external command: store it in command->string, return KEY_EXTERNAL;
+ *	if no input is available blocks for timeout millisecond (0=infinite)
  */
 
 #include <stdlib.h>
