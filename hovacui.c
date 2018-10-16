@@ -296,6 +296,7 @@
  * this field is set in:
  *
  * - document(), upon receiving keystroke 'r'
+ * - external(), upon receiving the external command "reload"
  * - draw(), if a file change is detected (see below)
  *
  * file changes are detected via poppler_document_get_id(), but this only works
@@ -366,9 +367,10 @@
  *	clear and flush
  *
  * int input(struct cairooutput *cairo, int timeout, struct command *command);
- *	return a key;
- *	on external command: store it in command->string, return KEY_EXTERNAL;
- *	if no input is available blocks for timeout millisecond (0=infinite)
+ *	return a key
+ *	always store whether output is active in command->active
+ *	on external command: store it in command->string, return KEY_EXTERNAL
+ *	if no input is available block for timeout millisecond (0=infinite)
  */
 
 #include <stdlib.h>
@@ -1168,7 +1170,7 @@ int movetopage(struct position *position, struct output *output,
 		snprintf(output->help, 80, "no such page: %d", page);
 		output->timeout = 2000;
 		if (active)
-			output->flush = 1;
+			output->flush = TRUE;
 		return -1;
 	}
 	if (page - 1 == position->npage)
@@ -1291,6 +1293,7 @@ int document(int c, struct position *position, struct output *output) {
 	switch (c) {
 	case 'r':
 		output->reload = TRUE;
+		output->redraw = TRUE;
 		break;
 	case KEY_INIT:
 	case KEY_TIMEOUT:
@@ -2368,11 +2371,13 @@ void draw(struct cairooutput *cairo,
 		moveto(position, output);
 		if (! POPPLER_IS_PAGE(position->page)) {
 			output->reload = TRUE;
+			output->redraw = TRUE;
 			return;
 		}
 		poppler_page_render(position->page, output->cr);
 		if (changedpdf(position)) {
 			output->reload = TRUE;
+			output->redraw = TRUE;
 			return;
 		}
 		if (output->drawbox) {
@@ -2513,6 +2518,8 @@ void external(struct position *position, struct output *output,
 
 	if (! strcmp(command->command, "reload")) {
 		output->reload = TRUE;
+		if (command->active)
+			output->redraw = TRUE;
 		return;
 	}
 	if (1 == sscanf(command->command, "gotopage %d", &page)) {
@@ -2634,6 +2641,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	noinitlabels = FALSE;
 	command.fd = -1;
 	command.stream = NULL;
+	command.active = TRUE;
 	keepopen = -1;
 
 				/* config file */
@@ -2763,7 +2771,6 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 				break;
 			}
 			keepopen = open(optarg, O_WRONLY);
-			fcntl(command.fd, F_SETFD, O_RDONLY);
 			command.stream = fdopen(command.fd, "r");
 			command.max = 4096;
 			command.command = malloc(command.max);
@@ -2863,9 +2870,11 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 					/* draw document and labels */
 
 		if (output.reload || sig_reload) {
+			if (sig_reload && command.active)
+				output.redraw = TRUE;
 			sig_reload = 0;
 			position = reloadpdf(position, &output);
-			c = KEY_REDRAW;
+			c = output.redraw ? KEY_REDRAW : KEY_NONE;
 		}
 		if (c != KEY_INIT || output.redraw) {
 			draw(cairo, cairodevice->clear, cairodevice->flush,

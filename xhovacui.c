@@ -269,7 +269,6 @@ int nextevent(Display *dsp, int timeout, XEvent *evt, struct command *command) {
 
 		if (command->fd != -1 && FD_ISSET(command->fd, &fds)) {
 			fgets(command->command, command->max, command->stream);
-			command->active = 1;
 			return KEY_EXTERNAL;
 		}
 

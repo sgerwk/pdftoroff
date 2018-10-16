@@ -110,9 +110,9 @@ int cairoinput_fb(struct cairooutput *cairo, int timeout,
 
 	ret = select(max + 1, &fds, NULL, NULL, timeout != 0 ? &tv : NULL);
 
+	command->active = ! vt_suspend;
 	if (ret != -1 && command->fd != -1 && FD_ISSET(command->fd, &fds)) {
 		fgets(command->command, command->max, command->stream);
-		command->active = ! vt_suspend;
 		return KEY_EXTERNAL;
 	}
 
