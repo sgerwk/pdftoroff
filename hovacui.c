@@ -215,8 +215,8 @@
  * - the input timeout was set and it either expires or a key arrived
  * - the virtual terminal is switched in
  * - document() sets output->redraw; it does when it changes position
- * - a window different than WINDOW_DOCUMENT returns another window
- * - a window returns WINDOW_REFRESH
+ * - a window other than WINDOW_DOCUMENT returns another window
+ * - a window other than WINDOW_DOCUMENT returns WINDOW_REFRESH
  */
 
 /*
@@ -2531,12 +2531,12 @@ int external(int window, struct command *command,
 		return WINDOW_REFRESH;
 	}
 	if (1 == sscanf(command->command, "gotopage %d", &page)) {
-		movetopage(position, output, page);
-		return WINDOW_REFRESH;
+		return movetopage(position, output, page) ?
+			window : WINDOW_REFRESH;
 	}
 	if (1 == sscanf(command->command, "gotodestination %90s", dest)) {
-		movetonameddestination(position, output, dest);
-		return WINDOW_REFRESH;
+		return movetonameddestination(position, output, dest) ?
+			window : WINDOW_REFRESH;
 	}
 
 	if (! command->active)
@@ -2961,6 +2961,8 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 		if (next == window)
 			continue;
 		if (next == WINDOW_REFRESH) {
+			if (window == WINDOW_DOCUMENT)
+				continue;
 			output.redraw = TRUE;
 			output.flush = FALSE;
 			c = KEY_REFRESH;
