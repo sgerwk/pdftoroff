@@ -388,31 +388,8 @@ the screen aspect; it can be specified as \fI16:9\fP or \fI4:3\fP, for example;
 only necessary when pixels are non-square
 .TP
 .BI -e " fifo
-receive commands from the given existing fifo
-.RS
-.TP
-.I reload
-reload the document
-.TP
-.I gotopage n
-go to page \fIn\fP
-.TP
-.I gotodestination name
-go to the named destination \fIname\fP
-.IP
-a destination named "abcd" can be created by running \fIdvipdfm file.dvi\fP or
-\fIdvipdfm -C 0x0010 file.dvi\fP on the dvi file resulting from a TeX file that
-contains
-.nf
-\fI\\special{pdf: dest (abcd) [ @thispage /XYZ @xpos @ypos ]}\fP
-.fi
-.IP
-if running \fIhovacui -e fifo file.pdf\fP,
-move to that position with
-.nf
-\fIecho "gotodestination abcd" > fifo\fP
-.fi
-.RE
+receive commands from the given existing fifo;
+see \fIEXTERNAL COMMANDS\fP, below
 .TP
 .BI -z " out
 the output file name;
@@ -508,9 +485,8 @@ show page numbers as "page X of Y" instead of "page X"
 do not show the file name, the viewing mode etc. at startup
 .TP
 .BI fifo " name
-name of the input fifo to open for receive external command;
-the default is not to open any fifo, and consequently no external command is
-received
+receive commands from the given existing fifo;
+see \fIEXTERNAL COMMANDS\fP, below
 .TP
 .BI outfile " name
 name of the output file name, used to save the current box with key 'b'
@@ -539,6 +515,41 @@ with the page number. This label is not shown if the only annotations and
 actions in the page are internal links. The rationale is that the user is
 warned about the presence of content that is now shown, so that it can be
 retrieved with other programs, such as \fBpdfannot\fP.
+
+.
+.
+.
+.SH EXTERNAL COMMANDS
+
+Another program can send commands to \fIhovacui\fP through a \fIfifo(7)\fP, if
+the name of such fifo is given by either the \fI-e\fP commandline option or the
+\fIfifo\fP configuration option. If neither is given \fIhovacui\fP does not
+open any fifo and does not consequently execute any external command.
+
+The following external commands are currently supported:
+
+.TP
+.I reload
+reload the document
+.TP
+.I gotopage n
+go to page \fIn\fP
+.TP
+.I gotodestination name
+go to the named destination \fIname\fP
+.IP
+a destination named "abcd" can be created by running \fIdvipdfm file.dvi\fP or
+\fIdvipdfm -C 0x0010 file.dvi\fP on the dvi file resulting from a TeX file that
+contains
+.nf
+\fI\\special{pdf: dest (abcd) [ @thispage /XYZ @xpos @ypos ]}\fP
+.fi
+.IP
+if running \fIhovacui -e fifo file.pdf\fP,
+move to that position with
+.nf
+\fIecho "gotodestination abcd" > fifo\fP
+.fi
 
 .
 .
