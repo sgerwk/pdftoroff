@@ -1167,21 +1167,17 @@ int nextmatch(struct position *position, struct output *output) {
 /*
  * move to a given page
  */
-int movetopage(struct position *position, struct output *output,
-		int active, int page) {
+int movetopage(struct position *position, struct output *output, int page) {
 	if (page < 1 || page > position->totpages) {
 		snprintf(output->help, 80, "no such page: %d", page);
 		output->timeout = 2000;
-		if (active)
-			output->flush = TRUE;
+		output->flush = TRUE;
 		return -1;
 	}
 	if (page - 1 == position->npage)
 		return 0;
-	if (active) {
-		output->redraw = TRUE;
-		output->flush = TRUE;
-	}
+	output->redraw = TRUE;
+	output->flush = TRUE;
 	position->npage = page - 1;
 	readpage(position, output);
 	return firsttextbox(position, output);
@@ -1191,7 +1187,7 @@ int movetopage(struct position *position, struct output *output,
  * move to a named destination
  */
 int movetonameddestination(struct position *position, struct output *output,
-		int active, char *name) {
+		char *name) {
 	PopplerDest *dest;
 	double width, height;
 	PopplerRectangle r, *s, *p;
@@ -1201,8 +1197,7 @@ int movetonameddestination(struct position *position, struct output *output,
 	if (dest == NULL) {
 		snprintf(output->help, 80, "no such destination: %s", name);
 		output->timeout = 2000;
-		if (active)
-			output->flush = TRUE;
+		output->flush = TRUE;
 		return -1;
 	}
 
@@ -1240,10 +1235,8 @@ int movetonameddestination(struct position *position, struct output *output,
 
 	poppler_dest_free(dest);
 
-	if (active) {
-		output->redraw = TRUE;
-		output->flush = TRUE;
-	}
+	output->redraw = TRUE;
+	output->flush = TRUE;
 
 	return 0;
 }
@@ -1405,7 +1398,7 @@ int document(int c, struct position *position, struct output *output) {
 		savebox(position, output);
 		break;
 	case '\\':	/* for testing */
-		movetonameddestination(position, output, 1, "abcd");
+		movetonameddestination(position, output, "abcd");
 		break;
 	default:
 		;
@@ -2534,16 +2527,15 @@ int external(int window, struct command *command,
 		return WINDOW_DOCUMENT;
 	if (! strcmp(command->command, "reload")) {
 		output->reload = TRUE;
-		if (command->active)
-			output->redraw = TRUE;
+		output->redraw = TRUE;
 		return WINDOW_REFRESH;
 	}
 	if (1 == sscanf(command->command, "gotopage %d", &page)) {
-		movetopage(position, output, command->active, page);
+		movetopage(position, output, page);
 		return WINDOW_REFRESH;
 	}
 	if (1 == sscanf(command->command, "gotodestination %90s", dest)) {
-		movetonameddestination(position, output, command->active, dest);
+		movetonameddestination(position, output, dest);
 		return WINDOW_REFRESH;
 	}
 
