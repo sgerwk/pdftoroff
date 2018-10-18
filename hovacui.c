@@ -259,7 +259,7 @@
  *	this value
  *
  * KEY_EXTERNAL
- *	an external command was read from the pipe; no window receives this
+ *	an external command come from the input fifo; no window receives this
  */
 
 /*
@@ -2551,6 +2551,29 @@ void external(struct position *position, struct output *output,
 }
 
 /*
+ * open the input fifo for external commands
+ */
+int openfifo(char *name, struct command *command, int *keepopen) {
+	if (command->stream != NULL)
+		fclose(command->stream);
+	else if (command->fd != -1)
+		close(command->fd);
+	if (*keepopen != -1)
+		close(*keepopen);
+
+	command->fd = open(name, O_RDONLY | O_NONBLOCK);
+	if (command->fd == -1) {
+		perror(name);
+		return -1;
+	}
+	*keepopen = open(name, O_WRONLY);
+	command->stream = fdopen(command->fd, "r");
+	command->max = 4096;
+	command->command = malloc(command->max);
+	return 0;
+}
+
+/*
  * index of a character in a string
  */
 int optindex(char arg, char *all) {
@@ -2592,7 +2615,7 @@ void usage() {
 	printf("\t\t-s aspect\tthe screen aspect (e.g., 4:3)\n");
 	printf("\t\t-d device\tfbdev device, default /dev/fb0\n");
 	printf("\t\t-e fifo\t\treceive commands from the given fifo\n");
-	printf("\t\t-z out\t\toutput file or pipe\n");
+	printf("\t\t-z out\t\toutput file or fifo\n");
 	printf("main keys: 'h'=help 'g'=go to page '/'=search 'q'=quit ");
 	printf("'m'=menu\n");
 }
@@ -2687,6 +2710,8 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 				margin = d;
 			if (sscanf(configline, "device %s", s) == 1)
 				outdev = strdup(s);
+			if (sscanf(configline, "fifo %s", s) == 1)
+				openfifo(s, &command, &keepopen);
 			if (sscanf(configline, "%s", s) == 1) {
 				if (! strcmp(s, "noui"))
 					output.ui = FALSE;
@@ -2779,15 +2804,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 			screenaspect = fraction(optarg);
 			break;
 		case 'e':
-			command.fd = open(optarg, O_RDONLY | O_NONBLOCK);
-			if (command.fd == -1) {
-				perror(optarg);
-				break;
-			}
-			keepopen = open(optarg, O_WRONLY);
-			command.stream = fdopen(command.fd, "r");
-			command.max = 4096;
-			command.command = malloc(command.max);
+			openfifo(optarg, &command, &keepopen);
 			break;
 		case 'z':
 			output.outname = optarg;
