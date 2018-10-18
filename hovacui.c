@@ -8,7 +8,6 @@
  * todo:
  *
  * - pass a configuration option from command line
- * - arbitrary configuration file, specified as a commandline option
  * - configuration files specific for the framebuffer and x11, passed as
  *   additional arguments to hovacui()
  *   .config/hovacui/{framebuffer.conf,x11.conf}
@@ -2685,6 +2684,15 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 
 	snprintf(configfile, 4096, "%s/.config/hovacui/hovacui.conf",
 		getenv("HOME"));
+	optind = 1;
+	while (-1 != (opt = getopt(argn, argv, HOVACUIOPTS)))
+		if (opt == 'C') {
+			snprintf(configfile, 4096, "%s", optarg);
+			break;
+		}
+
+				/* read config file */
+
 	config = fopen(configfile, "r");
 	if (config != NULL) {
 		while (fgets(configline, 900, config)) {

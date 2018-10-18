@@ -396,6 +396,10 @@ the output file name;
 it is a text file that contains the boxes saved by key 'b';
 the default is \fIhovacui-out.txt\fP
 .TP
+.BI -C " config
+use the given configuration file instead of the default
+.I $HOME/.config/hovacui/hovacui.conf
+.TP
 .BI -x " suboption
 x11 options \fIdisplay\fP and \fIgeometry\fP;
 for example, the command line to run hovacui in a 400x300 window positioned at
@@ -414,8 +418,12 @@ show a summary of the command line options and the main keys
 
 All command line options can also be set in the configuration file
 \fI$HOME/.config/hovacui/hovacui.conf\fP, but not the other way around.
-Command line options take precedence over the configuration file. Most options
-can also be changed at runtime via keys or the menu (keystroke \fI'm'\fP).
+Command line options take precedence over the configuration file.
+The name of the configuration file can be changed by the
+.I -C
+commandline option.
+Many options can be changed at runtime via keys or the menu
+(keystroke \fI'm'\fP).
 
 .TP
 .BI mode " (auto|textarea|boundingbox|page)
