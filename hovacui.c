@@ -2516,8 +2516,8 @@ void closepdf(struct position *position) {
 /*
  * execute an external command
  */
-void external(struct position *position, struct output *output,
-              struct command *command) {
+int external(struct position *position, struct output *output,
+              struct command *command, int window) {
 	char *newline;
 	int page;
 	char dest[100];
@@ -2526,27 +2526,34 @@ void external(struct position *position, struct output *output,
 	if (newline)
 		*newline = '\0';
 
+	if (command->command[0] == '#' || ! strcmp(command->command, "nop"))
+		return window;
+	if (! strcmp(command->command, "quit"))
+		return WINDOW_EXIT;
+	if (! strcmp(command->command, "document"))
+		return WINDOW_DOCUMENT;
 	if (! strcmp(command->command, "reload")) {
 		output->reload = TRUE;
 		if (command->active)
 			output->redraw = TRUE;
-		return;
+		return window;
 	}
 	if (1 == sscanf(command->command, "gotopage %d", &page)) {
 		movetopage(position, output, command->active, page);
-		return;
+		return window;
 	}
 	if (1 == sscanf(command->command, "gotodestination %90s", dest)) {
 		movetonameddestination(position, output, command->active, dest);
-		return;
+		return window;
 	}
 
 	if (! command->active)
-		return;
+		return window;
 	snprintf(output->help, 80, "error in command: %s [%s]",
 		command->command, command->active ? "active" : "nonactive");
 	output->timeout = 4000;
 	output->flush = 1;
+	return window;
 }
 
 /*
@@ -2934,7 +2941,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 		pending = output.timeout != 0;
 		output.timeout = 0;
 		if (c == KEY_EXTERNAL) {
-			external(position, &output, &command);
+			window = external(position, &output, &command, window);
 			c = KEY_NONE;
 			continue;
 		}
