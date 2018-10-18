@@ -1202,7 +1202,7 @@ int movetonameddestination(struct position *position, struct output *output,
 		snprintf(output->help, 80, "no such destination: %s", name);
 		output->timeout = 2000;
 		if (active)
-			output->flush = 1;
+			output->flush = TRUE;
 		return -1;
 	}
 
@@ -2516,8 +2516,8 @@ void closepdf(struct position *position) {
 /*
  * execute an external command
  */
-int external(struct position *position, struct output *output,
-              struct command *command, int window) {
+int external(int window, struct command *command,
+		struct position *position, struct output *output) {
 	char *newline;
 	int page;
 	char dest[100];
@@ -2536,15 +2536,15 @@ int external(struct position *position, struct output *output,
 		output->reload = TRUE;
 		if (command->active)
 			output->redraw = TRUE;
-		return window;
+		return WINDOW_REFRESH;
 	}
 	if (1 == sscanf(command->command, "gotopage %d", &page)) {
 		movetopage(position, output, command->active, page);
-		return window;
+		return WINDOW_REFRESH;
 	}
 	if (1 == sscanf(command->command, "gotodestination %90s", dest)) {
 		movetonameddestination(position, output, command->active, dest);
-		return window;
+		return WINDOW_REFRESH;
 	}
 
 	if (! command->active)
@@ -2552,7 +2552,7 @@ int external(struct position *position, struct output *output,
 	snprintf(output->help, 80, "error in command: %s [%s]",
 		command->command, command->active ? "active" : "nonactive");
 	output->timeout = 4000;
-	output->flush = 1;
+	output->flush = TRUE;
 	return window;
 }
 
@@ -2921,11 +2921,15 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 					/* draw document and labels */
 
 		if (output.reload || sig_reload) {
-			if (sig_reload && command.active)
+			if (sig_reload)
 				output.redraw = TRUE;
 			sig_reload = 0;
 			position = reloadpdf(position, &output);
 			c = output.redraw ? KEY_REDRAW : KEY_NONE;
+		}
+		if (! command.active) {
+			output.redraw = FALSE;
+			output.flush = FALSE;
 		}
 		if (c != KEY_INIT || output.redraw) {
 			draw(cairo, cairodevice->clear, cairodevice->flush,
@@ -2940,13 +2944,6 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 			cairodevice->input(cairo, output.timeout, &command);
 		pending = output.timeout != 0;
 		output.timeout = 0;
-		if (c == KEY_EXTERNAL) {
-			window = external(position, &output, &command, window);
-			c = window == WINDOW_DOCUMENT ||
-			    command.active == FALSE ?
-				KEY_NONE : KEY_REDRAW;
-			continue;
-		}
 		if (c == KEY_SUSPEND || c == KEY_SIGNAL || c == KEY_NONE) {
 			c = KEY_NONE;
 			continue;
@@ -2963,9 +2960,11 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 			output.flush = TRUE;
 		}
 
-					/* pass input to window */
+					/* pass input to window or external */
 
-		next = selectwindow(window, c, position, &output);
+		next = c == KEY_EXTERNAL ?
+			external(window, &command, position, &output) :
+			selectwindow(window, c, position, &output);
 		c = KEY_NONE;
 		if (next == window)
 			continue;
