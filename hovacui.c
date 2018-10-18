@@ -2712,6 +2712,8 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 				outdev = strdup(s);
 			if (sscanf(configline, "fifo %s", s) == 1)
 				openfifo(s, &command, &keepopen);
+			if (sscanf(configline, "outfile %s", s) == 1)
+				output.outname = strdup(s);
 			if (sscanf(configline, "%s", s) == 1) {
 				if (! strcmp(s, "noui"))
 					output.ui = FALSE;
