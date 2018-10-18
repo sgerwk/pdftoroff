@@ -2942,7 +2942,9 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 		output.timeout = 0;
 		if (c == KEY_EXTERNAL) {
 			window = external(position, &output, &command, window);
-			c = KEY_NONE;
+			c = window == WINDOW_DOCUMENT ||
+			    command.active == FALSE ?
+				KEY_NONE : KEY_REDRAW;
 			continue;
 		}
 		if (c == KEY_SUSPEND || c == KEY_SIGNAL || c == KEY_NONE) {
