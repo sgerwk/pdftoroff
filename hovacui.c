@@ -1269,11 +1269,11 @@ int ensureoutputfile(struct output *output) {
  */
 int savebox(struct position *position, struct output *output) {
 	PopplerRectangle r;
-	char line[200];
+	char line[70];
 	char *result;
 
 	r = position->textarea->rect[position->box];
-	sprintf(line, "%g %g %g %g", r.x1, r.y1, r.x2, r.y2);
+	snprintf(line, 70, "%g %g %g %g", r.x1, r.y1, r.x2, r.y2);
 
 	if (ensureoutputfile(output))
 		result = "- error opening output file";
