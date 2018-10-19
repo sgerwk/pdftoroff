@@ -216,7 +216,7 @@
  * - the virtual terminal is switched in
  * - document() sets output->redraw; it does when it changes position
  * - a window other than WINDOW_DOCUMENT returns another window
- * - a window other than WINDOW_DOCUMENT returns WINDOW_REFRESH
+ * - a window or external command returns WINDOW_REFRESH
  */
 
 /*
@@ -1176,8 +1176,6 @@ int movetopage(struct position *position, struct output *output, int page) {
 	}
 	if (page - 1 == position->npage)
 		return 0;
-	output->redraw = TRUE;
-	output->flush = TRUE;
 	position->npage = page - 1;
 	readpage(position, output);
 	return firsttextbox(position, output);
@@ -1234,9 +1232,6 @@ int movetonameddestination(struct position *position, struct output *output,
 	output->selection = g_list_append(NULL, s);
 
 	poppler_dest_free(dest);
-
-	output->redraw = TRUE;
-	output->flush = TRUE;
 
 	return 0;
 }
@@ -2527,7 +2522,6 @@ int external(int window, struct command *command,
 		return WINDOW_DOCUMENT;
 	if (! strcmp(command->command, "reload")) {
 		output->reload = TRUE;
-		output->redraw = TRUE;
 		return WINDOW_REFRESH;
 	}
 	if (1 == sscanf(command->command, "gotopage %d", &page)) {
@@ -2961,11 +2955,12 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 		if (next == window)
 			continue;
 		if (next == WINDOW_REFRESH) {
-			if (window == WINDOW_DOCUMENT)
-				continue;
+			/* for WINDOW_DOCUMENT, redraw the page and flush; all
+			 * other windows: redraw the page and call the window
+			 * again with KEY_REFRESH; flush then (not now) */
 			output.redraw = TRUE;
-			output.flush = FALSE;
-			c = KEY_REFRESH;
+			output.flush = window == WINDOW_DOCUMENT;
+			c = window == WINDOW_DOCUMENT ? KEY_NONE : KEY_REFRESH;
 			continue;
 		}
 		if (next == WINDOW_DOCUMENT) {
