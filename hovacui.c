@@ -1165,17 +1165,32 @@ int nextmatch(struct position *position, struct output *output) {
 }
 
 /*
+ * formatted print to the help label; timeout=0 means infinite
+ */
+int printhelp(struct output *output, int timeout, char *format, ...) {
+	va_list ap;
+	int res;
+
+	va_start(ap, format);
+	res = vsnprintf(output->help, 80, format, ap);
+	va_end(ap);
+
+	output->timeout = timeout;
+	output->flush = TRUE;
+
+	return res;
+}
+
+/*
  * move to a given page
  */
 int movetopage(struct position *position, struct output *output, int page) {
 	if (page < 1 || page > position->totpages) {
-		snprintf(output->help, 80, "no such page: %d", page);
-		output->timeout = 2000;
-		output->flush = TRUE;
+		printhelp(output, 2000, "no such page: %d", page);
 		return -1;
 	}
 	if (page - 1 == position->npage)
-		return 0;
+		return -2;
 	position->npage = page - 1;
 	readpage(position, output);
 	return firsttextbox(position, output);
@@ -1193,9 +1208,7 @@ int movetonameddestination(struct position *position, struct output *output,
 
 	dest = poppler_document_find_dest(position->doc, name);
 	if (dest == NULL) {
-		snprintf(output->help, 80, "no such destination: %s", name);
-		output->timeout = 2000;
-		output->flush = TRUE;
+		printhelp(output, 2000, "no such destination: %s", name);
 		return -1;
 	}
 
@@ -1260,7 +1273,7 @@ int ensureoutputfile(struct output *output) {
 }
 
 /*
- * append the current box to file
+ * print the current box and append it to file
  */
 int savebox(struct position *position, struct output *output) {
 	PopplerRectangle r;
@@ -1279,8 +1292,7 @@ int savebox(struct position *position, struct output *output) {
 		result = "- saved to";
 	}
 
-	snprintf(output->help, 80, "%s %s %s", line, result, output->outname);
-	output->timeout = 2000;
+	printhelp(output, 2000, "%s %s %s", line, result, output->outname);
 	return 0;
 }
 
@@ -1798,7 +1810,7 @@ int menu(int c, struct position *position, struct output *output) {
 	if (res >= 0 && res < n)
 		return menunext[res];
 	if (res >= n)
-		strcpy(output->help, "unimplemented");
+		printhelp(output, 2000, "unimplemented");
 	return WINDOW_DOCUMENT;
 }
 
@@ -1839,7 +1851,7 @@ int field(int c, struct output *output,
 		current[l + 1] = '\0';
 	}
 	else if (help != NULL)
-		strcpy(output->help, help);
+		printhelp(output, 0, help);
 
 	output->flush = TRUE;
 
@@ -1979,9 +1991,7 @@ int search(int c, struct position *position, struct output *output) {
 			return WINDOW_SEARCH;
 		}
 		searchstring[0] = '\0';
-		strcpy(output->help,
-			"n=next matches p=previous matches");
-		output->timeout = 2000;
+		printhelp(output, 2000, "n=next matches p=previous matches");
 		return WINDOW_DOCUMENT;
 	}
 
@@ -2535,10 +2545,8 @@ int external(int window, struct command *command,
 
 	if (! command->active)
 		return window;
-	snprintf(output->help, 80, "error in command: %s [%s]",
+	printhelp(output, 4000, "error in command: %s [%s]",
 		command->command, command->active ? "active" : "nonactive");
-	output->timeout = 4000;
-	output->flush = TRUE;
 	return window;
 }
 
