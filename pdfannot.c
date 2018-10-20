@@ -67,6 +67,9 @@ void printannotationname(PopplerAnnot *annot) {
 		case POPPLER_ANNOT_CARET:
 			printf("caret:\n");
 			break;
+		case POPPLER_ANNOT_WIDGET:
+			printf("widget (unsupported)\n");
+			break;
 		default:
 			printf("annotation (%d):", type);
 			break;
@@ -142,6 +145,7 @@ int printannotations(PopplerPage *page) {
 			break;
 		case POPPLER_ANNOT_STAMP:
 		case POPPLER_ANNOT_CARET:
+		case POPPLER_ANNOT_WIDGET:
 			printannotationname(m->annot);
 			break;
 		/* others */
