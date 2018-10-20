@@ -7,6 +7,9 @@
 /*
  * todo:
  *
+ * - separate the function for checking whether the output is active from the
+ *   output input function; example where this matters: searching in a long
+ *   document, which redraws even if the vt switched out
  * - pass a configuration option from command line
  * - configuration files specific for the framebuffer and x11, passed as
  *   additional arguments to hovacui()
