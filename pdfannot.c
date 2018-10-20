@@ -13,8 +13,11 @@
  * print a string and free it
  */
 void printfree(gchar *prefix, gchar *s, gchar *suffix) {
+	char *p;
 	if (s == NULL)
 		return;
+	for (p = strchr(s, '\r'); p != NULL; p = strchr(p + 1, '\r'))
+		*p = '\n';
 	printf("%s%s%s", prefix, s, suffix);
 	g_free(s);
 }
