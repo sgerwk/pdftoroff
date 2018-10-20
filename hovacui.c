@@ -7,9 +7,6 @@
 /*
  * todo:
  *
- * - separate the function for checking whether the output is active from the
- *   output input function; example where this matters: searching in a long
- *   document, which redraws even if the vt switched out
  * - pass a configuration option from command line
  * - configuration files specific for the framebuffer and x11, passed as
  *   additional arguments to hovacui()
@@ -368,9 +365,12 @@
  * void flush(struct cairooutput *cairo);
  *	clear and flush
  *
+ * int isactive(struct cairooutput *cairo);
+ *	whether the output is active
+ *	do not draw on the framebuffer when the vt is switched out
+ *
  * int input(struct cairooutput *cairo, int timeout, struct command *command);
  *	return a key
- *	always store whether output is active in command->active
  *	on external command: store it in command->string, return KEY_EXTERNAL
  *	if no input is available block for timeout millisecond (0=infinite)
  */
@@ -2546,10 +2546,7 @@ int external(int window, struct command *command,
 			window : WINDOW_REFRESH;
 	}
 
-	if (! command->active)
-		return window;
-	printhelp(output, 4000, "error in command: %s [%s]",
-		command->command, command->active ? "active" : "nonactive");
+	printhelp(output, 4000, "error in command: %s", command->command);
 	return window;
 }
 
@@ -2681,7 +2678,6 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	noinitlabels = FALSE;
 	command.fd = -1;
 	command.stream = NULL;
-	command.active = TRUE;
 	keepopen = -1;
 
 				/* config file */
@@ -2924,7 +2920,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 			position = reloadpdf(position, &output);
 			c = output.redraw ? KEY_REDRAW : KEY_NONE;
 		}
-		if (! command.active) {
+		if (! cairodevice->isactive(cairo)) {
 			output.redraw = FALSE;
 			output.flush = FALSE;
 		}

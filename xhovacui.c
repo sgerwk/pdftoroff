@@ -187,6 +187,14 @@ void cairoflush_x11(struct cairooutput *cairo) {
 }
 
 /*
+ * whether the output is currently active
+ */
+int cairoisactive_x11(struct cairooutput *cairo) {
+	(void) cairo;
+	return TRUE;
+}
+
+/*
  * reconfigure
  */
 void cairoreconfigure(struct xhovacui *xhovacui, XConfigureEvent *xce) {
@@ -364,7 +372,8 @@ struct cairodevice cairodevicex11 = {
 	cairocontext_x11,
 	cairowidth_x11, cairoheight_x11,
 	cairoscreenwidth_x11, cairoscreenheight_x11,
-	cairoclear_x11, cairoflush_x11, cairoinput_x11
+	cairoclear_x11, cairoflush_x11,
+	cairoisactive_x11, cairoinput_x11
 };
 
 /*

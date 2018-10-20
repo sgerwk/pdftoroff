@@ -46,7 +46,6 @@ struct command {
 	FILE *stream;
 	char *command;
 	int max;
-	int active;
 };
 
 /*
@@ -64,6 +63,7 @@ struct cairodevice {
 	double (*screenheight)(struct cairooutput *cairo);
 	void (*clear)(struct cairooutput *cairo);
 	void (*flush)(struct cairooutput *cairo);
+	int (*isactive)(struct cairooutput *cairo);
 	int (*input)(struct cairooutput *cairo, int timeout,
 	             struct command *command);
 };

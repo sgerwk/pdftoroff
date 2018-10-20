@@ -86,6 +86,14 @@ void cairoflush_fb(struct cairooutput *cairo) {
 }
 
 /*
+ * whether the output is currently active
+ */
+int cairoisactive_fb(struct cairooutput *cairo) {
+	(void) cairo;
+	return ! vt_suspend;
+}
+
+/*
  * get a single input from a cairo envelope
  */
 int cairoinput_fb(struct cairooutput *cairo, int timeout,
@@ -110,7 +118,6 @@ int cairoinput_fb(struct cairooutput *cairo, int timeout,
 
 	ret = select(max + 1, &fds, NULL, NULL, timeout != 0 ? &tv : NULL);
 
-	command->active = ! vt_suspend;
 	if (ret != -1 && command->fd != -1 && FD_ISSET(command->fd, &fds)) {
 		fgets(command->command, command->max, command->stream);
 		return KEY_EXTERNAL;
@@ -146,7 +153,8 @@ struct cairodevice cairodevicefb = {
 	cairocontext_fb,
 	cairowidth_fb, cairoheight_fb,
 	cairowidth_fb, cairoheight_fb,
-	cairoclear_fb, cairoflush_fb, cairoinput_fb
+	cairoclear_fb, cairoflush_fb,
+	cairoisactive_fb, cairoinput_fb
 };
 
 /*
