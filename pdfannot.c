@@ -10,6 +10,99 @@
 #include <poppler.h>
 
 /*
+ * print a string and free it
+ */
+void printfree(gchar *prefix, gchar *s, gchar *suffix) {
+	if (s == NULL)
+		return;
+	printf("%s%s%s", prefix, s, suffix);
+	g_free(s);
+}
+
+/*
+ * print the name of an annotation
+ */
+void printannotationname(PopplerAnnot *annot) {
+	gint type;
+
+	type = poppler_annot_get_annot_type(annot);
+
+	// one day...
+	// printfree(g_enum_to_string(PopplerAnnotType, type));
+
+	switch (type) {
+		case POPPLER_ANNOT_TEXT:
+			printf("text:");
+			break;
+		case POPPLER_ANNOT_FREE_TEXT:
+			printf("free text:");
+			break;
+		case POPPLER_ANNOT_LINE:
+			printf("line:");
+			break;
+		case POPPLER_ANNOT_SQUARE:
+			printf("square:");
+			break;
+		case POPPLER_ANNOT_CIRCLE:
+			printf("circle:");
+			break;
+		case POPPLER_ANNOT_UNDERLINE:
+			printf("underline:");
+			break;
+		case POPPLER_ANNOT_HIGHLIGHT:
+			printf("highlight:");
+			break;
+		case POPPLER_ANNOT_SQUIGGLY:
+			printf("squiggly:");
+			break;
+		case POPPLER_ANNOT_STRIKE_OUT:
+			printf("strike out:");
+			break;
+		case POPPLER_ANNOT_FILE_ATTACHMENT:
+			printf("file attachment:");
+			break;
+		case POPPLER_ANNOT_STAMP:
+			printf("stamp:\n");
+			break;
+		case POPPLER_ANNOT_CARET:
+			printf("caret:\n");
+			break;
+		default:
+			printf("annotation (%d):", type);
+			break;
+	}
+}
+
+/*
+ * print a markup annotation
+ */
+int printannotationmarkup(PopplerAnnotMarkup *markup) {
+	PopplerRectangle rect;
+	PopplerAnnotFileAttachment *att;
+	gint type;
+
+	type = poppler_annot_get_annot_type(POPPLER_ANNOT(markup));
+
+	printannotationname(POPPLER_ANNOT(markup));
+	printfree(" ", poppler_annot_markup_get_label(markup), "");
+	printfree(" ", poppler_annot_markup_get_subject(markup), "");
+
+	if (type == POPPLER_ANNOT_FILE_ATTACHMENT) {
+		att = POPPLER_ANNOT_FILE_ATTACHMENT(markup);
+		printfree(" ", poppler_annot_file_attachment_get_name(att), "");
+	}
+
+	if (! poppler_annot_markup_has_popup(markup)) {
+		printf("\n");
+		return 0;
+	}
+	poppler_annot_markup_get_popup_rectangle(markup, &rect);
+	printf(" %g,%g-%g,%g", rect.x1, rect.y1, rect.x2, rect.y2);
+	printf("\n");
+	return 0;
+}
+
+/*
  * print the annotations in a page
  */
 int printannotations(PopplerPage *page) {
@@ -17,7 +110,6 @@ int printannotations(PopplerPage *page) {
 	int present = FALSE;
 	PopplerAnnotMapping *m;
 	int type;
-	gchar *name, *content;
 
 	if (! POPPLER_IS_PAGE(page))
 		return FALSE;
@@ -34,29 +126,32 @@ int printannotations(PopplerPage *page) {
 
 		type = poppler_annot_get_annot_type(m->annot);
 		switch (type) {
-		case POPPLER_ANNOT_TEXT:
-			printf("text\n");
-			break;
 		case POPPLER_ANNOT_LINK:
-			continue;		// links are actions
+			continue;	// links are actions, print there
+		case POPPLER_ANNOT_TEXT:
 		case POPPLER_ANNOT_FREE_TEXT:
+		case POPPLER_ANNOT_LINE:
+		case POPPLER_ANNOT_SQUARE:
+		case POPPLER_ANNOT_CIRCLE:
+		case POPPLER_ANNOT_UNDERLINE:
+		case POPPLER_ANNOT_HIGHLIGHT:
+		case POPPLER_ANNOT_SQUIGGLY:
+		case POPPLER_ANNOT_STRIKE_OUT:
+		case POPPLER_ANNOT_FILE_ATTACHMENT:
+			printannotationmarkup(POPPLER_ANNOT_MARKUP(m->annot));
+			break;
+		case POPPLER_ANNOT_STAMP:
+		case POPPLER_ANNOT_CARET:
+			printannotationname(m->annot);
+			break;
 		/* others */
 		default:
 			printf("annotation (%d)\n", type);
 		}
 
-		name = poppler_annot_get_name(m->annot);
-		if (name != NULL) {
-			printf("%s\n", poppler_annot_get_name(m->annot));
-			g_free(name);
-		}
-
-		content = poppler_annot_get_contents(m->annot);
-		if (content) {
-			printf("%s\n", content);
-			g_free(content);
-		}
-
+		printfree("\tname: ", poppler_annot_get_name(m->annot), "\n");
+		printfree("\tcontent: ",
+			poppler_annot_get_contents(m->annot), "\n");
 	}
 
 	poppler_page_free_annot_mapping(annots);
