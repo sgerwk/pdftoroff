@@ -2576,8 +2576,9 @@ int openfifo(char *name, struct command *command, int *keepopen) {
 /*
  * log the state of the main loop
  */
-void logstatus(struct output *output, int c) {
+void logstatus(char *prefix, int window, struct output *output, int c) {
 	char *key, normal[2];
+	char *winname, winnum[3];
 
 	switch (c) {
 	case KEY_NONE:
@@ -2608,12 +2609,31 @@ void logstatus(struct output *output, int c) {
 		key = "KEY_EXTERNAL";
 		break;
 	default:
-		snprintf(key = normal, 2, "%c\n", c);
+		snprintf(key = normal, 2, "%c", c);
+	}
+
+	switch (window) {
+	case WINDOW_DOCUMENT:
+		winname = "WINDOW_DOCUMENT";
+		break;
+	case WINDOW_MENU:
+		winname = "WINDOW_MENU";
+		break;
+	case WINDOW_REFRESH:
+		winname = "WINDOW_REFRESH";
+		break;
+	case WINDOW_EXIT:
+		winname = "WINDOW_EXIT";
+		break;
+	default:
+		snprintf(winname = winnum, 3, "%d", window);
 	}
 
 	ensureoutputfile(output);
-	fprintf(output->outfile, "%-12s", key);
-	fprintf(output->outfile, " timeout=%-10d", output->timeout);
+	fprintf(output->outfile, "%2s", prefix);
+	fprintf(output->outfile, " %-20s", winname);
+	fprintf(output->outfile, " %-12s", key);
+	fprintf(output->outfile, " timeout=%-6d", output->timeout);
 	fprintf(output->outfile, " redraw=%d", output->redraw);
 	fprintf(output->outfile, " flush=%d\n", output->flush);
 	fflush(output->outfile);
