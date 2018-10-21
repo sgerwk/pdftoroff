@@ -3026,11 +3026,12 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 					/* read input */
 
 		logstatus(LEVEL_MAIN, "preinput", window, &output, c);
+		pending = output.timeout != 0 && c == KEY_NONE;
 		c = c != KEY_NONE ? c :
 			cairodevice->input(cairo, output.timeout, &command);
 		logstatus(LEVEL_MAIN, "postinput", window, &output, c);
-		pending = output.timeout != 0;
-		output.timeout = 0;
+		if (pending)
+			output.timeout = 0;
 		if (c == KEY_SUSPEND || c == KEY_SIGNAL || c == KEY_NONE) {
 			c = KEY_NONE;
 			continue;
@@ -3046,6 +3047,8 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 			draw(cairo, cairodevice->clear, cairodevice->flush,
 				position, &output);
 			output.flush = TRUE;
+			if (pending && c == KEY_TIMEOUT)
+				c = KEY_REDRAW;
 		}
 
 					/* pass input to window or external */
