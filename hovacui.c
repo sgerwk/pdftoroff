@@ -2574,6 +2574,52 @@ int openfifo(char *name, struct command *command, int *keepopen) {
 }
 
 /*
+ * log the state of the main loop
+ */
+void logstatus(struct output *output, int c) {
+	char *key, normal[2];
+
+	switch (c) {
+	case KEY_NONE:
+		key = "KEY_NONE";
+		break;
+	case KEY_INIT:
+		key = "KEY_INIT";
+		break;
+	case KEY_REFRESH:
+		key = "KEY_REFRESH";
+		break;
+	case KEY_REDRAW:
+		key = "KEY_REDRAW";
+		break;
+	case KEY_RESIZE:
+		key = "KEY_RESIZE";
+		break;
+	case KEY_TIMEOUT:
+		key = "KEY_TIMEOUT";
+		break;
+	case KEY_SUSPEND:
+		key = "KEY_SUSPEND";
+		break;
+	case KEY_SIGNAL:
+		key = "KEY_SIGNAL";
+		break;
+	case KEY_EXTERNAL:
+		key = "KEY_EXTERNAL";
+		break;
+	default:
+		snprintf(key = normal, 2, "%c\n", c);
+	}
+
+	ensureoutputfile(output);
+	fprintf(output->outfile, "%-12s", key);
+	fprintf(output->outfile, " timeout=%-10d", output->timeout);
+	fprintf(output->outfile, " redraw=%d", output->redraw);
+	fprintf(output->outfile, " flush=%d\n", output->flush);
+	fflush(output->outfile);
+}
+
+/*
  * index of a character in a string
  */
 int optindex(char arg, char *all) {
