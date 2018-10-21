@@ -486,7 +486,8 @@ struct output {
 	GList *selection;
 	double texfudge;
 
-	/* output file */
+	/* output and logging file */
+	gboolean log;
 	char *outname;
 	FILE *outfile;
 };
@@ -2580,6 +2581,9 @@ void logstatus(char *prefix, int window, struct output *output, int c) {
 	char *key, normal[2];
 	char *winname, winnum[3];
 
+	if (output->log == FALSE)
+		return;
+
 	switch (c) {
 	case KEY_NONE:
 		key = "KEY_NONE";
@@ -2631,7 +2635,7 @@ void logstatus(char *prefix, int window, struct output *output, int c) {
 
 	ensureoutputfile(output);
 	fprintf(output->outfile, "%2s", prefix);
-	fprintf(output->outfile, " %-20s", winname);
+	fprintf(output->outfile, " %-16s", winname);
 	fprintf(output->outfile, " %-12s", key);
 	fprintf(output->outfile, " timeout=%-6d", output->timeout);
 	fprintf(output->outfile, " redraw=%d", output->redraw);
@@ -2682,6 +2686,7 @@ void usage() {
 	printf("\t\t-d device\tfbdev device, default /dev/fb0\n");
 	printf("\t\t-e fifo\t\treceive commands from the given fifo\n");
 	printf("\t\t-z out\t\toutput file or fifo\n");
+	printf("\t\t-v\t\tverbose logging\n");
 	printf("main keys: 'h'=help 'g'=go to page '/'=search 'q'=quit ");
 	printf("'m'=menu\n");
 }
@@ -2734,6 +2739,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	output.immediate = FALSE;
 	output.drawbox = TRUE;
 	output.pagelabel = TRUE;
+	output.log = FALSE;
 	output.outname = "hovacui-out.txt";
 	output.outfile = NULL;
 	screenaspect = -1;
@@ -2803,6 +2809,8 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 					output.totalpages = TRUE;
 				if (! strcmp(s, "noinitlabels"))
 					noinitlabels = TRUE;
+				if (! strcmp(s, "verbose"))
+					output.log = TRUE;
 				if (! strcmp(s, "presentation")) {
 					output.viewmode = optindex('p', "atbp");
 					output.fit = optindex('b', "nhvb");
@@ -2884,6 +2892,9 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 			break;
 		case 'z':
 			output.outname = optarg;
+			break;
+		case 'v':
+			output.log = TRUE;
 			break;
 		case 'h':
 			usage();
@@ -2979,6 +2990,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 
 					/* draw document and labels */
 
+		logstatus("0", window, &output, c);
 		if (output.reload || sig_reload) {
 			if (sig_reload)
 				output.redraw = TRUE;
@@ -2999,8 +3011,10 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 
 					/* read input */
 
+		logstatus("1", window, &output, c);
 		c = c != KEY_NONE ? c :
 			cairodevice->input(cairo, output.timeout, &command);
+		logstatus("2", window, &output, c);
 		pending = output.timeout != 0;
 		output.timeout = 0;
 		if (c == KEY_SUSPEND || c == KEY_SIGNAL || c == KEY_NONE) {
@@ -3021,9 +3035,11 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 
 					/* pass input to window or external */
 
+		logstatus("3", window, &output, c);
 		next = c == KEY_EXTERNAL ?
 			external(window, &command, position, &output) :
 			selectwindow(window, c, position, &output);
+		logstatus("4", next, &output, c);
 		c = KEY_NONE;
 		if (next == window)
 			continue;
