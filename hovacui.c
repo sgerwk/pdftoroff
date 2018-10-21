@@ -487,7 +487,7 @@ struct output {
 	double texfudge;
 
 	/* output and logging file */
-	gboolean log;
+	int log;
 	char *outname;
 	FILE *outfile;
 };
@@ -1272,7 +1272,7 @@ int boundingboxinscreen(struct position *position, struct output *output) {
 int ensureoutputfile(struct output *output) {
 	if (output->outfile != NULL)
 		return 0;
-	output->outfile = fopen(output->outname, "a");
+	output->outfile = fopen(output->outname, "w");
 	return output->outfile == NULL;
 }
 
@@ -2577,43 +2577,54 @@ int openfifo(char *name, struct command *command, int *keepopen) {
 /*
  * log the state of the main loop
  */
-void logstatus(char *prefix, int window, struct output *output, int c) {
-	char *key, normal[2];
+#define LEVEL_MAIN  0x0001
+void logstatus(int level, char *prefix, int window,
+		struct output *output, int c) {
+	char *levname, levnum[8];
+	char *keyname, keynum[2];
 	char *winname, winnum[3];
 
-	if (output->log == FALSE)
+	if ((level & output->log) == 0)
 		return;
+
+	switch (level) {
+	case LEVEL_MAIN:
+		levname = "MAIN";
+		break;
+	default:
+		snprintf(levname = levnum, 8, "LEVEL%d", level);
+	}
 
 	switch (c) {
 	case KEY_NONE:
-		key = "KEY_NONE";
+		keyname = "KEY_NONE";
 		break;
 	case KEY_INIT:
-		key = "KEY_INIT";
+		keyname = "KEY_INIT";
 		break;
 	case KEY_REFRESH:
-		key = "KEY_REFRESH";
+		keyname = "KEY_REFRESH";
 		break;
 	case KEY_REDRAW:
-		key = "KEY_REDRAW";
+		keyname = "KEY_REDRAW";
 		break;
 	case KEY_RESIZE:
-		key = "KEY_RESIZE";
+		keyname = "KEY_RESIZE";
 		break;
 	case KEY_TIMEOUT:
-		key = "KEY_TIMEOUT";
+		keyname = "KEY_TIMEOUT";
 		break;
 	case KEY_SUSPEND:
-		key = "KEY_SUSPEND";
+		keyname = "KEY_SUSPEND";
 		break;
 	case KEY_SIGNAL:
-		key = "KEY_SIGNAL";
+		keyname = "KEY_SIGNAL";
 		break;
 	case KEY_EXTERNAL:
-		key = "KEY_EXTERNAL";
+		keyname = "KEY_EXTERNAL";
 		break;
 	default:
-		snprintf(key = normal, 2, "%c", c);
+		snprintf(keyname = keynum, 2, "%c", c);
 	}
 
 	switch (window) {
@@ -2634,10 +2645,11 @@ void logstatus(char *prefix, int window, struct output *output, int c) {
 	}
 
 	ensureoutputfile(output);
-	fprintf(output->outfile, "%2s", prefix);
-	fprintf(output->outfile, " %-16s", winname);
-	fprintf(output->outfile, " %-12s", key);
-	fprintf(output->outfile, " timeout=%-6d", output->timeout);
+	fprintf(output->outfile, "%-5s", levname);
+	fprintf(output->outfile, " %-12s", prefix);
+	fprintf(output->outfile, " %-15s", winname);
+	fprintf(output->outfile, " %-12s", keyname);
+	fprintf(output->outfile, " timeout=%-5d", output->timeout);
 	fprintf(output->outfile, " redraw=%d", output->redraw);
 	fprintf(output->outfile, " flush=%d\n", output->flush);
 	fflush(output->outfile);
@@ -2686,7 +2698,7 @@ void usage() {
 	printf("\t\t-d device\tfbdev device, default /dev/fb0\n");
 	printf("\t\t-e fifo\t\treceive commands from the given fifo\n");
 	printf("\t\t-z out\t\toutput file or fifo\n");
-	printf("\t\t-v\t\tverbose logging\n");
+	printf("\t\t-v leve\t\tlogging level\n");
 	printf("main keys: 'h'=help 'g'=go to page '/'=search 'q'=quit ");
 	printf("'m'=menu\n");
 }
@@ -2707,6 +2719,7 @@ void handler(int s) {
 int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	char configfile[4096], configline[1000], s[1000];
 	FILE *config;
+	int i;
 	double d;
 	char *outdev;
 	struct cairooutput *cairo;
@@ -2794,6 +2807,8 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 				openfifo(s, &command, &keepopen);
 			if (sscanf(configline, "outfile %s", s) == 1)
 				output.outname = strdup(s);
+			if (sscanf(configline, "log %d", &i) == 1)
+				output.log = i;
 			if (sscanf(configline, "%s", s) == 1) {
 				if (! strcmp(s, "noui"))
 					output.ui = FALSE;
@@ -2809,8 +2824,6 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 					output.totalpages = TRUE;
 				if (! strcmp(s, "noinitlabels"))
 					noinitlabels = TRUE;
-				if (! strcmp(s, "verbose"))
-					output.log = TRUE;
 				if (! strcmp(s, "presentation")) {
 					output.viewmode = optindex('p', "atbp");
 					output.fit = optindex('b', "nhvb");
@@ -2893,8 +2906,8 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 		case 'z':
 			output.outname = optarg;
 			break;
-		case 'v':
-			output.log = TRUE;
+		case 'l':
+			output.log = atoi(optarg);
 			break;
 		case 'h':
 			usage();
@@ -2990,7 +3003,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 
 					/* draw document and labels */
 
-		logstatus("0", window, &output, c);
+		logstatus(LEVEL_MAIN, "start", window, &output, c);
 		if (output.reload || sig_reload) {
 			if (sig_reload)
 				output.redraw = TRUE;
@@ -3003,6 +3016,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 			output.flush = FALSE;
 		}
 		if (c != KEY_INIT || output.redraw) {
+			logstatus(LEVEL_MAIN, "draw", window, &output, c);
 			draw(cairo, cairodevice->clear, cairodevice->flush,
 				position, &output);
 			if (output.reload)
@@ -3011,10 +3025,10 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 
 					/* read input */
 
-		logstatus("1", window, &output, c);
+		logstatus(LEVEL_MAIN, "preinput", window, &output, c);
 		c = c != KEY_NONE ? c :
 			cairodevice->input(cairo, output.timeout, &command);
-		logstatus("2", window, &output, c);
+		logstatus(LEVEL_MAIN, "postinput", window, &output, c);
 		pending = output.timeout != 0;
 		output.timeout = 0;
 		if (c == KEY_SUSPEND || c == KEY_SIGNAL || c == KEY_NONE) {
@@ -3028,6 +3042,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 					cairodevice->height(cairo),
 					margin, fontsize);
 			output.redraw = TRUE;
+			logstatus(LEVEL_MAIN, "redraw", window, &output, c);
 			draw(cairo, cairodevice->clear, cairodevice->flush,
 				position, &output);
 			output.flush = TRUE;
@@ -3035,11 +3050,11 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 
 					/* pass input to window or external */
 
-		logstatus("3", window, &output, c);
+		logstatus(LEVEL_MAIN, "prewindow", window, &output, c);
 		next = c == KEY_EXTERNAL ?
 			external(window, &command, position, &output) :
 			selectwindow(window, c, position, &output);
-		logstatus("4", next, &output, c);
+		logstatus(LEVEL_MAIN, "postwindow", next, &output, c);
 		c = KEY_NONE;
 		if (next == window)
 			continue;

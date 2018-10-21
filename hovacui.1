@@ -400,6 +400,10 @@ the default is \fIhovacui-out.txt\fP
 use the given configuration file instead of the default
 .I $HOME/.config/hovacui/hovacui.conf
 .TP
+.BI -l " level
+verbose logging to output file;
+the only level currently supported is 1, to debug the main loop
+.TP
 .BI -x " suboption
 x11 options \fIdisplay\fP and \fIgeometry\fP;
 for example, the command line to run hovacui in a 400x300 window positioned at
@@ -498,6 +502,10 @@ see \fIEXTERNAL COMMANDS\fP, below
 .TP
 .BI outfile " name
 name of the output file name, used to save the current box with key 'b'
+.TP
+.BI log " level
+verbose logging to output file;
+the only currently supported level is 1, to debug the main loop
 
 .
 .
