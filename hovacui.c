@@ -2744,7 +2744,7 @@ void usage() {
 	printf("\t\t-d device\tfbdev device, default /dev/fb0\n");
 	printf("\t\t-e fifo\t\treceive commands from the given fifo\n");
 	printf("\t\t-z out\t\toutput file or fifo\n");
-	printf("\t\t-v leve\t\tlogging level\n");
+	printf("\t\t-l level\tlogging level\n");
 	printf("main keys: 'h'=help 'g'=go to page '/'=search 'q'=quit ");
 	printf("'m'=menu\n");
 }
