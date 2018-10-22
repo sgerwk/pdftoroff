@@ -1314,7 +1314,9 @@ int document(int c, struct position *position, struct output *output) {
 	case KEY_TIMEOUT:
 	case KEY_REDRAW:
 	case KEY_RESIZE:
+		return WINDOW_DOCUMENT;
 	case KEY_REFRESH:
+		output->flush = TRUE;
 		return WINDOW_DOCUMENT;
 	case 'q':
 		return WINDOW_EXIT;
@@ -3015,11 +3017,9 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 			position = reloadpdf(position, &output);
 			c = output.redraw ? KEY_REDRAW : KEY_NONE;
 		}
-		if (! cairodevice->isactive(cairo)) {
-			output.redraw = FALSE;
-			output.flush = FALSE;
-		}
-		if (c != KEY_INIT || output.redraw) {
+		if (! cairodevice->isactive(cairo))
+			c = KEY_NONE;
+		else if (c != KEY_INIT || output.redraw) {
 			logstatus(LEVEL_MAIN, "draw", window, &output, c);
 			draw(cairo, cairodevice->clear, cairodevice->flush,
 				position, &output);
@@ -3030,12 +3030,15 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 					/* read input */
 
 		logstatus(LEVEL_MAIN, "preinput", window, &output, c);
-		pending = output.timeout != 0 && c == KEY_NONE;
-		c = c != KEY_NONE ? c :
-			cairodevice->input(cairo, output.timeout, &command);
-		logstatus(LEVEL_MAIN, "postinput", window, &output, c);
-		if (pending)
-			output.timeout = 0;
+		if (c != KEY_NONE)
+			pending = 0;
+		else {
+			pending = output.timeout != 0;
+			c = cairodevice->input(cairo, output.timeout, &command);
+			if (c != KEY_REDRAW)
+				output.timeout = 0;
+			logstatus(LEVEL_MAIN, "postinput", window, &output, c);
+		}
 		if (c == KEY_SUSPEND || c == KEY_SIGNAL || c == KEY_NONE) {
 			c = KEY_NONE;
 			continue;
@@ -3047,12 +3050,16 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 					cairodevice->height(cairo),
 					margin, fontsize);
 			output.redraw = TRUE;
-			logstatus(LEVEL_MAIN, "redraw", window, &output, c);
-			draw(cairo, cairodevice->clear, cairodevice->flush,
-				position, &output);
-			output.flush = TRUE;
-			if (pending && c == KEY_TIMEOUT)
-				c = KEY_REDRAW;
+			output.flush = FALSE;
+			if (pending && c == KEY_TIMEOUT) {
+				output.timeout = 0;
+				c = KEY_REFRESH;
+				continue;
+			}
+			if (c == KEY_RESIZE || c == KEY_REDRAW) {
+				c = KEY_REFRESH;
+				continue;
+			}
 		}
 
 					/* pass input to window or external */
