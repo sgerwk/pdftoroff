@@ -220,6 +220,46 @@
  */
 
 /*
+ * note: the main loop
+ *
+ * is a sequence of three steps, each skipped in certain situations
+ *
+ * 1. draw the document, call the label functions, flush
+ *	nothing is done if the output is not active (vt switched out)
+ *	drawing and flushing depends on output->redraw and output->flush
+ *
+ * 2. receive input
+ *	actual input is read only if c == KEY_NONE
+ *	input may be KEY_TIMEOUT, KEY_REDRAW, etc. (see below)
+ *	in some cases this step ends with a "continue" to skip step 3
+ *
+ * 3. call the window function or the external command function
+ *	draw the window
+ *	set output->redraw or output->flush if necessary
+ *
+ * relevant variables:
+ * c		if an input character is read, it is stored in this variable;
+ *		special values KEY_* carry instructions for the next iteration
+ *		such as skipping input and refreshing the screen instead, etc.
+ * window	the current window
+ * next		the next window, or WINDOW_REFRESH
+ * output.redraw whether to redraw the document at the next step 1
+ * output.flush	whether to flush the document afterward
+ *
+ * example: change a page by an external command while the main menu is active;
+ * external commands are read in step 2; step 3 calls the external() function,
+ * which changes the page number and returns WINDOW_REFRESH; this causes step 3
+ * to set output->redraw=TRUE, output->flush=FALSE and c=KEY_REFRESH; in step
+ * 1, output->redraw=TRUE causes the document to be redrawn, and output->redraw
+ * to be set to false; when the pagelabel() function is called it detects a
+ * page change and draws the page number label; flushing is not done because
+ * output->flush=FALSE; step 2 skips reading input since c is not KEY_NONE;
+ * step 3 calls the menu window with c=KEY_REFRESH, which causes it to redraw
+ * itself and set output->flush=TRUE; step 1 this time has output->redraw=FALSE
+ * and output->flush=TRUE, and therefore flushes the output
+ */
+
+/*
  * note: input
  *
  * a window is a function; one of its arguments is the user input, represented
