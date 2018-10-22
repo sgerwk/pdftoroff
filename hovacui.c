@@ -58,7 +58,6 @@
  * - clip window title in list()
  * - history of searches
  * - numbermode: 2 is a, 22 is b, 222 is c, etc.
- * - remote control (via socket)
  * - split pdf viewing functions to pdfview.c and gui stuff to cairogui.c
  * - include images (in pdfrects.c)
  * - key to reset viewmode and fit direction to initial values
