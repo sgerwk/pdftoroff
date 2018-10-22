@@ -379,6 +379,7 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <string.h>
+#include <ctype.h>
 #include <poppler.h>
 #include <cairo.h>
 #include <cairo-pdf.h>
@@ -2581,7 +2582,7 @@ int openfifo(char *name, struct command *command, int *keepopen) {
 void logstatus(int level, char *prefix, int window,
 		struct output *output, int c) {
 	char *levname, levnum[8];
-	char *keyname, keynum[2];
+	char *keyname, keynum[8];
 	char *winname, winnum[3];
 
 	if ((level & output->log) == 0)
@@ -2624,7 +2625,10 @@ void logstatus(int level, char *prefix, int window,
 		keyname = "KEY_EXTERNAL";
 		break;
 	default:
-		snprintf(keyname = keynum, 2, "%c", c);
+		if (isprint(c))
+			snprintf(keyname = keynum, 8, "%c", c);
+		else
+			snprintf(keyname = keynum, 8, "[%d]", c);
 	}
 
 	switch (window) {
