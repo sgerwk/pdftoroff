@@ -27,6 +27,10 @@
  *   to the center of the screen before changing mode; afterward, select the
  *   box that contains it, set scrollx,scrolly so that the character is in the
  *   center of the screen; then adjust the scroll
+ * - save an arbitrary selection/order of pages to file;
+ *   allow moving when chop() is active;
+ *   progress label during save: requires savepdf to be a window, so that it
+ *   can return WINDOW_REFRESH and be called again at each step
  *
  * - printf format string for page number label, with total pages
  * - make minwidth depend on the size of the letters
@@ -437,6 +441,7 @@ enum window {
 	WINDOW_TUTORIAL,
 	WINDOW_GOTOPAGE,
 	WINDOW_SEARCH,
+	WINDOW_CHOP,
 	WINDOW_VIEWMODE,
 	WINDOW_FITDIRECTION,
 	WINDOW_ORDER,
@@ -526,10 +531,14 @@ struct output {
 	GList *selection;
 	double texfudge;
 
-	/* output and logging file */
+	/* text output and logging file */
 	int log;
 	char *outname;
 	FILE *outfile;
+
+	/* pdf output */
+	char *pdfout;
+	int first, last;
 };
 
 /*
@@ -1307,6 +1316,67 @@ int boundingboxinscreen(struct position *position, struct output *output) {
 }
 
 /*
+ * first non-existing file matching a pattern containing %d
+ */
+FILE *firstfree(char *pattern) {
+	int i;
+	int fd;
+	char path[PATH_MAX];
+	FILE *out;
+
+	for (i = 1; i < 1000; i++) {
+		snprintf(path, PATH_MAX, pattern, i);
+		fd = open(path, O_WRONLY | O_CREAT | O_EXCL | 0644);
+		if (fd == -1)
+			continue;
+		out = fdopen(fd, "w");
+		return out;
+	}
+	return NULL;
+}
+
+/*
+ * save a selection of pages to file
+ */
+cairo_status_t writetofile(void *c, const unsigned char *d, unsigned int l) {
+	return 1 == fwrite(d, l, 1, (FILE *) c) ?
+		CAIRO_STATUS_SUCCESS : CAIRO_STATUS_WRITE_ERROR;
+}
+int savepdf(PopplerDocument *doc, char *pattern, int first, int last) {
+	FILE *out;
+	PopplerPage *page;
+	cairo_surface_t *surface;
+	cairo_t *cr;
+	int tot, n;
+	gdouble width, height;
+
+	tot = poppler_document_get_n_pages(doc);
+	if (first < 0 || last > tot - 1 || last < first)
+		return -1;
+
+	out = firstfree(pattern);
+	if (out == NULL)
+		return -1;
+
+	surface = cairo_pdf_surface_create_for_stream(writetofile, out, 1, 1);
+	cr = cairo_create(surface);
+	for (n = first; n <= last; n++) {
+		page = poppler_document_get_page(doc, n);
+		if (page == NULL)
+			break;
+		poppler_page_get_size(page, &width, &height);
+		cairo_pdf_surface_set_size(surface, width, height);
+		poppler_page_render_for_printing(page, cr);
+		cairo_surface_show_page(surface);
+		g_object_unref(page);
+	}
+	cairo_destroy(cr);
+	cairo_surface_destroy(surface);
+	fclose(out);
+	return 0;
+}
+
+/*
  * ensure the output file is open
  */
 int ensureoutputfile(struct output *output) {
@@ -1368,6 +1438,8 @@ int document(int c, struct position *position, struct output *output) {
 	case KEY_MOVE:
 	case 'g':
 		return WINDOW_GOTOPAGE;
+	case 'c':
+		return WINDOW_CHOP;
 	case 'w':
 		return WINDOW_WIDTH;
 	case 't':
@@ -1691,6 +1763,66 @@ int tutorial(int c, struct position *position, struct output *output) {
 }
 
 /*
+ * chop menu, to save a range of pages
+ */
+int chop(int c, struct position *position, struct output *output) {
+	static char *choptext[] = {
+		"page range",
+		"first page",
+		"last page",
+		"save",
+		"clear",
+		NULL
+	};
+	static int line = 0;
+	static int selected = 1;
+	int res;
+
+	if (output->first != -1 && output->last != -1)
+		printhelp(output, 0, "range: %d-%d",
+			output->first + 1, output->last + 1);
+	else if (output->first != -1)
+		printhelp(output, 0, "range: %d-", output->first + 1);
+	else if (output->last != -1)
+		printhelp(output, 0, "range: -%d", output->last + 1);
+	else
+		output->help[0] = '\0';
+
+	if (c == KEY_INIT)
+		selected = output->first == -1 ? 1 : output->last == -1 ? 2 : 3;
+
+	res = list(c, output, choptext, &line, &selected);
+	switch (res) {
+	case 0:
+		return WINDOW_CHOP;
+	case 1:
+		output->first = position->npage;
+		break;
+	case 2:
+		output->last = position->npage;
+		break;
+	case 3:
+		savepdf(position->doc, output->pdfout,
+			output->first == -1 ?
+				output->last == -1 ?
+					position->npage : 0 : output->first,
+			output->last == -1 ?
+				output->first == -1 ?
+					position->npage :
+						position->totpages - 1 :
+						output->last);
+		/* fallthrough */
+	case 4:
+		output->first = -1;
+		output->last = -1;
+		break;
+	}
+
+	output->help[0] = '\0';
+	return WINDOW_DOCUMENT;
+}
+
+/*
  * viewmode menu
  */
 int viewmode(int c, struct position *position, struct output *output) {
@@ -1813,6 +1945,7 @@ int menu(int c, struct position *position, struct output *output) {
 		"hovacui - menu",
 		"(g) go to page",
 		"(/) search",
+		"(c) save page selection",
 		"(v) view mode",
 		"(f) fit direction",
 		"(w) minimal width",
@@ -1822,11 +1955,12 @@ int menu(int c, struct position *position, struct output *output) {
 		"(q) quit",
 		NULL
 	};
-	static char *shortcuts = "g/vfwtohq", *s;
+	static char *shortcuts = "g/cvfwtohq", *s;
 	static int menunext[] = {
 		WINDOW_MENU,
 		WINDOW_GOTOPAGE,
 		WINDOW_SEARCH,
+		WINDOW_CHOP,
 		WINDOW_VIEWMODE,
 		WINDOW_FITDIRECTION,
 		WINDOW_WIDTH,
@@ -2150,6 +2284,8 @@ int selectwindow(int window, int c,
 		return gotopage(c, position, output);
 	case WINDOW_SEARCH:
 		return search(c, position, output);
+	case WINDOW_CHOP:
+		return chop(c, position, output);
 	case WINDOW_VIEWMODE:
 		return viewmode(c, position, output);
 	case WINDOW_FITDIRECTION:
@@ -2263,13 +2399,23 @@ int checkactions(struct position *position) {
  */
 void pagenumber(struct position *position, struct output *output) {
 	static int prev = -1;
-	char s[100];
+	char r[100], s[100];
 	int hasannots, hasactions;
 	char *other, *annots, *actions;
 
 	if ((position->npage == prev || ! output->pagelabel) &&
 	    ! output->pagenumber)
 		return;
+
+	if (output->first != -1 && output->last != -1)
+		snprintf(r, 100, " range:%d-%d",
+			output->first + 1, output->last + 1);
+	else if (output->first != -1)
+		snprintf(r, 100, " range:%d-", output->first + 1);
+	else if (output->last != -1)
+		snprintf(r, 100, " range:-%d", output->last + 1);
+	else
+		r[0] = '\0';
 
 	hasannots = checkannotations(position);
 	hasactions = checkactions(position);
@@ -2278,12 +2424,12 @@ void pagenumber(struct position *position, struct output *output) {
 	actions = hasactions ? hasannots ? " and actions" : " actions" : "";
 
 	if (output->totalpages)
-		sprintf(s, "page %d of %d%s%s%s",
+		sprintf(s, "page %d of %d%s%s%s%s",
 			position->npage + 1, position->totpages,
-			other, annots, actions);
+			r, other, annots, actions);
 	else
-		sprintf(s, "page %d%s%s%s", position->npage + 1,
-			other, annots, actions);
+		sprintf(s, "page %d%s%s%s%s", position->npage + 1,
+			r, other, annots, actions);
 	label(output, s, 2);
 
 	if (output->timeout == 0)
@@ -2800,6 +2946,9 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	output.log = FALSE;
 	output.outname = "hovacui-out.txt";
 	output.outfile = NULL;
+	output.pdfout = "selection-%d.pdf";
+	output.first = -1;
+	output.last = -1;
 	screenaspect = -1;
 	firstwindow = WINDOW_TUTORIAL;
 	margin = 10.0;
