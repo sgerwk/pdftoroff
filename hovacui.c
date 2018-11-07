@@ -2399,7 +2399,7 @@ int checkactions(struct position *position) {
  */
 void pagenumber(struct position *position, struct output *output) {
 	static int prev = -1;
-	char r[100], s[100];
+	char r[30], s[100];
 	int hasannots, hasactions;
 	char *other, *annots, *actions;
 
@@ -2408,12 +2408,12 @@ void pagenumber(struct position *position, struct output *output) {
 		return;
 
 	if (output->first != -1 && output->last != -1)
-		snprintf(r, 100, " range:%d-%d",
+		snprintf(r, 30, " range:%d-%d",
 			output->first + 1, output->last + 1);
 	else if (output->first != -1)
-		snprintf(r, 100, " range:%d-", output->first + 1);
+		snprintf(r, 30, " range:%d-", output->first + 1);
 	else if (output->last != -1)
-		snprintf(r, 100, " range:-%d", output->last + 1);
+		snprintf(r, 30, " range:-%d", output->last + 1);
 	else
 		r[0] = '\0';
 
@@ -2424,7 +2424,7 @@ void pagenumber(struct position *position, struct output *output) {
 	actions = hasactions ? hasannots ? " and actions" : " actions" : "";
 
 	if (output->totalpages)
-		sprintf(s, "page %d of %d%s%s%s%s",
+		snprintf(s, 100, "page %d of %d%s%s%s%s",
 			position->npage + 1, position->totpages,
 			r, other, annots, actions);
 	else
