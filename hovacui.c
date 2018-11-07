@@ -2647,7 +2647,6 @@ struct position *openpdf(char *filename) {
 	free(uri);
 	if (position->doc == NULL) {
 		printf("error opening %s: %s\n", filename, err->message);
-		g_free(err);
 		free(position);
 		return NULL;
 	}
