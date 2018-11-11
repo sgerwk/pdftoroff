@@ -27,7 +27,7 @@
  *   to the center of the screen before changing mode; afterward, select the
  *   box that contains it, set scrollx,scrolly so that the character is in the
  *   center of the screen; then adjust the scroll
- * - save an arbitrary selection/order of pages to file;
+ * - save an arbitrary selection/order of pages to file, not just a range;
  *   allow moving when chop() is active;
  *   progress label during save: requires savepdf to be a window, so that it
  *   can return WINDOW_REFRESH and be called again at each step
@@ -70,7 +70,6 @@
  *   (generalize sorting functions in pdfrects.c)
  * - i18n
  * - function to be possibly called before list() to wrap lines too long
- * - save a copy of the current document, possibly only a range of pages
  * - annotations and links:
  *   some key switches to anchor navigation mode, where keyup/keydown move to
  *   the next anchor (annotation or link) in displayed part of the current
@@ -1318,14 +1317,13 @@ int boundingboxinscreen(struct position *position, struct output *output) {
 /*
  * first non-existing file matching a pattern containing %d
  */
-FILE *firstfree(char *pattern) {
-	int i;
+FILE *firstfree(char *pattern, int *number) {
 	int fd;
 	char path[PATH_MAX];
 	FILE *out;
 
-	for (i = 1; i < 1000; i++) {
-		snprintf(path, PATH_MAX, pattern, i);
+	for (*number = 1; *number < 1000; (*number)++) {
+		snprintf(path, PATH_MAX, pattern, *number);
 		fd = open(path, O_WRONLY | O_CREAT | O_EXCL | 0644);
 		if (fd == -1)
 			continue;
@@ -1347,6 +1345,7 @@ int savepdf(PopplerDocument *doc, char *pattern, int first, int last) {
 	PopplerPage *page;
 	cairo_surface_t *surface;
 	cairo_t *cr;
+	int file;
 	int tot, n;
 	gdouble width, height;
 
@@ -1354,7 +1353,7 @@ int savepdf(PopplerDocument *doc, char *pattern, int first, int last) {
 	if (first < 0 || last > tot - 1 || last < first)
 		return -1;
 
-	out = firstfree(pattern);
+	out = firstfree(pattern, &file);
 	if (out == NULL)
 		return -1;
 
@@ -1373,7 +1372,7 @@ int savepdf(PopplerDocument *doc, char *pattern, int first, int last) {
 	cairo_destroy(cr);
 	cairo_surface_destroy(surface);
 	fclose(out);
-	return 0;
+	return file;
 }
 
 /*
@@ -1770,13 +1769,16 @@ int chop(int c, struct position *position, struct output *output) {
 		"page range",
 		"first page",
 		"last page",
-		"save",
+		"save range",
+		"save document",
 		"clear",
 		NULL
 	};
 	static int line = 0;
 	static int selected = 1;
-	int res;
+	int res, o;
+	int first, last;
+	char *fmt;
 
 	if (output->first != -1 && output->last != -1)
 		printhelp(output, 0, "range: %d-%d",
@@ -1797,28 +1799,48 @@ int chop(int c, struct position *position, struct output *output) {
 		return WINDOW_CHOP;
 	case 1:
 		output->first = position->npage;
+		output->help[0] = '\0';
 		break;
 	case 2:
 		output->last = position->npage;
+		output->help[0] = '\0';
 		break;
 	case 3:
-		savepdf(position->doc, output->pdfout,
-			output->first == -1 ?
-				output->last == -1 ?
-					position->npage : 0 : output->first,
-			output->last == -1 ?
-				output->first == -1 ?
-					position->npage :
-						position->totpages - 1 :
-						output->last);
-		/* fallthrough */
 	case 4:
+		if (res == 3) {
+			first = output->first == -1 ?
+					output->last == -1 ?
+						position->npage : 0 :
+					output->first;
+			last = output->last == -1 ?
+					output->first == -1 ?
+						position->npage :
+							position->totpages - 1 :
+							output->last;
+		}
+		else {
+			first = 0;
+			last = position->totpages - 1;
+		}
+		o = savepdf(position->doc, output->pdfout, first, last);
+		if (o < 0) {
+			printhelp(output, 3000, "error saving pdf");
+			break;
+		}
+		fmt = malloc(strlen(output->pdfout) + 100);
+		sprintf(fmt, "saved pages %%d-%%d to %s", output->pdfout);
+		printhelp(output, 3000, fmt, first + 1, last + 1, o);
+		free(fmt);
 		output->first = -1;
 		output->last = -1;
 		break;
+	case 5:
+		output->first = -1;
+		output->last = -1;
+		output->help[0] = '\0';
+		break;
 	}
 
-	output->help[0] = '\0';
 	return WINDOW_DOCUMENT;
 }
 
