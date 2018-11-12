@@ -1770,8 +1770,8 @@ int chop(int c, struct position *position, struct output *output) {
 		"first page",
 		"last page",
 		"save range",
+		"clear range",
 		"save document",
-		"clear",
 		NULL
 	};
 	static int line = 0;
@@ -1806,22 +1806,14 @@ int chop(int c, struct position *position, struct output *output) {
 		output->help[0] = '\0';
 		break;
 	case 3:
-	case 4:
-		if (res == 3) {
-			first = output->first == -1 ?
-					output->last == -1 ?
-						position->npage : 0 :
-					output->first;
-			last = output->last == -1 ?
-					output->first == -1 ?
-						position->npage :
-							position->totpages - 1 :
-							output->last;
-		}
-		else {
-			first = 0;
-			last = position->totpages - 1;
-		}
+		first = output->first == -1 ?
+				output->last == -1 ? position->npage : 0 :
+				output->first;
+		last = output->last == -1 ?
+				output->first == -1 ?
+					position->npage :
+					position->totpages - 1 :
+				output->last;
 		o = savepdf(position->doc, output->pdfout, first, last);
 		if (o < 0) {
 			printhelp(output, 3000, "error saving pdf");
@@ -1834,10 +1826,23 @@ int chop(int c, struct position *position, struct output *output) {
 		output->first = -1;
 		output->last = -1;
 		break;
-	case 5:
+	case 4:
 		output->first = -1;
 		output->last = -1;
 		output->help[0] = '\0';
+		break;
+	case 5:
+		first = 0;
+		last = position->totpages - 1;
+		o = savepdf(position->doc, output->pdfout, first, last);
+		if (o < 0) {
+			printhelp(output, 3000, "error saving pdf");
+			break;
+		}
+		fmt = malloc(strlen(output->pdfout) + 100);
+		sprintf(fmt, "saved pages %%d-%%d to %s", output->pdfout);
+		printhelp(output, 3000, fmt, first + 1, last + 1, o);
+		free(fmt);
 		break;
 	}
 
@@ -1967,7 +1972,7 @@ int menu(int c, struct position *position, struct output *output) {
 		"hovacui - menu",
 		"(g) go to page",
 		"(/) search",
-		"(c) save page selection",
+		"(c) save document or page selection",
 		"(v) view mode",
 		"(f) fit direction",
 		"(w) minimal width",
