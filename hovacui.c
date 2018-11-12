@@ -2435,12 +2435,12 @@ void pagenumber(struct position *position, struct output *output) {
 		return;
 
 	if (output->first != -1 && output->last != -1)
-		snprintf(r, 30, " range:%d-%d",
+		snprintf(r, 30, " - range:%d-%d",
 			output->first + 1, output->last + 1);
 	else if (output->first != -1)
-		snprintf(r, 30, " range:%d-", output->first + 1);
+		snprintf(r, 30, " - range:%d-", output->first + 1);
 	else if (output->last != -1)
-		snprintf(r, 30, " range:-%d", output->last + 1);
+		snprintf(r, 30, " - range:-%d", output->last + 1);
 	else
 		r[0] = '\0';
 
@@ -2453,10 +2453,10 @@ void pagenumber(struct position *position, struct output *output) {
 	if (output->totalpages)
 		snprintf(s, 100, "page %d of %d%s%s%s%s",
 			position->npage + 1, position->totpages,
-			r, other, annots, actions);
+			other, annots, actions, r);
 	else
 		sprintf(s, "page %d%s%s%s%s", position->npage + 1,
-			r, other, annots, actions);
+			other, annots, actions, r);
 	label(output, s, 2);
 
 	if (output->timeout == 0)
