@@ -99,7 +99,7 @@
  *   complex pages; the page and the ui render on different surfaces, that are
  *   then copied to the output
  * - thread for progress indicator: tells that the program is still working,
- *   and nothing is shown because rendering is in progress
+ *   and nothing is shown because rendering, searching or saving is in progress
  *
  * regressions:
  * - open a long document, open gotopage window, replace file with a short
