@@ -777,10 +777,11 @@ RectangleList *rectanglelist_characters(PopplerPage *page) {
  * the gdouble parameters define the minimal size of considered rectangles
  */
 RectangleList *rectanglelist_textarea_bound(PopplerPage *page,
+		RectangleList *layout,
 		gdouble whiteboth, gdouble whiteeach,
 		gdouble blackboth, gdouble blackeach) {
 	PopplerRectangle p;
-	RectangleList *layout, *white, *black;
+	RectangleList *white, *black;
 	RectangleBound wb, bb;
 
 	wb.both = whiteboth;
@@ -788,7 +789,6 @@ RectangleList *rectanglelist_textarea_bound(PopplerPage *page,
 	bb.both = blackboth;
 	bb.each = blackeach;
 
-	layout = rectanglelist_characters(page);
 	if (debugtextrectangles)
 		printf("character rectangles: %d\n", layout->num);
 	if (debugtextrectangles == 1)
@@ -836,9 +836,10 @@ RectangleList *rectanglelist_textarea_bound(PopplerPage *page,
  * text area in the page, with parametric minimal distance considered a space
  */
 RectangleList *rectanglelist_textarea_distance(PopplerPage *page, gdouble w) {
-	RectangleList *res;
+	RectangleList *layout, *res;
 
-	res = rectanglelist_textarea_bound(page, w, 100.0, 0.0, 0.0);
+	layout = rectanglelist_characters(page);
+	res = rectanglelist_textarea_bound(page, layout, w, 100.0, 0.0, 0.0);
 	if (res != NULL)
 		return res;
 
@@ -906,6 +907,72 @@ PopplerRectangle *rectanglelist_boundingbox_document(PopplerDocument *doc) {
 	}
 
 	return boundingbox;
+}
+
+/*
+ * list of squares of a grid that are painted in a page
+ */
+RectangleList *rectanglelist_painted(PopplerPage *page, int distance) {
+	double width, height;
+	cairo_surface_t *surface;
+	cairo_t *cr;
+	unsigned char *data;
+	int w, h, stride, x, y;
+	RectangleList *painted;
+	PopplerRectangle *r;
+
+	poppler_page_get_size(page, &width, &height);
+	w = width / distance;
+	h = height / distance;
+
+	surface = cairo_image_surface_create(CAIRO_FORMAT_A8, w, h);
+	cr = cairo_create(surface);
+	cairo_scale(cr, w / width, h / height);
+	poppler_page_render_for_printing(page, cr);
+	cairo_surface_show_page(surface);
+
+	data = cairo_image_surface_get_data(surface);
+	stride = cairo_image_surface_get_stride(surface);
+	cairo_surface_flush(surface);
+
+	painted = rectanglelist_new(MAXRECT);
+
+	for (y = 0; y < h; y++)
+		for (x = 0; x < w; x++) {
+			if (data[stride * y + x ] == 0)
+				continue;
+			r = poppler_rectangle_new();
+			r->x1 = x * distance;
+			r->y1 = y * distance;
+			r->x2 = r->x1 + distance;
+			r->y2 = r->y1 + distance;
+			rectanglelist_append(painted, r);
+		}
+
+	cairo_destroy(cr);
+	cairo_surface_destroy(surface);
+
+	return painted;
+}
+
+/*
+ * area of painted squares in a page, with minimal distance of white space
+ */
+RectangleList *rectanglelist_paintedarea_distance(PopplerPage *page,
+		gdouble w) {
+	RectangleList *layout, *res;
+
+	layout = rectanglelist_painted(page, w);
+	res = rectanglelist_textarea_bound(page, layout, w, 100.0, 0.0, 0.0);
+	if (res != NULL)
+		return res;
+
+	/* fallback: finding the rectangle list was impossible because of the
+	 * large number of rectangles; just return the whole page */
+	res = rectanglelist_new(1);
+	rectangle_page(page, res->rect);
+	res->num = 1;
+	return res;
 }
 
 /*

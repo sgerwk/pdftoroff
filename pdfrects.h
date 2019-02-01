@@ -154,6 +154,12 @@ PopplerRectangle *rectanglelist_boundingbox(PopplerPage *);
 /* overall bounding box of the whole document (NULL if no text) */
 PopplerRectangle *rectanglelist_boundingbox_document(PopplerDocument *doc);
 
+/* list of squares of a grid that are painted in a page */
+RectangleList *rectanglelist_painted(PopplerPage *page, int distance);
+
+/* area of painted squares in a page, with minimal distance of white space */
+RectangleList *rectanglelist_paintedarea_distance(PopplerPage *, gdouble);
+
 /*
  * drawing-related functions
  */
