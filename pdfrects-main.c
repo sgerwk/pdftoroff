@@ -32,6 +32,7 @@ int main(int argc, char *argv[]) {
 	gdouble distance = 15.0;
 	gboolean numbers = FALSE;
 	gboolean bb = FALSE;
+	gboolean painted = FALSE;
 	gboolean add = FALSE;
 	int sort = -1;
 	int first = -1, last = -1;
@@ -59,7 +60,7 @@ int main(int argc, char *argv[]) {
 
 				/* arguments */
 
-	while ((opt = getopt(argc, argv, "f:l:ns:bd:r:ah")) != -1)
+	while ((opt = getopt(argc, argv, "f:l:nps:bd:r:ah")) != -1)
 		switch(opt) {
 		case 'f':
 			first = atoi(optarg);
@@ -69,6 +70,9 @@ int main(int argc, char *argv[]) {
 			break;
 		case 'n':
 			numbers = TRUE;
+			break;
+		case 'p':
+			painted = TRUE;
 			break;
 		case 's':
 			sort = atoi(optarg);
@@ -105,6 +109,7 @@ int main(int argc, char *argv[]) {
 		printf("\t\t-b\t\tbounding box instead of textarea\n");
 		printf("\t\t-d distance\tminimal distance of text boxes\n");
 		printf("\t\t-n\t\tnumber boxes\n");
+		printf("\t\t-p\t\tuse painted squares instead of text\n");
 		printf("\t\t-s n\t\tsort boxes by method n\n");
 		printf("\t\t-a\t\tadd a test box\n");
 		printf("\t\t-r level\tdebug textarea algorithm\n");
@@ -165,7 +170,10 @@ int main(int argc, char *argv[]) {
 				"        ", "        ", boundingbox);
 		}
 		else {
-			textarea = rectanglelist_textarea_distance(page,
+			textarea = painted ?
+				rectanglelist_paintedarea_distance(page,
+					distance) :
+				rectanglelist_textarea_distance(page,
 					distance);
 			if (sort >= 0)
 				order[sort](textarea, page);

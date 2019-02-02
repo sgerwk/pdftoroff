@@ -13,7 +13,7 @@ pdfrects - bounding box or text area of the pages of a pdf file
 .TP 9
 .B pdfrects
 [\fB-f\fP \fIpage\fP] [\fB-l\fP \fIpage\fP]
-[\fB-b\fP] [\fB-d\fP \fIdistance\fP] [\fB-n\fP [\fB-s\fP \fIn\fP]]
+[\fB-p\fP] [\fB-b\fP] [\fB-d\fP \fIdistance\fP] [\fB-n\fP [\fB-s\fP \fIn\fP]]
 .IP
 [\fB-a\fP] [\fB-r\fP \fIlevel\fP] [\fB-h\fP] \fIfile.pdf\fP
 .PD
@@ -37,6 +37,10 @@ first page
 .TP
 \fB-f\fP \fIpage\fP
 last page
+.TP
+.B -p
+use the painted area instead of the textarea; it is obtained by dividing the
+page into a grid of squares and checking which ones contain something
 .TP
 .B -b
 bounding box; the default is the textarea
