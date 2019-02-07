@@ -277,7 +277,10 @@ void showregion(FILE *fd, PopplerRectangle *zone, RectangleList *textarea,
 				scandata->newpar = TRUE;
 			}
 			else {
-				dnewpar(fd, "[]");
+				if (scandata->prev == '-')
+					dnewpar(fd, "[-]");
+				else
+					dnewpar(fd, "[]");
 				scandata->prev =
 					scandata->prev == '-' ||
 					scandata->prev == START ?
