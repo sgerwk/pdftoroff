@@ -121,7 +121,8 @@ within the coordinates \fIx1,y1\fP and \fIx2,y2\fP
 
 .TP
 .B -v
-verbose: print the reason for the line breaks
+print markers to facilitate checking that the output is correct; see
+\fIMARKERS\fP, below
 
 .SH REFORMAT
 
@@ -321,6 +322,51 @@ is that the first is quick and approximate, the second is slower and exact. The
 third method scans the characters as they occurr in the file; the block
 containing the first is the first block; the block containing the first
 character not in the first block is the second, and so on.
+
+.
+.
+.
+.SH MARKERS
+
+Unformatting text requires introducing line breaks in some places and not in
+others and removing the hyphens used to break a word between lines.
+This cannot in general be done uniquely. Option \fI-v\fP is for printing
+markers that show what have been done and why.
+.TP
+.I []
+a newline was translated into a space because it was considered to
+separate two lines of the same paragraph
+.TP
+.I [-]
+an hyphen and the following newline were removed because they looked like a
+word broken between two lines
+.TP
+.I [S]
+the following line break is because the current line is short, like the only
+or final line of a paragraph
+.TP
+.I [E]
+same, but the line is also at the end of a block of text
+.TP
+.I [V]
+the following line break is due to vertical space between lines
+.TP
+.I [I]
+the following line break is because the next line is indented
+
+.P
+
+These markers are intended for debugging and checking the final result. For
+example, a text may look converted correctly, but two dash-separated words have
+been merged because the dash fell at the end of the line, and therefore looked
+like the hyphen of a single hyphenated word broken between two lines. Marker
+.I [-]
+helps helps for checking this kind of errors. Spelling the two parts that have
+been merged and their result may suggest whether merging was correct, but some
+cases cannot be automatically solved this way. For example, if the dash in the
+sentence "Price is not under 3, is much more -- over 10, I think." is placed at
+the end of a line, it looks like the word "moreover" when hyphenated to split
+it between two lines.
 
 .
 .
