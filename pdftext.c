@@ -273,7 +273,7 @@ void showregion(FILE *fd, PopplerRectangle *zone, RectangleList *textarea,
 
 		if (*cur == '\n' || newline) {
 			if (shortline) {
-				dnewpar(fd, "[1]");
+				dnewpar(fd, "[S]");
 				scandata->newpar = TRUE;
 			}
 			else {
@@ -318,12 +318,12 @@ void showregion(FILE *fd, PopplerRectangle *zone, RectangleList *textarea,
 
 			if (crect.y1 - y > measure->newline) {
 				if (crect.y1 - y > measure->newpar) {
-					dnewpar(fd, "[2]");
+					dnewpar(fd, "[V]");
 					scandata->newpar = TRUE;
 				}
 				y = crect.y1;
 				if (crect.x1 - left > measure->indent) {
-					dnewpar(fd, "[3]");
+					dnewpar(fd, "[I]");
 					scandata->newpar = TRUE;
 				}
 			}
@@ -386,7 +386,7 @@ void showregion(FILE *fd, PopplerRectangle *zone, RectangleList *textarea,
 				/* shortline at end */
 
 	if (shortline) {
-		dnewpar(fd, "[4]");
+		dnewpar(fd, "[E]");
 		scandata->newpar = TRUE;
 	}
 }
