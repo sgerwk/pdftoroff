@@ -833,13 +833,15 @@ RectangleList *rectanglelist_textarea_bound(PopplerPage *page,
 }
 
 /*
- * text area in the page, with parametric minimal distance considered a space
+ * the area used by text in the page, with fallback to whole page
  */
-RectangleList *rectanglelist_textarea_distance(PopplerPage *page, gdouble w) {
-	RectangleList *layout, *res;
-
-	layout = rectanglelist_characters(page);
-	res = rectanglelist_textarea_bound(page, layout, w, 100.0, 0.0, 0.0);
+RectangleList *rectanglelist_textarea_bound_fallback(PopplerPage *page,
+		RectangleList *layout,
+		gdouble whiteboth, gdouble whiteeach,
+		gdouble blackboth, gdouble blackeach) {
+	RectangleList *res;
+	res = rectanglelist_textarea_bound(page, layout,
+			whiteboth, whiteeach, blackboth, blackeach);
 	if (res != NULL)
 		return res;
 
@@ -849,6 +851,16 @@ RectangleList *rectanglelist_textarea_distance(PopplerPage *page, gdouble w) {
 	rectangle_page(page, res->rect);
 	res->num = 1;
 	return res;
+}
+
+/*
+ * text area in the page, with parametric minimal distance considered a space
+ */
+RectangleList *rectanglelist_textarea_distance(PopplerPage *page, gdouble w) {
+	RectangleList *layout;
+	layout = rectanglelist_characters(page);
+	return rectanglelist_textarea_bound_fallback(page, layout,
+			w, 100.0, 0.0, 0.0);
 }
 
 /*
@@ -960,19 +972,9 @@ RectangleList *rectanglelist_painted(PopplerPage *page, int distance) {
  */
 RectangleList *rectanglelist_paintedarea_distance(PopplerPage *page,
 		gdouble w) {
-	RectangleList *layout, *res;
-
+	RectangleList *layout;
 	layout = rectanglelist_painted(page, w);
-	res = rectanglelist_textarea_bound(page, layout, w, 100.0, 0.0, 0.0);
-	if (res != NULL)
-		return res;
-
-	/* fallback: finding the rectangle list was impossible because of the
-	 * large number of rectangles; just return the whole page */
-	res = rectanglelist_new(1);
-	rectangle_page(page, res->rect);
-	res->num = 1;
-	return res;
+	return rectanglelist_textarea_bound(page, layout, w, 100.0, 0.0, 0.0);
 }
 
 /*
