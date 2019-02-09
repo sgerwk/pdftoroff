@@ -160,6 +160,9 @@ RectangleList *rectanglelist_painted(PopplerPage *page, int distance);
 /* area of painted squares in a page, with minimal distance of white space */
 RectangleList *rectanglelist_paintedarea_distance(PopplerPage *, gdouble);
 
+/* bounding box of a page, based on painted squares */
+PopplerRectangle *rectanglelist_boundingbox_painted(PopplerPage *page, int d);
+
 /*
  * drawing-related functions
  */

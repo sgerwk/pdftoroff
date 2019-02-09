@@ -975,6 +975,20 @@ RectangleList *rectanglelist_paintedarea_distance(PopplerPage *page,
 }
 
 /*
+ * bounding box of a page, based on painted squares
+ */
+PopplerRectangle *rectanglelist_boundingbox_painted(PopplerPage *page,
+		int distance) {
+	RectangleList *layout;
+	PopplerRectangle *boundingbox;
+
+	layout = rectanglelist_painted(page, distance);
+	boundingbox = rectanglelist_joinall(layout);
+	rectanglelist_free(layout);
+	return boundingbox;
+}
+
+/*
  * draw a rectangle on a cairo context with a random color
  */
 void rectangle_draw(cairo_t *cr, PopplerRectangle *rect,
