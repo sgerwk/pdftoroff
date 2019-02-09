@@ -877,7 +877,6 @@ PopplerRectangle *rectanglelist_boundingbox(PopplerPage *page) {
 	RectangleList *all;
 	PopplerRectangle *boundingbox;
 	guint n;
-	gint i;
 
 	all = rectanglelist_new(0);
 	poppler_page_get_text_layout(page, &all->rect, &n);
@@ -885,9 +884,7 @@ PopplerRectangle *rectanglelist_boundingbox(PopplerPage *page) {
 		return NULL;
 	all->num = n;
 
-	boundingbox = poppler_rectangle_copy(all->rect + 0);
-	for (i = 1; i < all->num; i++)
-		rectangle_join(boundingbox, all->rect + i);
+	boundingbox = rectanglelist_joinall(all);
 
 	rectanglelist_free(all);
 	return boundingbox;
