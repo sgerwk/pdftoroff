@@ -164,7 +164,10 @@ int main(int argc, char *argv[]) {
 		page = poppler_document_get_page(doc, n);
 
 		if (bb) {
-			boundingbox = rectanglelist_boundingbox(page);
+			boundingbox = painted ?
+				rectanglelist_boundingbox_painted(page,
+					distance) :
+				rectanglelist_boundingbox(page);
 			printf("    boundingbox:\n");
 			rectangle_printyaml(stdout,
 				"        ", "        ", boundingbox);
