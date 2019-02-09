@@ -871,7 +871,7 @@ RectangleList *rectanglelist_textarea(PopplerPage *page) {
 }
 
 /*
- * overall bounding box (NULL if no text is in the page)
+ * bounding box of a page (NULL if no text is in the page)
  */
 PopplerRectangle *rectanglelist_boundingbox(PopplerPage *page) {
 	RectangleList *all;
