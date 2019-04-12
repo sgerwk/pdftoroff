@@ -1324,7 +1324,7 @@ FILE *firstfree(char *pattern, int *number) {
 
 	for (*number = 1; *number < 1000; (*number)++) {
 		snprintf(path, PATH_MAX, pattern, *number);
-		fd = open(path, O_WRONLY | O_CREAT | O_EXCL | 0644);
+		fd = open(path, O_WRONLY | O_CREAT | O_EXCL, 0644);
 		if (fd == -1)
 			continue;
 		out = fdopen(fd, "w");
