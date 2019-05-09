@@ -1781,12 +1781,12 @@ int chop(int c, struct position *position, struct output *output) {
 	char *fmt;
 
 	if (output->first != -1 && output->last != -1)
-		printhelp(output, 0, "range: %d-%d",
+		printhelp(output, NO_TIMEOUT, "range: %d-%d",
 			output->first + 1, output->last + 1);
 	else if (output->first != -1)
-		printhelp(output, 0, "range: %d-", output->first + 1);
+		printhelp(output, NO_TIMEOUT, "range: %d-", output->first + 1);
 	else if (output->last != -1)
-		printhelp(output, 0, "range: -%d", output->last + 1);
+		printhelp(output, NO_TIMEOUT, "range: -%d", output->last + 1);
 	else
 		output->help[0] = '\0';
 
@@ -2058,7 +2058,7 @@ int field(int c, struct output *output,
 		current[l + 1] = '\0';
 	}
 	else if (help != NULL)
-		printhelp(output, 0, help);
+		printhelp(output, NO_TIMEOUT, help);
 
 	output->flush = TRUE;
 
