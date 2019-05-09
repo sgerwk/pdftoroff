@@ -39,6 +39,11 @@
 #define KEY_EXTERNAL	((KEY_MAX) + 9)
 
 /*
+ * no timeout
+ */
+#define NO_TIMEOUT (-1)
+
+/*
  * external command
  */
 struct command {

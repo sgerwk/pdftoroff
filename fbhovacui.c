@@ -116,7 +116,8 @@ int cairoinput_fb(struct cairooutput *cairo, int timeout,
 	tv.tv_sec = timeout / 1000;
 	tv.tv_usec = timeout % 1000;
 
-	ret = select(max + 1, &fds, NULL, NULL, timeout != 0 ? &tv : NULL);
+	ret = select(max + 1, &fds, NULL, NULL,
+		timeout != NO_TIMEOUT ? &tv : NULL);
 
 	if (ret != -1 && command->fd != -1 && FD_ISSET(command->fd, &fds)) {
 		fgets(command->command, command->max, command->stream);

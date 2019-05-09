@@ -507,7 +507,7 @@ struct output {
 	/* whether the output is to be flushed */
 	int flush;
 
-	/* stop input on timeout and return KEY_TIMEOUT */
+	/* if not NO_TIMEOUT, stop input on timeout and return KEY_TIMEOUT */
 	int timeout;
 
 	/* labels */
@@ -1217,7 +1217,7 @@ int nextmatch(struct position *position, struct output *output) {
 }
 
 /*
- * formatted print to the help label; timeout=0 means infinite
+ * formatted print to the help label; timeout=NO_TIMEOUT means infinite
  */
 int printhelp(struct output *output, int timeout, char *format, ...) {
 	va_list ap;
@@ -2459,7 +2459,7 @@ void pagenumber(struct position *position, struct output *output) {
 			other, annots, actions, r);
 	label(output, s, 2);
 
-	if (output->timeout == 0)
+	if (output->timeout == NO_TIMEOUT)
 		output->timeout = 1200;
 	output->pagenumber = FALSE;
 	prev = position->npage;
@@ -2485,7 +2485,7 @@ void showmode(struct position *position, struct output *output) {
 	sprintf(s, "viewmode: %s%s", modes[output->viewmode], actual);
 	label(output, s, 3);
 
-	if (output->timeout == 0)
+	if (output->timeout == NO_TIMEOUT)
 		output->timeout = 1200;
 	output->showmode = FALSE;
 	prev = output->viewmode;
@@ -2507,7 +2507,7 @@ void showfit(struct position *position, struct output *output) {
 	sprintf(s, "fit: %s", fits[output->fit]);
 	label(output, s, 4);
 
-	if (output->timeout == 0)
+	if (output->timeout == NO_TIMEOUT)
 		output->timeout = 1200;
 	output->showfit = FALSE;
 	prev = output->fit;
@@ -2525,7 +2525,7 @@ void filename(struct position *position, struct output *output) {
 	sprintf(s, "%s", position->filename);
 	label(output, s, 5);
 
-	if (output->timeout == 0)
+	if (output->timeout == NO_TIMEOUT)
 		output->timeout = 1200;
 	output->filename = FALSE;
 }
@@ -3185,7 +3185,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	output.selection = NULL;
 	output.texfudge = 0; // 24;
 
-	output.timeout = 0;
+	output.timeout = NO_TIMEOUT;
 	output.help[0] = '\0';
 	output.help[79] = '\0';
 
@@ -3247,10 +3247,10 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 		if (c != KEY_NONE)
 			pending = 0;
 		else {
-			pending = output.timeout != 0;
+			pending = output.timeout != NO_TIMEOUT;
 			c = cairodevice->input(cairo, output.timeout, &command);
 			if (c != KEY_REDRAW)
-				output.timeout = 0;
+				output.timeout = NO_TIMEOUT;
 			logstatus(LEVEL_MAIN, "postinput", window, &output, c);
 		}
 		if (c == KEY_SUSPEND || c == KEY_SIGNAL || c == KEY_NONE) {
@@ -3266,7 +3266,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 			output.redraw = TRUE;
 			output.flush = FALSE;
 			if (pending && c == KEY_TIMEOUT) {
-				output.timeout = 0;
+				output.timeout = NO_TIMEOUT;
 				c = KEY_REFRESH;
 				continue;
 			}

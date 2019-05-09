@@ -271,7 +271,7 @@ int nextevent(Display *dsp, int timeout, XEvent *evt, struct command *command) {
 		tv.tv_usec = (timeout % 1000) * 1000;
 
 		ret = select(max + 1, &fds, NULL, NULL,
-			timeout != 0 ? &tv : NULL);
+			timeout != NO_TIMEOUT ? &tv : NULL);
 		if (ret == -1)
 			return -1;
 
