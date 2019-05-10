@@ -3247,7 +3247,8 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 		if (c != KEY_NONE)
 			pending = 0;
 		else {
-			pending = output.timeout != NO_TIMEOUT;
+			pending = output.timeout != NO_TIMEOUT &&
+				output.timeout != 0;
 			c = cairodevice->input(cairo, output.timeout, &command);
 			if (c != KEY_REDRAW)
 				output.timeout = NO_TIMEOUT;
