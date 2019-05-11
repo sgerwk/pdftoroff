@@ -124,7 +124,7 @@ int cairoinput_fb(struct cairooutput *cairo, int timeout,
 		return KEY_EXTERNAL;
 	}
 
-	if (vt_suspend)
+	if (vt_suspend && timeout != 0)
 		return KEY_SUSPEND;
 
 	if (ret == -1) {
