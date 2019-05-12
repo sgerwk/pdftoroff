@@ -325,6 +325,19 @@ RectangleList *rectanglelist_new(int n) {
 }
 
 /*
+ * make a copy of a rectangle list
+ */
+RectangleList *rectanglelist_copy(RectangleList *src) {
+	RectangleList *dst;
+
+	dst = rectanglelist_new(src->max);
+	dst->num = src->num;
+	memcpy(dst->rect, src->rect, dst->max * sizeof(PopplerRectangle));
+
+	return dst;
+}
+
+/*
  * thighten a rectangle list by deallocating the unused entries
  */
 void rectanglelist_tighten(RectangleList *r) {

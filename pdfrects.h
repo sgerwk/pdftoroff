@@ -85,6 +85,9 @@ typedef struct {
 /* allocate a list with maximum number of elements, currently none */
 RectangleList *rectanglelist_new(int);
 
+/* make a copy of a rectangle list */
+RectangleList *rectanglelist_copy(RectangleList *src);
+
 /* thighten a rectangle list by deallocating the unused entries */
 void rectanglelist_tighten(RectangleList *);
 
