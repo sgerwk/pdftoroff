@@ -7,6 +7,7 @@
 /*
  * todo:
  *
+ * - 1-history in search: current and last searched string
  * - pass a configuration option from command line
  * - configuration files specific for the framebuffer and x11, passed as
  *   additional arguments to hovacui()
@@ -35,6 +36,7 @@
  * - printf format string for page number label, with total pages
  * - make minwidth depend on the size of the letters
  * - list() yes/no to confirm exit; disabled by config option
+ * - allow reloading during search
  * - man page: compare with fbpdf and jfbview
  * - field() for executing a shell command
  * - automatically determine the text-to-text distance based on the distance
@@ -50,7 +52,7 @@
  * - support 8bpp framebuffers (via a fixed colormap)
  * - cache the textarea list of pages already scanned
  * - config opt "nolabel" for no label at all: skip the label part from draw()
- * - multiple files, list()-based window; return WINDOW_NEXT+n to tell main()
+ * - multiple files, list()-based window; return WINDOW_FILE+n to tell main()
  *   which file to switch to; and/or have a field in struct output for the new
  *   file index or name
  * - optionally, show opening error as a window instead of fprintf
@@ -99,7 +101,7 @@
  *   complex pages; the page and the ui render on different surfaces, that are
  *   then copied to the output
  * - thread for progress indicator: tells that the program is still working,
- *   and nothing is shown because rendering, searching or saving is in progress
+ *   and nothing is shown because rendering or saving is in progress
  *
  * regressions:
  * - open a long document, open gotopage window, replace file with a short
@@ -157,8 +159,8 @@
  *	the list of rectangles of the search matches in the current page
  *
  * the first match is located by scanning the document from the current textbox
- * to the last of the page, then in the following pages until coming back to
- * the original page
+ * to the last of the page, then in the following pages, counting the number of
+ * pages until the number of pages in the document is reached
  *
  * matches that are in the current textbox but fall before the part of it that
  * is currently displayed on the screen are ignored
@@ -214,11 +216,15 @@
  * the document is not redrawn at each step; rather, windows and labels are
  * just drawn over it, and therefore remain on the screen until the document is
  * redrawn; the document is redrawn only when:
- * - the input timeout was set and it either expires or a key arrived
+ * - the input timeout was set >0 and it either expires or a key arrived
  * - the virtual terminal is switched in
  * - document() sets output->redraw; it does when it changes position
  * - a window other than WINDOW_DOCUMENT returns another window
  * - a window or external command returns WINDOW_REFRESH
+ *
+ * a window requests probing the input by setting output->timeout=0 and
+ * returning itself; the document is redrawn only if output->redraw is set;
+ * instead, WINDOW_REFRESH does no input probe and always redraws the document
  */
 
 /*
@@ -440,6 +446,7 @@ enum window {
 	WINDOW_TUTORIAL,
 	WINDOW_GOTOPAGE,
 	WINDOW_SEARCH,
+	WINDOW_NEXT,
 	WINDOW_CHOP,
 	WINDOW_VIEWMODE,
 	WINDOW_FITDIRECTION,
@@ -576,6 +583,16 @@ void initposition(struct position *position) {
 	position->viewbox = NULL;
 	position->scrollx = 0;
 	position->scrolly = 0;
+}
+
+/*
+ * ensure the output file is open
+ */
+int ensureoutputfile(struct output *output) {
+	if (output->outfile != NULL)
+		return 0;
+	output->outfile = fopen(output->outname, "w");
+	return output->outfile == NULL;
 }
 
 /*
@@ -1109,7 +1126,7 @@ int scrolltorectangle(struct position *position, struct output *output,
 }
 
 /*
- * go to the next match in the page, if any
+ * go to the first or next match in the page, if any
  */
 int nextpagematch(struct position *position, struct output *output,
 		gboolean inscreen, gboolean first) {
@@ -1167,54 +1184,52 @@ int nextpagematch(struct position *position, struct output *output,
 }
 
 /*
- * go to the next match, from/after the displayed area of the current textbox
+ * go to the first/next match in the document
  */
 int gotomatch(struct position *position, struct output *output,
-		gboolean inscreen) {
-	gboolean first;
-	int n;
-	struct position scan;
+		int nsearched, int inscreen) {
+	static struct position scan;
 
-	freeglistrectangles(output->found);
-	output->found = NULL;
-	if (output->search[0] == '\0')
-		return -2;
+	if (nsearched == 0) {
+		if (output->search[0] == '\0')
+			return -2;
+		scan = *position;
+		g_object_ref(scan.page);
+		scan.textarea = rectanglelist_copy(position->textarea);
+		scan.boundingbox = poppler_rectangle_copy(scan.boundingbox);
+		scan.viewbox = NULL; // do not free, is also in *position
+		moveto(&scan, output);
+	}
+	else if (nsearched == -1) {
+		rectanglelist_free(scan.textarea);
+		poppler_rectangle_free(scan.boundingbox);
+		poppler_rectangle_free(scan.viewbox);
+		return -1;
+	}
 
-	moveto(position, output);
-
-	first = TRUE;
-	scan = *position;
-	output->found = poppler_page_find_text(scan.page, output->search);
-	for (n = 0; n < scan.totpages + 1; n++) {
-		if (! nextpagematch(&scan, output, inscreen, first)) {
-			*position = scan;
-			return 0;
-		}
-		inscreen = TRUE;
-		first = FALSE;
-		scan.npage = (scan.npage + (output->forward ? 1 : -1)) %
-				scan.totpages;
-		if (scan.npage == -1)
-			scan.npage = scan.totpages - 1;
-		readpageraw(&scan, output);
-		if (output->found == NULL)
-			continue;
-		scan.textarea = NULL; // otherwise position->textarea is freed
+	pagematch(&scan, output);
+	if (output->found != NULL && nsearched > 0) {
 		textarea(&scan, output);
 		scan.box = output->forward ? 0 : (scan.textarea->num - 1);
 	}
 
-	return -1;
-}
+	if (! ! nextpagematch(&scan, output, inscreen, nsearched == 0)) {
+		scan.npage = (scan.npage + (output->forward ? 1 : -1)
+			+ scan.totpages) % scan.totpages;
+		readpageraw(&scan, output);
+		nsearched++;
+		return scan.npage;
+	}
 
-/*
- * go to the first or next match, if any
- */
-int firstmatch(struct position *position, struct output *output) {
-	return gotomatch(position, output, TRUE);
-}
-int nextmatch(struct position *position, struct output *output) {
-	return gotomatch(position, output, FALSE);
+	rectanglelist_free(position->textarea);
+	poppler_rectangle_free(position->boundingbox);
+	poppler_rectangle_free(position->viewbox);
+	scan.permanent_id = position->permanent_id;
+	scan.update_id = position->update_id;
+	g_set_object(&position->page, scan.page);
+	g_object_unref(scan.page);
+	*position = scan;
+	return -1;
 }
 
 /*
@@ -1377,16 +1392,6 @@ int savepdf(PopplerDocument *doc, char *pattern, int first, int last) {
 }
 
 /*
- * ensure the output file is open
- */
-int ensureoutputfile(struct output *output) {
-	if (output->outfile != NULL)
-		return 0;
-	output->outfile = fopen(output->outname, "w");
-	return output->outfile == NULL;
-}
-
-/*
  * print the current box and append it to file
  */
 int savebox(struct position *position, struct output *output) {
@@ -1454,8 +1459,7 @@ int document(int c, struct position *position, struct output *output) {
 	case 'n':
 	case 'p':
 		output->forward = c == 'n';
-		nextmatch(position, output);
-		break;
+		return WINDOW_NEXT;
 	case ' ':
 		if (output->fit == 0 || output->fit == 1)
 			scrolldown(position, output);
@@ -2175,35 +2179,130 @@ int number(int c, struct output *output,
  * field for a search keyword
  */
 int search(int c, struct position *position, struct output *output) {
-	static char searchstring[100] = "";
+	static char searchstring[100] = "", prevstring[100] = "";
+	static int nsearched = 0;
 	char *prompt = "find: ";
-	int res;
+	int res, page;
 
-	res = field(c, output, prompt, searchstring, NULL, NULL);
+	if (c == KEY_INIT)
+		nsearched = 0;
+
+	if (nsearched == -1 || nsearched > position->totpages) {
+		if (c == KEY_TIMEOUT || c == KEY_REFRESH) {
+			field(KEY_REDRAW, output, prompt, searchstring,
+				nsearched == -1 ? "stopped" : "no match",
+				NULL);
+			return WINDOW_SEARCH;
+		}
+		gotomatch(position, output, -1, FALSE);
+		nsearched = 0;
+	}
+
+	if (nsearched == 0 && c == KEY_UP) {
+		strcpy(searchstring, prevstring);
+		c = KEY_NONE;
+	}
+
+	res = nsearched == 0 ?
+		field(c, output, prompt, searchstring, NULL, NULL) :
+		FIELD_DONE;
 
 	if (res == FIELD_LEAVE) {
+		strcpy(output->search, "");
+		pagematch(position, output);
+		strcpy(prevstring, searchstring);
 		searchstring[0] = '\0';
 		return WINDOW_DOCUMENT;
 	}
 
 	if (res == FIELD_DONE) {
-		strcpy(output->search, searchstring);
-		if (searchstring[0] == '\0') {
-			output->search[0] = '\0';
-			pagematch(position, output);
+		if (nsearched == 0) {
+			strcpy(output->search, searchstring);
+			if (searchstring[0] == '\0') {
+				pagematch(position, output);
+				return WINDOW_DOCUMENT;
+			}
+			field(KEY_REDRAW, output, prompt, searchstring,
+				"searching", NULL);
+		}
+
+		page = gotomatch(position, output, nsearched, nsearched == 0);
+		if (page == -1) {
+			printhelp(output, 2000,
+				"n=next matches p=previous matches");
+			strcpy(prevstring, searchstring);
+			searchstring[0] = '\0';
 			return WINDOW_DOCUMENT;
 		}
-		if (firstmatch(position, output) == -1) {
-			field(KEY_REDRAW, output, prompt, searchstring,
-				"no match", NULL);
+
+		output->timeout = 0;
+
+		if (c == KEY_EXIT || c == '\033' || c == 's' || c == 'q') {
+			readpage(position, output);
+			output->redraw = 1;
+			nsearched = -1;
 			return WINDOW_SEARCH;
 		}
-		searchstring[0] = '\0';
-		printhelp(output, 2000, "n=next matches p=previous matches");
-		return WINDOW_DOCUMENT;
+
+		nsearched++;
+		if (nsearched > position->totpages) {
+			output->redraw = 1;
+			printhelp(output, 0, "");
+		}
+		else
+			printhelp(output, 0,
+				"    searching page %-5d ", page + 1);
+		return WINDOW_SEARCH;
 	}
 
 	return WINDOW_SEARCH;
+}
+
+/*
+ * next match of a search
+ */
+int next(int c, struct position *position, struct output *output) {
+	static int nsearched = 0;
+	int page;
+
+	if (c == KEY_INIT)
+		nsearched = 0;
+
+	if (nsearched == -1 || nsearched > position->totpages) {
+		gotomatch(position, output, -1, FALSE);
+		nsearched = 0;
+		printhelp(output, 2000, "not found: %s\n", output->search);
+		return WINDOW_DOCUMENT;
+	}
+
+	page = gotomatch(position, output, nsearched, FALSE);
+	if (page == -1) {
+		printhelp(output, 2000, "n=next matches p=previous matches");
+		return WINDOW_DOCUMENT;
+	}
+	else if (page == -2) {
+		printhelp(output, 2000, "no previous search");
+		return WINDOW_DOCUMENT;
+	}
+
+	output->timeout = 0;
+
+	if (c == KEY_EXIT || c == '\033' || c == 's' || c == 'q') {
+		readpage(position, output);
+		output->redraw = 1;
+		nsearched = -1;
+		return WINDOW_DOCUMENT;
+	}
+
+	nsearched++;
+	if (nsearched > position->totpages) {
+		output->redraw = 1;
+		printhelp(output, 0, "");
+	}
+	else
+		printhelp(output, 0, "    searching \"%s\" on page %-5d ",
+			output->search, page + 1);
+	return WINDOW_NEXT;
 }
 
 /*
@@ -2312,6 +2411,8 @@ int selectwindow(int window, int c,
 		return gotopage(c, position, output);
 	case WINDOW_SEARCH:
 		return search(c, position, output);
+	case WINDOW_NEXT:
+		return next(c, position, output);
 	case WINDOW_CHOP:
 		return chop(c, position, output);
 	case WINDOW_VIEWMODE:
@@ -2688,6 +2789,8 @@ struct position *openpdf(char *filename) {
 
 	poppler_document_get_id(position->doc,
 		&position->permanent_id, &position->update_id);
+
+	position->page = NULL;
 
 	return position;
 }

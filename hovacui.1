@@ -304,18 +304,22 @@ go to a given page
 .B
 /
 search forward
+(see \fISEARCHING\fP, below)
 .TP
 .B
 ?
 search backward
+(see \fISEARCHING\fP, below)
 .TP
 .B
 n
 go to the next match of the last search, if any
+(see \fISEARCHING\fP, below)
 .TP
 .B
 p
 go to the previous match of the last search, if any
+(see \fISEARCHING\fP, below)
 .TP
 .B
 c
@@ -543,6 +547,21 @@ with the page number. This label is not shown if the only annotations and
 actions in the page are internal links. The rationale is that the user is
 warned about the presence of content that is now shown, so that it can be
 retrieved with other programs, such as \fBpdfannot\fP.
+
+.
+.
+.
+.SH SEARCHING
+
+Searching is started by key '/', '?' or \fIKEY_FIND\fP. The last searched
+string can be recalled by the cursor up key. A running search is stopped
+by 'Escape', \fIKEY_EXIT\fP, 's' or 'q'. After the first match is located, the
+next screenful of matches is shown by 'n', the previous by 'p'.
+
+Unlike other document viewers, moving among matches is by screenfuls, not
+individual matches. If the screen contains 120 matches only one 'n' keystroke
+is necessary to see the matches following them, not 120. This mechanism is
+guaranteed to loop over all matches unless the fitting direction is \fInone\fP.
 
 .
 .
