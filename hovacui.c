@@ -7,7 +7,6 @@
 /*
  * todo:
  *
- * - 1-history in search: current and last searched string
  * - pass a configuration option from command line
  * - configuration files specific for the framebuffer and x11, passed as
  *   additional arguments to hovacui()
