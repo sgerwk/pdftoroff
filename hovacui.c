@@ -12,6 +12,7 @@
  *   additional arguments to hovacui()
  *   .config/hovacui/{framebuffer.conf,x11.conf}
  * - utf8 or widechar in cairodevice->input() and field()
+ * - merge narrow textarea boxes with others, minimize size increase
  * - bookmarks, with field() for creating and list() for going to
  * - save last position(s) to $HOME/.pdfpositions
  * - allow cursor moves in field()
@@ -640,7 +641,29 @@ int readpageraw(struct position *position, struct output *output) {
 }
 
 /*
- * estimate whether the page is multiple-column or not
+ * how much the page is fragmented in the boxes of its textarea
+ */
+double fragmented(struct position *position) {
+	RectangleList *rl;
+	int i;
+	double width, height, index;
+
+	rl = position->textarea;
+	width = position->boundingbox->x2 - position->boundingbox->x1;
+	height = position->boundingbox->y2 - position->boundingbox->y1;
+	index = 0;
+	for (i = 0; i < rl->num; i++) {
+		if (rl->rect[i].x2 - rl->rect[i].x1 < width / 5)
+			index++;
+		if (rl->rect[i].y2 - rl->rect[i].y1 < height / 5)
+			index++;
+	}
+
+	return index / rl->num;
+}
+
+/*
+ * how much the boxes of the text area overlap horizontally, if they do
  */
 double interoverlap(struct position *position) {
 	RectangleList *rl;
@@ -694,7 +717,9 @@ int textarea(struct position *position, struct output *output) {
 		}
 		position->boundingbox =
 			rectanglelist_joinall(position->textarea);
-		if (output->viewmode == 0 && interoverlap(position) < 0.8) {
+		if (output->viewmode == 0 &&
+		    (interoverlap(position) < 0.8 ||
+		     fragmented(position) > 1.0)) {
 			rectanglelist_free(position->textarea);
 			position->textarea = NULL;
 			break;
