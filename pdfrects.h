@@ -176,7 +176,7 @@ void rectangle_draw(cairo_t *, PopplerRectangle *,
 
 /* draw a rectangle list, possibly numbering each */
 void rectanglelist_draw(cairo_t *, RectangleList *,
-	gboolean fill, gboolean enclosing, gboolean num);
+	gboolean fill, gboolean enclosing, gboolean num, gboolean inside);
 
 /* apply the current transformation to a rectangle */
 void rectangle_transform(cairo_t *cr, PopplerRectangle *r);

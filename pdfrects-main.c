@@ -197,7 +197,8 @@ int main(int argc, char *argv[]) {
 		if (bb)
 			rectangle_draw(cr, boundingbox, TRUE, FALSE, FALSE);
 		else
-			rectanglelist_draw(cr, textarea, FALSE, FALSE, numbers);
+			rectanglelist_draw(cr, textarea,
+				FALSE, FALSE, numbers, FALSE);
 		if (fits)
 			rectangle_draw(cr, &moved, TRUE, TRUE, FALSE);
 		cairo_destroy(cr);

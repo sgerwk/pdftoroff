@@ -1034,7 +1034,8 @@ void rectangle_draw(cairo_t *cr, PopplerRectangle *rect,
  * draw a rectangle list on a cairo context
  */
 void rectanglelist_draw(cairo_t *cr, RectangleList *rl,
-		gboolean fill, gboolean enclosing, gboolean num) {
+		gboolean fill, gboolean enclosing,
+		gboolean num, gboolean inside) {
 	gint r;
 	char buf[20];
 
@@ -1042,7 +1043,7 @@ void rectanglelist_draw(cairo_t *cr, RectangleList *rl,
 		rectangle_draw(cr, rl->rect + r, TRUE, fill, enclosing);
 		if (num) {
 			cairo_move_to(cr,
-				rl->rect[r].x1 - 10.0,
+				rl->rect[r].x1 + (inside ? 10 : -10.0),
 				rl->rect[r].y1 + 10.0);
 			sprintf(buf, "%d", r);
 			cairo_show_text(cr, buf);
