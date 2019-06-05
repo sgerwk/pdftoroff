@@ -13,7 +13,8 @@ pdfrects - bounding box or text area of the pages of a pdf file
 .TP 9
 .B pdfrects
 [\fB-f\fP \fIpage\fP] [\fB-l\fP \fIpage\fP]
-[\fB-p\fP] [\fB-b\fP] [\fB-d\fP \fIdistance\fP] [\fB-n\fP [\fB-s\fP \fIn\fP]]
+[\fB-p\fP] [\fB-b\fP] [\fB-d\fP \fIdistance\fP]
+[\fB-n\fP [\fB-s\fP \fIn\fP] [\fB-i\fP]]
 .IP
 [\fB-a\fP] [\fB-r\fP \fIlevel\fP] [\fB-h\fP] \fIfile.pdf\fP
 .PD
@@ -51,6 +52,9 @@ larger number of rectangles
 .TP
 .B -n
 number boxes in the pdf output
+.TP
+.B -i
+print the box numbers inside the boxes, rather than on their side
 .TP
 \fB-s\fP \fIn\fP
 sort boxes by method \fIn\fP: 0=quick, 1=twostep, 2=char

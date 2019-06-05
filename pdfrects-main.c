@@ -8,6 +8,7 @@
  *	-d distance	minimal size of a white space
  *	-r level	the debugtextrectangles variables (-1 - 5, see below)
  *	-n		draw also the number of each rectangle
+ *	-i		draw the numbers inside the box, not by its side
  *	-s		sort rectangles
  *	-a		test adding a new 100x100 rectangle in a free area
  *	file.pdf	file to read; output is always result.pdf
@@ -31,6 +32,7 @@ int main(int argc, char *argv[]) {
 	gboolean usage = FALSE;
 	gdouble distance = 15.0;
 	gboolean numbers = FALSE;
+	gboolean inside = FALSE;
 	gboolean bb = FALSE;
 	gboolean painted = FALSE;
 	gboolean add = FALSE;
@@ -60,7 +62,7 @@ int main(int argc, char *argv[]) {
 
 				/* arguments */
 
-	while ((opt = getopt(argc, argv, "f:l:nps:bd:r:ah")) != -1)
+	while ((opt = getopt(argc, argv, "f:l:nips:bd:r:ah")) != -1)
 		switch(opt) {
 		case 'f':
 			first = atoi(optarg);
@@ -70,6 +72,9 @@ int main(int argc, char *argv[]) {
 			break;
 		case 'n':
 			numbers = TRUE;
+			break;
+		case 'i':
+			inside = TRUE;
 			break;
 		case 'p':
 			painted = TRUE;
@@ -198,7 +203,7 @@ int main(int argc, char *argv[]) {
 			rectangle_draw(cr, boundingbox, TRUE, FALSE, FALSE);
 		else
 			rectanglelist_draw(cr, textarea,
-				FALSE, FALSE, numbers, FALSE);
+				FALSE, FALSE, numbers, inside);
 		if (fits)
 			rectangle_draw(cr, &moved, TRUE, TRUE, FALSE);
 		cairo_destroy(cr);
