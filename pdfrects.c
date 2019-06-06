@@ -303,12 +303,6 @@ int rectangle_compare(PopplerRectangle *a, PopplerRectangle *b) {
 		rectangle_vcompare(a, b) :
 		rectangle_hcompare(a, b);
 }
-int rectangle_comparevoid(const void *va, const void *vb) {
-	PopplerRectangle *a, *b;
-	a = (PopplerRectangle *) va;
-	b = (PopplerRectangle *) vb;
-	return rectangle_compare(a, b);
-}
 
 /*
  * allocate a rectangle list with maximum n rectangles and currently none
@@ -450,6 +444,45 @@ PopplerRectangle *rectanglelist_joinall(RectangleList *rl) {
 }
 
 /*
+ * horizontal and vertical extents of a rectangle list
+ */
+RectangleList *rectanglelist_directionalextents(RectangleList *src,
+		int (*compare)(PopplerRectangle *a, PopplerRectangle *b),
+		gboolean (*touch)(PopplerRectangle *, PopplerRectangle *)) {
+	int i, j;
+	RectangleList *sorted, *dst;
+
+	sorted = rectanglelist_copy(src);
+	if (sorted->num == 0)
+		return sorted;
+	qsort(sorted->rect, sorted->num, sizeof(PopplerRectangle),
+		(int (*)(const void *, const void *)) compare);
+
+	dst = rectanglelist_new(sorted->num);
+	for (i = 0; i < sorted->num; i++) {
+		j = dst->num - 1;
+		if (dst->num != 0 && touch(&dst->rect[j], &sorted->rect[i]))
+			rectangle_join(&dst->rect[j], &sorted->rect[i]);
+		else {
+			dst->rect[dst->num] = sorted->rect[i];
+			dst->num++;
+		}
+	}
+
+	rectanglelist_free(sorted);
+
+	return dst;
+}
+RectangleList *rectanglelist_hextents(RectangleList *src) {
+	return rectanglelist_directionalextents(src,
+		rectangle_hcompare, rectangle_htouch);
+}
+RectangleList *rectanglelist_vextents(RectangleList *src) {
+	return rectanglelist_directionalextents(src,
+		rectangle_vcompare, rectangle_vtouch);
+}
+
+/*
  * index of rectangle in a list containing another rectangle
  */
 gint rectanglelist_contain(RectangleList *rl, PopplerRectangle *r) {
@@ -488,7 +521,7 @@ gint rectanglelist_overlap(RectangleList *rl, PopplerRectangle *r) {
 void rectanglelist_quicksort(RectangleList *rl, PopplerPage *page) {
 	(void) page;
 	qsort(rl->rect, rl->num, sizeof(PopplerRectangle),
-		rectangle_comparevoid);
+		(int (*)(const void *, const void *)) rectangle_compare);
 }
 
 /*

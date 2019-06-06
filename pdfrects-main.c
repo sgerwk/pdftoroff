@@ -5,6 +5,7 @@
  *	-f		first page
  *	-l		last page
  *	-b		bounding box
+ *	-e direction	horizontal or vertical extents
  *	-d distance	minimal size of a white space
  *	-r level	the debugtextrectangles variables (-1 - 5, see below)
  *	-n		draw also the number of each rectangle
@@ -24,6 +25,12 @@
 
 #include "pdfrects.h"
 
+enum extents_e {
+	none,
+	vertical,
+	horizontal
+};
+
 /*
  * main
  */
@@ -34,6 +41,7 @@ int main(int argc, char *argv[]) {
 	gboolean numbers = FALSE;
 	gboolean inside = FALSE;
 	gboolean bb = FALSE;
+	enum extents_e extents = none;
 	gboolean painted = FALSE;
 	gboolean add = FALSE;
 	int sort = -1;
@@ -45,7 +53,7 @@ int main(int argc, char *argv[]) {
 	PopplerDocument *doc;
 	PopplerPage *page;
 	int npages, n;
-	RectangleList *textarea = NULL, *singlechars;
+	RectangleList *textarea = NULL, *ve, *singlechars;
 	PopplerRectangle *boundingbox = NULL;
 	PopplerRectangle wholepage = {0.0, 0.0, width, height};
 	void (*order[])(RectangleList *, PopplerPage *) = {
@@ -62,7 +70,7 @@ int main(int argc, char *argv[]) {
 
 				/* arguments */
 
-	while ((opt = getopt(argc, argv, "f:l:nips:bd:r:ah")) != -1)
+	while ((opt = getopt(argc, argv, "f:l:nips:be:d:r:ah")) != -1)
 		switch(opt) {
 		case 'f':
 			first = atoi(optarg);
@@ -85,6 +93,18 @@ int main(int argc, char *argv[]) {
 		case 'b':
 			bb = TRUE;
 			break;
+		case 'e':
+			if (! strcmp(optarg, "none"))
+				extents = none;
+			else if (! strcmp(optarg, "horizontal"))
+				extents = horizontal;
+			else if (! strcmp(optarg, "vertical"))
+				extents = vertical;
+			else {
+				printf("unsupported direction: %s\n", optarg);
+				exit(EXIT_FAILURE);
+			}
+			break;
 		case 'd':
 			distance = atof(optarg);
 			break;
@@ -106,12 +126,13 @@ int main(int argc, char *argv[]) {
 	if (usage) {
 		printf("usage:\n");
 		printf("\tpdfrects [-f page] [-l page] ");
-		printf("[-b] [-d distance] [-n [-s n]]\n");
-		printf("\t         [-a] [-r level] [-h] ");
+		printf("[-b] [-e direction] [-d distance]\n");
+		printf("\t         [-n [-s n]] [-a] [-r level] [-h] ");
 		printf("file.pdf\n");
 		printf("\t\t-f page\t\tfirst page\n");
 		printf("\t\t-l page\t\tlast page\n");
 		printf("\t\t-b\t\tbounding box instead of textarea\n");
+		printf("\t\t-e direction\thorizontal or vertical extents\n");
 		printf("\t\t-d distance\tminimal distance of text boxes\n");
 		printf("\t\t-n\t\tnumber boxes\n");
 		printf("\t\t-p\t\tuse painted squares instead of text\n");
@@ -183,11 +204,19 @@ int main(int argc, char *argv[]) {
 					distance) :
 				rectanglelist_textarea_distance(page,
 					distance);
+			if (extents != none) {
+				ve = extents == horizontal ?
+					rectanglelist_hextents(textarea) :
+					rectanglelist_vextents(textarea);
+				rectanglelist_free(textarea);
+				textarea = ve;
+			}
 			if (sort >= 0)
 				order[sort](textarea, page);
 			printf("    textarea:\n");
 			rectanglelist_printyaml(stdout,
 				"      - ", "        ", textarea);
+			fflush(stdout);
 		}
 
 		if (add) {

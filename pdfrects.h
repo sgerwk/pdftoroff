@@ -111,6 +111,10 @@ gboolean rectanglelist_add(RectangleList *, PopplerRectangle *);
 /* smallest rectangle enclosing all in a rectangle list */
 PopplerRectangle *rectanglelist_joinall(RectangleList *);
 
+/* horizontal or vertical extents of a rectangle list */
+RectangleList *rectanglelist_hextents(RectangleList *);
+RectangleList *rectanglelist_vextents(RectangleList *);
+
 /* index of first rectangle in list in a relation to another rectangle */
 gint rectanglelist_contain(RectangleList *, PopplerRectangle *);
 gint rectanglelist_touch(RectangleList *, PopplerRectangle *);

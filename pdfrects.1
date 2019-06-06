@@ -13,7 +13,9 @@ pdfrects - bounding box or text area of the pages of a pdf file
 .TP 9
 .B pdfrects
 [\fB-f\fP \fIpage\fP] [\fB-l\fP \fIpage\fP]
-[\fB-p\fP] [\fB-b\fP] [\fB-d\fP \fIdistance\fP]
+[\fB-p\fP] [\fB-b\fP] [\fB-e\fP \fIdirection\fP]
+.IP
+[\fB-d\fP \fIdistance\fP]
 [\fB-n\fP [\fB-s\fP \fIn\fP] [\fB-i\fP]]
 .IP
 [\fB-a\fP] [\fB-r\fP \fIlevel\fP] [\fB-h\fP] \fIfile.pdf\fP
@@ -45,6 +47,12 @@ page into a grid of squares and checking which ones contain something
 .TP
 .B -b
 bounding box; the default is the textarea
+.TP
+.BI -e " direction
+text extents in the given direction (\fIhorizontal\fP or \fIvertical\fP); this
+is like the textarea, but boxes that overlap horizontally or vertically are
+merged; the resulting set of rectangles tells how much horizontal or vertical
+space text takes
 .TP
 \fB-d\fP \fIdistance\fP
 the minimal distance between boxes in the textarea; a lower values implies a
