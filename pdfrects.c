@@ -483,6 +483,24 @@ RectangleList *rectanglelist_vextents(RectangleList *src) {
 }
 
 /*
+ * total width and height of a rectangle list
+ */
+double rectanglelist_sumwidth(RectangleList *rl) {
+	double res = 0;
+	int i;
+	for (i = 0; i < rl->num; i++)
+		res += rl->rect[i].x2 - rl->rect[i].x1;
+	return res;
+}
+double rectanglelist_sumheight(RectangleList *rl) {
+	double res = 0;
+	int i;
+	for (i = 0; i < rl->num; i++)
+		res += rl->rect[i].y2 - rl->rect[i].y1;
+	return res;
+}
+
+/*
  * index of rectangle in a list containing another rectangle
  */
 gint rectanglelist_contain(RectangleList *rl, PopplerRectangle *r) {
