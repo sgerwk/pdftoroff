@@ -694,6 +694,7 @@ int textarea(struct position *position, struct output *output) {
 		rectanglelist_twosort,
 		rectanglelist_charsort
 	};
+	double overlap, frag;
 
 	if (! POPPLER_IS_PAGE(position->page)) {
 		output->reload = TRUE;
@@ -717,9 +718,11 @@ int textarea(struct position *position, struct output *output) {
 		}
 		position->boundingbox =
 			rectanglelist_joinall(position->textarea);
-		if (output->viewmode == 0 &&
-		    (interoverlap(position) < 0.8 ||
-		     fragmented(position) > 1.0)) {
+		overlap = interoverlap(position);
+		frag = fragmented(position);
+		// ensureoutputfile(output);
+		// fprintf(output->outfile, "auto: %g %g\n", overlap, frag);
+		if (output->viewmode == 0 && (overlap < 0.8 || frag > 1.0)) {
 			rectanglelist_free(position->textarea);
 			position->textarea = NULL;
 			break;
