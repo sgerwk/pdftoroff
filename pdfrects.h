@@ -30,6 +30,10 @@ PopplerRectangle *rectangle_parse(char *s);
 /* normalize a rectangle: x1 <= x2 and y1 <= y2 */
 void rectangle_normalize(PopplerRectangle *);
 
+/* width and height of a rectangle */
+double rectangle_width(PopplerRectangle *);
+double rectangle_height(PopplerRectangle *);
+
 /* check whether the first rectangle contains the second */
 gboolean rectangle_contain(PopplerRectangle *, PopplerRectangle *);
 

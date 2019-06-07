@@ -172,6 +172,14 @@ void rectangle_normalize(PopplerRectangle *rect) {
 	}
 }
 
+/* width and height of a rectangle */
+double rectangle_width(PopplerRectangle *r) {
+	return r->x2 - r->x1;
+}
+double rectangle_height(PopplerRectangle *r) {
+	return r->y2 - r->y1;
+}
+
 /*
  * a rectangle as large as the page
  */
