@@ -666,20 +666,24 @@ double fragmented(struct position *position) {
  * how much the boxes of the text area overlap horizontally, if they do
  */
 double interoverlap(struct position *position) {
-	RectangleList *rl;
+	RectangleList *ve, *ta;
 	int i, j;
 	double height, index;
 
-	rl = position->textarea;
-	height = position->boundingbox->y2 - position->boundingbox->y1;
+	ta = position->textarea;
+	ve = rectanglelist_vextents(ta);
+	height = rectanglelist_sumheight(ve);
+	// height = position->boundingbox->y2 - position->boundingbox->y1;
+	rectanglelist_free(ve);
+
 	index = 0;
-	for (i = 0; i < rl->num; i++)
-		for (j = 0; j < rl->num; j++)
-			if (! rectangle_htouch(&rl->rect[i], &rl->rect[j]))
+	for (i = 0; i < ta->num; i++)
+		for (j = 0; j < ta->num; j++)
+			if (! rectangle_htouch(&ta->rect[i], &ta->rect[j]))
 				index +=
-					(rl->rect[i].y2 - rl->rect[i].y1) /
+					(ta->rect[i].y2 - ta->rect[i].y1) /
 						height *
-					(rl->rect[j].y2 - rl->rect[j].y1) /
+					(ta->rect[j].y2 - ta->rect[j].y1) /
 						height;
 
 	return index;
