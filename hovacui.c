@@ -3097,7 +3097,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	output.totalpages = FALSE;
 	output.fit = 1;
 	output.minwidth = -1;
-	output.distance = 15.0;
+	output.distance = -1;
 	output.order = 1;
 	output.scroll = 1.0 / 4.0;
 	output.ui = TRUE;
