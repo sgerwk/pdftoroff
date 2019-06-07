@@ -228,11 +228,11 @@ blocks of text. If two letters are closer than this, they are considered to be
 part of the same block of text. Therefore, two blocks of text are never closer
 than this distance.
 
-The default \fI15.0\fP is reasonable for most documents. On largely-spaced
-pages the blocks of text may be too many, even one per paragraph. However,
-since such pages are usually single-column, if the block of text are too many,
-it is usually better to switch to bounding box mode (see above) rather than
-increasing the text distance.
+The default is the average height of characters. This is reasonable for most
+documents. On largely-spaced pages the blocks of text may be too many, even one
+per paragraph. However, since such pages are usually single-column, if the
+block of text are too many, it is usually better to switch to bounding box mode
+(see above) rather than increasing the text distance.
 
 Nevertheless, the text distance can be changed by the \fI't'\fP keystroke, from
 the menu, by the \fI-t\fP command line option and by the \fIdistance\fP
