@@ -12,7 +12,8 @@
  *   additional arguments to hovacui()
  *   .config/hovacui/{framebuffer.conf,x11.conf}
  * - utf8 or widechar in cairodevice->input() and field()
- * - merge narrow textarea boxes with others, minimize size increase
+ * - merge narrow textarea boxes with others, minimizing size increase
+ * - merge boxes with the same (or very similar) horizontal coordinates
  * - bookmarks, with field() for creating and list() for going to
  * - save last position(s) to $HOME/.pdfpositions
  * - allow cursor moves in field()
@@ -39,8 +40,6 @@
  * - allow reloading during search
  * - man page: compare with fbpdf and jfbview
  * - field() for executing a shell command
- * - automatically determine the text-to-text distance based on the distance
- *   between characters
  * - allow tabs in list(), make it display a table rather than a list;
  *   use in help() to separate keys from functions,
  *   in menu() to show the current values for viewmode, fit, etc.
