@@ -1058,6 +1058,8 @@ RectangleList *rectanglelist_painted(PopplerPage *page, int distance) {
 RectangleList *rectanglelist_paintedarea_distance(PopplerPage *page,
 		gdouble w) {
 	RectangleList *layout;
+	if (w == -1)
+		w = 15.0;
 	layout = rectanglelist_painted(page, w);
 	return rectanglelist_textarea_bound(page, layout, w, 100.0, 0.0, 0.0);
 }
