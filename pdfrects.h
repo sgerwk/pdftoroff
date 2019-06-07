@@ -125,6 +125,10 @@ RectangleList *rectanglelist_vextents(RectangleList *);
 double rectanglelist_sumwidth(RectangleList *rl);
 double rectanglelist_sumheight(RectangleList *rl);
 
+/* average width and height of a rectangle list */
+double rectanglelist_averagewidth(RectangleList *rl);
+double rectanglelist_averageheight(RectangleList *rl);
+
 /* index of first rectangle in list in a relation to another rectangle */
 gint rectanglelist_contain(RectangleList *, PopplerRectangle *);
 gint rectanglelist_touch(RectangleList *, PopplerRectangle *);
