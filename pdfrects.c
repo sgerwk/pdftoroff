@@ -493,19 +493,19 @@ RectangleList *rectanglelist_vextents(RectangleList *src) {
 /*
  * total width and height of a rectangle list
  */
-double rectanglelist_sumwidth(RectangleList *rl) {
+double rectanglelist_sum(RectangleList *rl,
+		double (*measure)(PopplerRectangle *)) {
 	double res = 0;
 	int i;
 	for (i = 0; i < rl->num; i++)
-		res += rl->rect[i].x2 - rl->rect[i].x1;
+		res += measure(&rl->rect[i]);
 	return res;
 }
+double rectanglelist_sumwidth(RectangleList *rl) {
+	return rectanglelist_sum(rl, rectangle_width);
+}
 double rectanglelist_sumheight(RectangleList *rl) {
-	double res = 0;
-	int i;
-	for (i = 0; i < rl->num; i++)
-		res += rl->rect[i].y2 - rl->rect[i].y1;
-	return res;
+	return rectanglelist_sum(rl, rectangle_height);
 }
 
 /*
