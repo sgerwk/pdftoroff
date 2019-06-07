@@ -513,13 +513,7 @@ double rectanglelist_sumheight(RectangleList *rl) {
  */
 double rectanglelist_average(RectangleList *rl,
 		double (*measure)(PopplerRectangle *)) {
-	int r;
-	double sum;
-
-	sum = 0;
-	for (r = 0; r < rl->num; rl++)
-		sum += measure(&rl->rect[r]);
-	return sum / rl->num;
+	return rectanglelist_sum(rl, measure) / rl->num;
 }
 double rectanglelist_averagewidth(RectangleList *rl) {
 	return rectanglelist_average(rl, rectangle_width);
