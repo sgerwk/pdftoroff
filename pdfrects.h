@@ -55,6 +55,8 @@ void rectangle_intersect(PopplerRectangle *r,
 void rectangle_join(PopplerRectangle *, PopplerRectangle *);
 
 /* compare the position of two rectangles */
+int rectangle_hcompare(PopplerRectangle *a, PopplerRectangle *b);
+int rectangle_vcompare(PopplerRectangle *a, PopplerRectangle *b);
 int rectangle_compare(PopplerRectangle *, PopplerRectangle *);
 
 /* a rectangle as large as the page */
