@@ -37,7 +37,7 @@ enum extents_e {
 int main(int argc, char *argv[]) {
 	int opt;
 	gboolean usage = FALSE;
-	gdouble distance = 15.0;
+	gdouble distance = -1;
 	gboolean numbers = FALSE;
 	gboolean inside = FALSE;
 	gboolean bb = FALSE;
