@@ -946,7 +946,7 @@ RectangleList *rectanglelist_textarea_distance(PopplerPage *page, gdouble w) {
 	RectangleList *layout;
 	layout = rectanglelist_characters(page);
 	if (w == -1)
-		w = MIN(15, MAX(9, rectanglelist_averagewidth(layout)));
+		w = MIN(15, MAX(9, 1.5 * rectanglelist_averagewidth(layout)));
 	return rectanglelist_textarea_bound_fallback(page, layout,
 			w, 100.0, 0.0, 0.0);
 }
