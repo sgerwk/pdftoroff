@@ -652,9 +652,9 @@ double fragmented(struct position *position) {
 	height = position->boundingbox->y2 - position->boundingbox->y1;
 	index = 0;
 	for (i = 0; i < rl->num; i++) {
-		if (rl->rect[i].x2 - rl->rect[i].x1 < width / 5)
+		if (rectangle_width(&rl->rect[i]) < width / 5)
 			index++;
-		if (rl->rect[i].y2 - rl->rect[i].y1 < height / 5)
+		if (rectangle_height(&rl->rect[i]) < height / 5)
 			index++;
 	}
 
