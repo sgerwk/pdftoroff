@@ -145,6 +145,9 @@ the aim is to find their individual bounding boxes. Every graphical element
 (line, rectangle, Bezier curve) creates a rectangle. It may touch some others
 in the same diagram, but none in the other diagrams.
 
+Checking support
+----------------
+
 Checking for support is done on white rectangles only. A corner is supported if
 at least one of the two sides crossing at it begins bordering with another
 white rectangle. Otherwise, the corner is unsupported, and has to be reduced.
@@ -187,4 +190,21 @@ More generally, reduction is to the highest B.y1 for a rectangle satisfying
 A.y1 < B.y1 and B.x1 < A.x1 <= B.x2, or to A.y2 if no rectangle satisfies that.
 A similar rule applies for the vertical reduction. Some inequalities are
 inverted for the other corners of A.
+
+Contact information
+-------------------
+
+Storing a list of all rectangles contacting each rectangle takes quadratic time
+and space. An alternative for small rectangles is to build four double lists of
+rectangles ordered by their x1, y1, x2 and y2, with reverse pointers from each
+rectangle to its position in these lists. This structure only takes linear
+memory, and n log(n) time to be built.
+
+Checking support on the corner x1,y1 of a rectangle can be done in order on the
+x2 list: starting from position of the rectangle in the list, go back until x1,
+then forth looking for a supporting rectangle until x1+w, where w is the
+maximal width of rectangles. The mechanism is similar for the other corners.
+
+This saves checks when w is small. Rectangles wider than w may be dealt with
+separately, either before or after merging the other rectangles.
 
