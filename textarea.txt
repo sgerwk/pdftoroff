@@ -1,0 +1,82 @@
+The text area
+=============
+
+The text area is the part of the page taken by characters. It is represented by
+a set of rectangles. Characters closer to a certain amount (the text distance)
+are in the same rectangle.
+
+The algorithm for determining the text area is based on a double rectangle
+subtraction and an iterated merge of rectangles.
+
+Subtraction A-B removes a set of rectangles B from another set of rectangles A.
+More specifically, it subtracts every b in B from every a in A. This
+single-rectangle subtraction a-b is calculated by generating up to four new
+rectangles. The limit case is when b is strictly contained in a.
+
++-----------------+                 +---+-------+-----+
+|                 |                 |   |  a1   |     |
+|   +-------+     |                 +---+-------+-----+
+|   |       |     |                 |   |       |     |
+|   |   b   |     |       ==>       |a2 |       | a3  |
+|   |       |     |                 |   |       |     |
+|   +-------+     |                 +---+-------+-----+
+|                 |                 |   |  a4   |     |
+|        a        |                 |   |       |     |
++-----------------+                 +---+-------+-----+
+
+In this figure, a1 and a4 are as large as a, while a2 and a3 are as tall as a.
+When b is not strictly contained into a, some of these four rectangles have
+width or height null or negative. These are removed. Also removed are
+rectangles thinner or shorter than the text distance.
+
+A single-rectangle subtraction a-b results in up to four rectangles
+a1,a2,a3,a4. A set collects these new rectangles: A-b = u{a-b | a in A}.
+Subtraction is repeated on this resulting set for another b' in B, resulting in
+(A-b)-b'. This is done again for all other elements of B, producing A-B. The
+result is the subarea of A that is not taken by B.
+
+Starting from the rectangles enclosing the characters in the page, a first step
+collects adjacent characters; this reduces the number of rectangles, but is not
+necessary for correctness. Then, the white area in the page is calculated by
+subtracting these rectangles from a rectangle as large as the page. The result
+is a representation of the area of the page where there is no characters. The
+text area is calculated by subtracting it from a rectangle as large as the
+page.
+
+- collect adjacent characters in words
+- white_area = page - words
+- black_area = page - white_area
+- join touching rectangles in black_area
+
+The last step is necessary because the rectangles in the black area usually
+overlap. All overlapping rectangles are merged: they are replaced by the
+smallest rectangle including them.
+
+          +---------+              +-----------------+
+          |         |              |         .       |
+          |     B   |              |         .       |
+  +-------+---+     |              |..............   |
+  |       |   |     |     ==>      |         .   .   |
+  | A     +---+-----+              |  A+B    ........|
+  |           |                    |             .   |
+  +-----------+                    +-----------------+
+
+This operation cannot be done only once, because the merged rectangle may
+include another rectangle that did not previously overlap any of merged ones.
+Once rectangles are merged, they have to be checked again for overlapping. This
+is done over and over again until no new merge is produced. For the text area
+this should not be a problem because the rectangles are usually few at this
+point. For a large number of rectangles with few overlappings, a better
+solution exists [white-support.txt].
+
++-----+                          +-----+
+|  C  |                          |  C  |
+|     |   +---------+            | +---+-------------+
++-----+   |         |            +-+---+   .         |
+          |     B   |              |       .         |
+  +-------+---+     |              |............     |
+  |       |   |     |     ==>      |       .   .     |
+  | A     +---+-----+              |  A+B  ..........|
+  |           |                    |           .     |
+  +-----------+                    +-----------------+
+

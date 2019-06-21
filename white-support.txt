@@ -1,0 +1,190 @@
+Rectangle merging by white support
+==================================
+
+Currently, rectangles are merged by a loop: for every two rectangles B and C,
+if they touch they are merged into a new rectangle B+C. This new rectangle may
+include another rectangle A that touches neither B nor C.
+
+             +-------+
++-------+    |   A   |
+|   B   |    +-------+
+|       |
+|   +---+-----+
+|   |   |  C  |
++---+---+-----+
+
+If rectangles are checked in order A,B,C for contacts, thay have to be checked
+again. A does not touch anything. B touches C, so they are merged into B+C.
+Since A has already been checked, the only way to detect its contact with B+C
+is to check the new rectangle B+C against all other rectangles. A simpler but
+less efficient solution is to check all rectangles again until no merge is
+done.
+
+             +-------+
++------------++  A   |
+|            ++------+
+|     B+C     |
+|             |
+|             |
++-------------+
+
+Both solutions require checking all rectangles over and over. A better method
+is to reduce the white rectangles instead of merging the black rectangles. The
+current algorithm is:
+
+	white_rectangles = page - characters
+	black_rectangles = page - while_rectangles
+	merge_touching(black_rectangles)
+
+Instead of merging black rectangles, white rectangles are reduced before
+subtracting them to obtain the black rectangles:
+
+	white_rectangles = page - characters
+	reduce_unsupported(white_rectangles)
+	black_rectangles = page - while_rectangles
+
+The area between black rectangles is filled by white rectangles. This is also
+the case for the space that will be taken by the merged rectangles.
+
+        .    +-------+
++-------+    |   A   |
+|   B   | D  +-------+
+|       |    .    E
+|   +---x----y+.......
+|   |   |  C  |
++---+---+-----+
+
+The corners of the white rectangles tells where black rectangles merge. The
+figure emphasizes two corners x and y of the white rectangle D. The two sides
+of D at corner x both begin touching a black rectangle. Therefore, D will be
+reduced. Instead, the vertical side of D at corner y begins touching the other
+while rectangle E; therefore, D is not reduced at y so far.
+
+         |
+   black | white
+	 x----           ==> reduce white rectangle
+           black
+
+              |
+        white | white    ==> do not reduce the white rectangle at this moment
+          ----y
+         black
+
+A corner of a white rectangle stands (is not reduced) when it is supported by
+another white rectangle: at least one of its two sides touches another white
+rectangle at the corner. Otherwise, both sides touch a black rectangle at the
+corner. In this case, the corner is unsupported; the white rectangle is reduced
+up to closest points supported by another white rectangle. In the example, D is
+reduced from x to y horizontally and from x to the upper-right corner of A
+vertically.
+
+This reduction makes E unsupported at y, since D is now retracted. Technically,
+a corner is unsupported if none of its two sides begin with a white rectangle;
+black rectangles are not used for this. E is reduced horizontally up to the
+upper-right corner of B and vertically up to C. The process continues until the
+white area retracts from all regions that would be taken by the merge of A, B
+and C.
+
+        . D  +-------+
++-------+....|   A   |
+|   B   |    +-------+
+|       |    .    E
+|   +---x----y+.......
+|   |   |  C  |
++---+---+-----+
+
+The advantage of this procedure is that white rectangles are always reduced,
+never enlarged. No new touching is possible: it two white rectangles do not
+touch, they will not. The algorithm can check all rectangles for contacts at
+the beginning. When a rectangle is reduced, only the rectangles touching it
+have to be re-checked, not all of them.
+
+In general, reducing a white rectangle may split it. In the following example,
+corner x is unsupported (no white rectangles at both sides of C crossing at x).
+Rectangle C is reduced up to z and right to y. What is left of C is a
+non-rectangular area. Two rectangles are required to cover it.
+
+     +.............+                             +.............+
+     .             .                             .             .
+     .             .                             .      C1     .
++----z      C      .                        +----+.....+.......+
+| A  |             .                        | A  |     .       .
+|    |             .          ==>           |    |     .  C2   .
+|  +-x-----y.......+                        |  +-+-----+.......+
+|  | |     |                                |  | |     |
+|  | |  B  |                                |  | |  B  |
+|  | |     |                                |  | |     |
++--+-+-----+                                +--+-+-----+
+
+This is not a problem, since C1 and C2 may only touch rectangles originally
+touched by C. There is no need to recheck the contacts between all rectangles,
+only between C1 and C2 and the rectangles that originally touched C.
+
+- one or both subrectangles C1 and C2 may be empty; this is not a problem: some
+  or all rectangles that originally touched C do not any longer
+
+- white rectangles may overlap instead of touching; the only caveat is that
+  rectangles overlapping at the same corner do not suppor each other; white
+  support is only given by another white rectangle on the other side of a side
+
+Black rectangles joined with no white corner are not a problem. This is for
+example the case of two rectangles of the same y and height. They are not a
+problem because they will automatically merged when white rectangles are
+subtracted from the page.
+
++------+====+--------+
+|      |    |        |
+|   A  |    |   B    |
+|      |    |        |
++------+====+--------+
+
+This mechanism should work better than rechecking the contacts between all
+black rectangles every time if the page contains many black rectangles that
+only touch few others. An example is a page with many vectorial diagrams, and
+the aim is to find their individual bounding boxes. Every graphical element
+(line, rectangle, Bezier curve) creates a rectangle. It may touch some others
+in the same diagram, but none in the other diagrams.
+
+Checking for support is done on white rectangles only. A corner is supported if
+at least one of the two sides crossing at it begins bordering with another
+white rectangle. Otherwise, the corner is unsupported, and has to be reduced.
+Both support and the amount of reduction depends on simple conditions on the
+coordinates of the other white rectangles.
+
+  B       |
+      x---+----------+
+      |   |          |
+  ----+---+   A      |
+      |              |
+      +--------------+
+
+Corner x of A is supported by B. Since x is the upper-left corner of A, its
+coordinates are A.x1 and A.y1. Corner x is supported if it falls inside B or in
+the middle of it left or bottom side (corner-to-corner is not support).
+
+- B.x1 < A.x1 <= B.x2 and B.y1 <= A.y1 < B.y2 (left support) OR
+- B.x1 <= A.x1 < B.x2 and B.y1 < A.y1 <= B.y2 (upper support)
+
+Support for the other corners of A is given by similar conditions. If they are
+not met, the corner is unsupported. It is reduced up to the first supporting
+white rectangle, if any:
+
+      x--------------+
+      |              |
+  ----+---+   A      |
+      |   |          |
+      |   |          |
+  B   +---+----------+
+          |
+  --------+
+
+Corner x is reduced down to B.y1, since B.x1 < A.x1 <= B.x2. It is also reduced
+right to A.x2, since no other rectangle satisfies the condition B.y1 < A.y1 <=
+B.y2. In this cas, one of the two new rectangles has zero width and is
+therefore removed.
+
+More generally, reduction is to the highest B.y1 for a rectangle satisfying
+A.y1 < B.y1 and B.x1 < A.x1 <= B.x2, or to A.y2 if no rectangle satisfies that.
+A similar rule applies for the vertical reduction. Some inequalities are
+inverted for the other corners of A.
+
