@@ -48,7 +48,7 @@ int main(int argc, char *argv[]) {
 	int first = -1, last = -1;
 	char *infile, *outfile;
 
-	gdouble width = 595.22, height = 842.00;
+	gdouble width, height;
 
 	PopplerDocument *doc;
 	PopplerPage *page;
@@ -188,6 +188,8 @@ int main(int argc, char *argv[]) {
 	for (n = first; n <= last; n++) {
 		printf("  - page: %d\n", n);
 		page = poppler_document_get_page(doc, n);
+		poppler_page_get_size(page, &width, &height);
+		cairo_pdf_surface_set_size(surface, width, height);
 
 		if (bb) {
 			boundingbox = painted ?
