@@ -382,6 +382,27 @@
  */
 
 /*
+ * note: page by page search
+ *
+ * search() only searches in one page, then probes the input before searching
+ * in the next; probing requires returning to the main loop, which calls it
+ * back with the result; this means that search() is called in two cases:
+ *
+ * - to receive the keystrokes that make the sequence to search for
+ * - during search, to receive the result of probing
+ *
+ * when initialized, search() sets the nsearched static variable to -1 to
+ * memorize that search has not begun yet; when search begins, it sets
+ * nsearched to 0, and increases it at each page searched; search stops when
+ * the pattern is found or this number reaches the number of pages in the
+ * document
+ *
+ * next() is similar, but nsearched cannot be -1 because this function does not
+ * receive input keystrokes: it is called on 'n' or 'p' to find the next or
+ * previous match
+ */
+
+/*
  * note: the cairodevice
  *
  * the struct cairodevice allows hovacui to be run whenever a cairo context can
