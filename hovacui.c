@@ -7,9 +7,7 @@
 /*
  * todo:
  *
- * - paste in field(), especially for search(); done like an external command:
- *   cairodevice->input returns KEY_PASTE, the string in command->string; the
- *   active window decides whether to use it, and how
+ * - paste in xhovacui
  * - search: regular expression; config for pattern=string
  * - pass a configuration option from command line
  * - configuration files specific for the framebuffer and x11, passed as
@@ -447,6 +445,32 @@
  *	if no input is available block for timeout millisecond (0=infinite)
  */
 
+/*
+ * note: paste
+ *
+ * pasting is implemented by cairodevice->input storing the text in
+ * command->string and returning KEY_PASTE; the active window decides what to
+ * do with this text: field() includes it, the other windows ignore it; more
+ * generally, only the windows waiting for a string use the pasted text; the
+ * windows expecting a command in form of a keystroke do not
+ *
+ * currently, pasting is only implemented in fbhovacui; by default, ncurses
+ * feeds the pasted text one character at time in the input character stream;
+ * fbhovacui->input use an heuristics: if four or more characters are available
+ * after one select, they are pasted text; this works reasonably in most
+ * practical cases, since three characters or less that are interpreted as
+ * commands instead of text should not cause much problems
+ *
+ * the alternative is to receive mouse events: mousemask() makes ncurses send
+ * KEY_MOUSE instead of the pasted text; but ncurses does not expose a file
+ * descriptor to include in the select; for gpm, this is gpm_fd in gpm.h
+ * (requires explicitely linking libgpm); the pasted text has to be read by
+ * ioctl from stdin since ncurses no longer feeds it in the input stream; as a
+ * result, a simpler alternative may be to still use mousemask() to disable
+ * ncurses feed the pasted text, but then to ignore KEY_PASTE and select on
+ * /dev/input/mice
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>
@@ -569,6 +593,9 @@ struct output {
 	/* pdf output */
 	char *pdfout;
 	int first, last;
+
+	/* pasted text */
+	char *paste;
 };
 
 /*
@@ -2097,7 +2124,7 @@ int field(int c, struct output *output,
 	double startx = output->dest.x1 + marginx;
 	double starty = output->dest.y1 + marginy;
 	cairo_text_extents_t te;
-	int l;
+	int l, i;
 
 	if (c == '\033' || c == KEY_EXIT)
 		return FIELD_LEAVE;
@@ -2110,8 +2137,15 @@ int field(int c, struct output *output,
 			return FIELD_UNCHANGED;
 		current[l - 1] = '\0';
 	}
-	else if (c != KEY_INIT && c != KEY_REDRAW &&
-	         c != KEY_REFRESH && c != KEY_RESIZE) {
+	else if (c == KEY_PASTE) {
+		if (l > 30)
+			return FIELD_UNCHANGED;
+		for (i = 0; output->paste[i] != '\0' && l <= 30; i++, l++)
+			current[l] = output->paste[i];
+		current[l] = '\0';
+	}
+	else if (c < KEY_NONE &&
+	         c != KEY_REDRAW && c != KEY_REFRESH && c != KEY_RESIZE) {
 		if (l > 30)
 			return FIELD_UNCHANGED;
 		current[l] = c;
@@ -2942,8 +2976,6 @@ int openfifo(char *name, struct command *command, int *keepopen) {
 	}
 	*keepopen = open(name, O_WRONLY);
 	command->stream = fdopen(command->fd, "r");
-	command->max = 4096;
-	command->command = malloc(command->max);
 	return 0;
 }
 
@@ -3142,6 +3174,8 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	noinitlabels = FALSE;
 	command.fd = -1;
 	command.stream = NULL;
+	command.max = 4096;
+	command.command = malloc(command.max);
 	keepopen = -1;
 
 				/* config file */
@@ -3343,6 +3377,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	output.found = NULL;
 	output.selection = NULL;
 	output.texfudge = 0; // 24;
+	output.paste = command.command;
 
 	output.timeout = NO_TIMEOUT;
 	output.help[0] = '\0';

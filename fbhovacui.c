@@ -27,8 +27,8 @@ struct cairooutput *cairoinit_fb(char *device, void *data) {
 		setenv("ESCDELAY", "200", 1);
 	w = initscr();
 	cbreak();
-	keypad(w, TRUE);
 	noecho();
+	keypad(w, TRUE);
 	curs_set(0);
 	ungetch(KEY_INIT);
 	getch();
@@ -101,7 +101,7 @@ int cairoinput_fb(struct cairooutput *cairo, int timeout,
 	fd_set fds;
 	int max, ret;
 	struct timeval tv;
-	int c, l;
+	int c, l, r;
 
 	(void) cairo;
 
@@ -118,7 +118,6 @@ int cairoinput_fb(struct cairooutput *cairo, int timeout,
 
 	ret = select(max + 1, &fds, NULL, NULL,
 		timeout != NO_TIMEOUT ? &tv : NULL);
-
 	if (ret != -1 && command->fd != -1 && FD_ISSET(command->fd, &fds)) {
 		fgets(command->command, command->max, command->stream);
 		return KEY_EXTERNAL;
@@ -137,9 +136,14 @@ int cairoinput_fb(struct cairooutput *cairo, int timeout,
 	}
 
 	if (FD_ISSET(STDIN_FILENO, &fds)) {
-		for (l = ' '; l != ERR; l = getch())
+		for (l = getch(), r = 0;
+		     l != ERR && r < command->max - 1;
+		     l = getch()) {
+			command->command[r++] = l;
 			c = l;
-		return c;
+		}
+		command->command[r] = '\0';
+		return r < 4 ? c : KEY_PASTE;
 	}
 
 	return KEY_TIMEOUT;

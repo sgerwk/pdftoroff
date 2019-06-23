@@ -37,6 +37,7 @@
 #endif
 #define KEY_SIGNAL	((KEY_MAX) + 8)
 #define KEY_EXTERNAL	((KEY_MAX) + 9)
+#define KEY_PASTE       ((KEY_MAX) + 10)
 
 /*
  * no timeout
