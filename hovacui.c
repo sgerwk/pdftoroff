@@ -7,6 +7,10 @@
 /*
  * todo:
  *
+ * - paste in field(), especially for search(); done like an external command:
+ *   cairodevice->input returns KEY_PASTE, the string in command->string; the
+ *   active window decides whether to use it, and how
+ * - search: regular expression; config for pattern=string
  * - pass a configuration option from command line
  * - configuration files specific for the framebuffer and x11, passed as
  *   additional arguments to hovacui()
