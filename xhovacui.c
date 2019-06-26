@@ -3,6 +3,7 @@
 #include <string.h>
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
+#include <X11/Xatom.h>
 #include <ctype.h>
 #include <ncurses.h>
 #include <cairo.h>
@@ -37,7 +38,14 @@ struct xhovacui {
 /*
  * events we want to receive
  */
-#define EVENTMASK (KeyPressMask | ExposureMask | StructureNotifyMask)
+#define EVENTMASK \
+	(KeyPressMask | ButtonPressMask | PropertyChangeMask | \
+	ExposureMask | StructureNotifyMask)
+
+/*
+ * maximal length of pasted text; must be shorter than command->command
+ */
+#define MAXPASTE 200
 
 /*
  * create a cairo context
@@ -296,6 +304,10 @@ int cairoinput_x11(struct cairooutput *cairo, int timeout,
 	int res;
 	XEvent evt;
 	int key;
+	int format;
+	Atom type;
+	unsigned long nitems, after;
+	unsigned char *selection;
 
 	xhovacui = (struct xhovacui *) cairo;
 
@@ -338,6 +350,33 @@ int cairoinput_x11(struct cairooutput *cairo, int timeout,
 					return key;
 			/* finish: translate X keys to curses */
 			}
+			break;
+		case ButtonPress:
+			printf("Button\n");
+			if (evt.xbutton.button == 2) {
+				XConvertSelection(xhovacui->dsp,
+					XA_PRIMARY, XA_STRING, XA_PRIMARY,
+					xhovacui->win, CurrentTime);
+			}
+			break;
+		case PropertyNotify:
+			printf("Property\n");
+			if (evt.xproperty.atom != XA_PRIMARY)
+				break;
+			res = XGetWindowProperty(xhovacui->dsp, xhovacui->win,
+				XA_PRIMARY, 0, MAXPASTE, True, XA_STRING,
+				&type, &format, &nitems, &after, &selection);
+			if (res != Success)
+				break;
+			if (type != XA_STRING)
+				break;
+			if (nitems > MAXPASTE)
+				break;
+			if (format != 8)
+				break;
+			strcpy(command->command, (char *) selection);
+			XFree(selection);
+			return KEY_PASTE;
 			break;
 		case ConfigureNotify:
 			printf("Configure\n");

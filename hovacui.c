@@ -7,7 +7,6 @@
 /*
  * todo:
  *
- * - paste in xhovacui
  * - search: regular expression; config for pattern=string
  * - pass a configuration option from command line
  * - configuration files specific for the framebuffer and x11, passed as
