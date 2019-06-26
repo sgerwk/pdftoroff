@@ -55,7 +55,7 @@ int main(int argc, char *argv[]) {
 	int npages, n;
 	RectangleList *textarea = NULL, *ve, *singlechars;
 	PopplerRectangle *boundingbox = NULL;
-	PopplerRectangle wholepage = {0.0, 0.0, width, height};
+	PopplerRectangle wholepage = {0.0, 0.0, 0.0, 0.0};
 	void (*order[])(RectangleList *, PopplerPage *) = {
 		rectanglelist_quicksort,
 		rectanglelist_twosort,
@@ -223,6 +223,8 @@ int main(int argc, char *argv[]) {
 
 		if (add) {
 			singlechars = rectanglelist_characters(page);
+			wholepage.x2 = width;
+			wholepage.y2 = height;
 			fits = rectanglelist_place(&wholepage,
 					singlechars, &insert, &moved);
 			rectanglelist_free(singlechars);
