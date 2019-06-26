@@ -447,27 +447,25 @@
 /*
  * note: paste
  *
- * pasting is implemented by cairodevice->input storing the text in
+ * paste is implemented by cairodevice->input storing the text in
  * command->string and returning KEY_PASTE; the active window decides what to
  * do with this text: field() includes it, the other windows ignore it; more
  * generally, only the windows waiting for a string use the pasted text; the
  * windows expecting a command in form of a keystroke do not
  *
- * currently, pasting is only implemented in fbhovacui; by default, ncurses
- * feeds the pasted text one character at time in the input character stream;
- * fbhovacui->input use an heuristics: if four or more characters are available
- * after one select, they are pasted text; this works reasonably in most
- * practical cases, since three characters or less that are interpreted as
- * commands instead of text should not cause much problems
+ * paste is implemented in both xhovacui and fbhovacui; the latter is not
+ * obvious because, by default, a virtual terminal sends the pasted text one
+ * character at time from stdin as if they were regular keystrokes;
+ * fbhovacui->input tell the difference by an heuristics: if four or more
+ * characters are available after one select, they are pasted text; this works
+ * reasonably in most practical cases, since pasted text is typically not too
+ * short, and three characters or less that are interpreted as commands instead
+ * of text should not be much of a problem anyway
  *
- * the alternative is to receive mouse events: mousemask() makes ncurses send
- * KEY_MOUSE instead of the pasted text; but ncurses does not expose a file
- * descriptor to include in the select; for gpm, this is gpm_fd in gpm.h
- * (requires explicitely linking libgpm); the pasted text has to be read by
- * ioctl from stdin since ncurses no longer feeds it in the input stream; as a
- * result, a simpler alternative may be to still use mousemask() to disable
- * ncurses feed the pasted text, but then to ignore KEY_PASTE and select on
- * /dev/input/mice
+ * the alternative is to receive mouse events instead; but ncurses does not
+ * expose the mouse file descriptor to be used in a select; event if it did,
+ * the linux kernel does not allow to retrieve the selection; it only allows it
+ * to be fed to the virtual terminal as regular input characters
  */
 
 #include <stdlib.h>
