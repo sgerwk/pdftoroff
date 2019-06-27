@@ -1089,12 +1089,13 @@ void rectangle_draw(cairo_t *cr, PopplerRectangle *rect,
 		return;
 
 	if (! randomcolor)
-		cairo_set_source_rgb(cr, 0.8, 0.8, 1.0);
+		cairo_set_source_rgba(cr, 0.6, 0.6, 1.0, 0.5);
 	else
-		cairo_set_source_rgb(cr,
+		cairo_set_source_rgba(cr,
 			((gdouble) random()) / RAND_MAX * 0.8,
 			((gdouble) random()) / RAND_MAX * 0.8,
-			((gdouble) random()) / RAND_MAX * 0.8);
+			((gdouble) random()) / RAND_MAX * 0.8,
+			0.5);
 	if (enclosing)
 		enlarge = cairo_get_line_width(cr) / 2;
 	cairo_rectangle(cr,
