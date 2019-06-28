@@ -1435,7 +1435,8 @@ cairo_status_t writetofile(void *c, const unsigned char *d, unsigned int l) {
 	return 1 == fwrite(d, l, 1, (FILE *) c) ?
 		CAIRO_STATUS_SUCCESS : CAIRO_STATUS_WRITE_ERROR;
 }
-int savepdf(PopplerDocument *doc, char *pattern, int first, int last) {
+int savepdf(PopplerDocument *doc, char *pattern,
+		int first, int last, PopplerRectangle *r) {
 	FILE *out;
 	PopplerPage *page;
 	cairo_surface_t *surface;
@@ -1459,7 +1460,16 @@ int savepdf(PopplerDocument *doc, char *pattern, int first, int last) {
 		if (page == NULL)
 			break;
 		poppler_page_get_size(page, &width, &height);
-		cairo_pdf_surface_set_size(surface, width, height);
+		if (r == NULL)
+			cairo_pdf_surface_set_size(surface, width, height);
+		else {
+			cairo_pdf_surface_set_size(surface,
+				r->x2 - r->x1 + 10, r->y2 - r->y1 + 10);
+			cairo_translate(cr, -r->x1 + 5, -r->y1 + 5);
+			cairo_rectangle(cr, r->x1, r->y1,
+				r->x2 - r->x1, r->y2 - r->y1);
+			cairo_clip(cr);
+		}
 		poppler_page_render_for_printing(page, cr);
 		cairo_surface_show_page(surface);
 		g_object_unref(page);
@@ -1468,6 +1478,27 @@ int savepdf(PopplerDocument *doc, char *pattern, int first, int last) {
 	cairo_surface_destroy(surface);
 	fclose(out);
 	return file;
+}
+
+/*
+ * save current box to file
+ */
+int savecurrent(struct position *position, struct output *output) {
+	int o;
+	char *fmt;
+
+	o = savepdf(position->doc, output->pdfout,
+			position->npage, position->npage,
+			&position->textarea->rect[position->box]);
+	if (o < 0) {
+		printhelp(output, 3000, "error saving pdf");
+		return o;
+	}
+	fmt = malloc(strlen(output->pdfout) + 100);
+	sprintf(fmt, "saved current box to %s", output->pdfout);
+	printhelp(output, 3000, fmt, o);
+	free(fmt);
+	return 0;
 }
 
 /*
@@ -1524,6 +1555,9 @@ int document(int c, struct position *position, struct output *output) {
 		return WINDOW_GOTOPAGE;
 	case 'c':
 		return WINDOW_CHOP;
+	case 'C':
+		savecurrent(position, output);
+		break;
 	case 'w':
 		return WINDOW_WIDTH;
 	case 't':
@@ -1856,6 +1890,7 @@ int chop(int c, struct position *position, struct output *output) {
 		"save range",
 		"clear range",
 		"save document",
+		"save current box",
 		NULL
 	};
 	static int line = 0;
@@ -1898,7 +1933,7 @@ int chop(int c, struct position *position, struct output *output) {
 					position->npage :
 					position->totpages - 1 :
 				output->last;
-		o = savepdf(position->doc, output->pdfout, first, last);
+		o = savepdf(position->doc, output->pdfout, first, last, NULL);
 		if (o < 0) {
 			printhelp(output, 3000, "error saving pdf");
 			break;
@@ -1918,7 +1953,7 @@ int chop(int c, struct position *position, struct output *output) {
 	case 5:
 		first = 0;
 		last = position->totpages - 1;
-		o = savepdf(position->doc, output->pdfout, first, last);
+		o = savepdf(position->doc, output->pdfout, first, last, NULL);
 		if (o < 0) {
 			printhelp(output, 3000, "error saving pdf");
 			break;
@@ -1927,6 +1962,9 @@ int chop(int c, struct position *position, struct output *output) {
 		sprintf(fmt, "saved pages %%d-%%d to %s", output->pdfout);
 		printhelp(output, 3000, fmt, first + 1, last + 1, o);
 		free(fmt);
+		break;
+	case 6:
+		savecurrent(position, output);
 		break;
 	}
 
