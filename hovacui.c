@@ -88,8 +88,6 @@
  *   file change is completed
  * - selection by cursor: requires cursor navigation, to be activated by some
  *   key; then mark start and end of selection
- * - select what shown: cheap alternative for selecting text: copy to file only
- *   the text that is in the screen and in the current textbox
  * - make the margins (what determine the destination rectangle) customizable
  *   by field() or configuration file
  * - alternative to fit=none: wrap the lines that are longer than the minwidth
@@ -1498,10 +1496,16 @@ int savepdf(PopplerDocument *doc, char *pattern,
 int savecurrenttextbox(struct position *position, struct output *output) {
 	int o;
 	char *fmt, *command;
+	PopplerRectangle screen, sdoc, save;
+
+	screen = output->dest;
+	rectangle_expand(&screen, 10, 10);
+	rscreentodoc(output, &sdoc, &screen);
+	rectangle_intersect(&save,
+		&sdoc, &position->textarea->rect[position->box]);
 
 	o = savepdf(position->doc, output->pdfout,
-			position->npage, position->npage,
-			&position->textarea->rect[position->box]);
+			position->npage, position->npage, &save);
 	if (o < 0) {
 		printhelp(output, 3000, "error saving pdf");
 		return o;
