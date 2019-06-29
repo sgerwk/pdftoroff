@@ -515,7 +515,14 @@ see \fIEXTERNAL COMMANDS\fP, below
 .TP
 .BI outfile " name
 name of the output file name, used to save the current box with key 'b' and
-the logs if enabled by \fI-l\fP;
+the logs if enabled by \fI-l\fP
+.TP
+.BI postsave " command
+the command is executed after the current textbox is saved by key 'C' or by the
+entry in the page range menu; it must contain two occurrences of \fI%d\fP,
+which are replaced by the number of the saved pdf file; the default is to not
+do anything; \fIpdftoroff -t selection-%d.pdf > selection-%d.txt\fP converts
+the current textbox to text
 .TP
 .BI log " level
 verbose logging to output file;

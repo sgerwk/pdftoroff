@@ -590,6 +590,7 @@ struct output {
 	/* pdf output */
 	char *pdfout;
 	int first, last;
+	char *postsave;
 
 	/* pasted text */
 	char *paste;
@@ -1485,7 +1486,7 @@ int savepdf(PopplerDocument *doc, char *pattern,
  */
 int savecurrenttextbox(struct position *position, struct output *output) {
 	int o;
-	char *fmt;
+	char *fmt, *command;
 
 	o = savepdf(position->doc, output->pdfout,
 			position->npage, position->npage,
@@ -1494,10 +1495,19 @@ int savecurrenttextbox(struct position *position, struct output *output) {
 		printhelp(output, 3000, "error saving pdf");
 		return o;
 	}
+
 	fmt = malloc(strlen(output->pdfout) + 100);
 	sprintf(fmt, "saved current textbox to %s", output->pdfout);
 	printhelp(output, 3000, fmt, o);
 	free(fmt);
+
+	if (output->postsave != NULL) {
+		command = malloc(strlen(output->postsave) + 100);
+		sprintf(command, output->postsave, o, o);
+		system(command);
+		free(command);
+	}
+
 	return 0;
 }
 
@@ -3212,6 +3222,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	output.outname = "hovacui-out.txt";
 	output.outfile = NULL;
 	output.pdfout = "selection-%d.pdf";
+	output.postsave = NULL;
 	output.first = -1;
 	output.last = -1;
 	screenaspect = -1;
@@ -3268,6 +3279,8 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 				openfifo(s, &command, &keepopen);
 			if (sscanf(configline, "outfile %s", s) == 1)
 				output.outname = strdup(s);
+			if (sscanf(configline, "postsave %900c", s) == 1)
+				output.postsave = strdup(s);
 			if (sscanf(configline, "log %d", &i) == 1)
 				output.log = i;
 			if (sscanf(configline, "%s", s) == 1) {
