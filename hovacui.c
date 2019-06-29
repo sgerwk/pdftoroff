@@ -1481,9 +1481,9 @@ int savepdf(PopplerDocument *doc, char *pattern,
 }
 
 /*
- * save current box to file
+ * save current textbox to file
  */
-int savecurrent(struct position *position, struct output *output) {
+int savecurrenttextbox(struct position *position, struct output *output) {
 	int o;
 	char *fmt;
 
@@ -1495,7 +1495,7 @@ int savecurrent(struct position *position, struct output *output) {
 		return o;
 	}
 	fmt = malloc(strlen(output->pdfout) + 100);
-	sprintf(fmt, "saved current box to %s", output->pdfout);
+	sprintf(fmt, "saved current textbox to %s", output->pdfout);
 	printhelp(output, 3000, fmt, o);
 	free(fmt);
 	return 0;
@@ -1556,7 +1556,7 @@ int document(int c, struct position *position, struct output *output) {
 	case 'c':
 		return WINDOW_CHOP;
 	case 'C':
-		savecurrent(position, output);
+		savecurrenttextbox(position, output);
 		break;
 	case 'w':
 		return WINDOW_WIDTH;
@@ -1890,6 +1890,7 @@ int chop(int c, struct position *position, struct output *output) {
 		"save range",
 		"clear range",
 		"save document",
+		"save current page",
 		"save current box",
 		NULL
 	};
@@ -1959,12 +1960,24 @@ int chop(int c, struct position *position, struct output *output) {
 			break;
 		}
 		fmt = malloc(strlen(output->pdfout) + 100);
-		sprintf(fmt, "saved pages %%d-%%d to %s", output->pdfout);
-		printhelp(output, 3000, fmt, first + 1, last + 1, o);
+		sprintf(fmt, "saved document to %s", output->pdfout);
+		printhelp(output, 3000, fmt, o);
 		free(fmt);
 		break;
 	case 6:
-		savecurrent(position, output);
+		o = savepdf(position->doc, output->pdfout,
+			position->npage, position->npage, NULL);
+		if (o < 0) {
+			printhelp(output, 3000, "error saving pdf");
+			break;
+		}
+		fmt = malloc(strlen(output->pdfout) + 100);
+		sprintf(fmt, "saved page %%d to %s", output->pdfout);
+		printhelp(output, 3000, fmt, position->npage + 1, o);
+		free(fmt);
+		break;
+	case 7:
+		savecurrenttextbox(position, output);
 		break;
 	}
 
