@@ -850,6 +850,17 @@ double yscreentodocdistance(struct output *output, double y) {
 }
 
 /*
+ * translate a rectangle from textbox coordindates to screen and back
+ */
+void rscreentodoc(struct output *output,
+		PopplerRectangle *dst, PopplerRectangle *src) {
+	dst->x1 = xscreentodoc(output, src->x1);
+	dst->y1 = yscreentodoc(output, src->y1);
+	dst->x2 = xscreentodoc(output, src->x2);
+	dst->y2 = yscreentodoc(output, src->y2);
+}
+
+/*
  * size of destination rectangle translated to document coordinates
  */
 double xdestsizetodoc(struct output *output) {
