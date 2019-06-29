@@ -48,8 +48,9 @@ gboolean rectangle_touch(PopplerRectangle *, PopplerRectangle *);
 /* copy a rectangle onto another */
 void rectangle_copy(PopplerRectangle *dest, PopplerRectangle *orig);
 
-/* shift a rectangle */
+/* shift or expand a rectangle */
 void rectangle_shift(PopplerRectangle *, gdouble x, gdouble y);
+void rectangle_expand(PopplerRectangle *, gdouble dx, gdouble dy);
 
 /* make the first rectangle the intersection of the other two */
 void rectangle_intersect(PopplerRectangle *r,

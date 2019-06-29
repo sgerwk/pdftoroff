@@ -275,6 +275,16 @@ void rectangle_shift(PopplerRectangle *r, gdouble x, gdouble y) {
 }
 
 /*
+ * expand a rectangle
+ */
+void rectangle_expand(PopplerRectangle *r, gdouble dx, gdouble dy) {
+	r->x1 -= dx;
+	r->y1 -= dy;
+	r->x2 += dx;
+	r->y2 += dy;
+}
+
+/*
  * make the first rectangle the intersection of the other two
  */
 void rectangle_intersect(PopplerRectangle *r,
