@@ -88,8 +88,8 @@ int main(int argc, char *argv[]) {
 			break;
 		case 'm':
 			method = atoi(argv[2]);
-			if (argc - 1 < 2 || method < 0 || method > 3) {
-				printf("-m requires a method (0-3)\n");
+			if (argc - 1 < 2 || method < 0 || method > 4) {
+				printf("-m requires a method (0-4)\n");
 				usage = TRUE;
 				opterr = TRUE;
 				break;

@@ -79,6 +79,8 @@ use the bounding box of the page
 use the blocks of text on the page
 .IP 3
 use the blocks of text on the page, sorted
+.IP 4
+use rows of text
 .RE
 
 .IP
@@ -87,6 +89,10 @@ single-column documents; methods 2 is slower, but often produces better results
 on multiple-column documents; method 3 is even slower, but the sorting of the
 blocks may be necessary when the characters in the document are not in the
 correct order
+
+method 4 is for pages containing tables; some programs like to produce pdf
+files where characters are shown by columns instead of rows; this method sorts
+them by rows
 
 .TP
 \fB-d\fP \fIdistance\fP

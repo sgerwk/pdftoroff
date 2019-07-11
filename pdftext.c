@@ -471,6 +471,29 @@ void showpage(FILE *fd, PopplerPage *page, PopplerRectangle *zone,
 		}
 		poppler_rectangle_free(region);
 		break;
+	case 4:
+		measure->rightreturn = -1;
+		textarea = rectanglelist_rows(page);
+		region = poppler_rectangle_new();
+		for (r = 0; r < textarea->num; r++) {
+			delement(fd, "[=== BLOCK %d]", r);
+			if (zone == NULL) {
+				showregion(fd, &textarea->rect[r], textarea,
+					text, attrlist, rects, nrects,
+					measure, format, scandata, FALSE);
+				measure->indent = -1;
+				continue;
+			}
+			if (! rectangle_overlap(zone, &textarea->rect[r]))
+				continue;
+			rectangle_intersect(region, zone, &textarea->rect[r]);
+			showregion(fd, region, textarea,
+				text, attrlist, rects, nrects,
+				measure, format, scandata, FALSE);
+			measure->indent = -1;
+		}
+		poppler_rectangle_free(region);
+		break;
 	default:
 		fprintf(stderr, "no such conversion method: %d\n", method);
 		exit(EXIT_FAILURE);
