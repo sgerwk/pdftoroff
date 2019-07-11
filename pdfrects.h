@@ -185,6 +185,9 @@ RectangleList *rectanglelist_paintedarea_distance(PopplerPage *, gdouble);
 /* bounding box of a page, based on painted squares */
 PopplerRectangle *rectanglelist_boundingbox_painted(PopplerPage *page, int d);
 
+/* list of rows in a page */
+RectangleList *rectanglelist_rows(PopplerPage *page);
+
 /*
  * drawing-related functions
  */

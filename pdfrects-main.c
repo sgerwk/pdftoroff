@@ -43,6 +43,7 @@ int main(int argc, char *argv[]) {
 	gboolean bb = FALSE;
 	enum extents_e extents = none;
 	gboolean painted = FALSE;
+	gboolean tabular = FALSE;
 	gboolean add = FALSE;
 	int sort = -1;
 	int first = -1, last = -1;
@@ -70,7 +71,7 @@ int main(int argc, char *argv[]) {
 
 				/* arguments */
 
-	while ((opt = getopt(argc, argv, "f:l:nips:be:d:r:ah")) != -1)
+	while ((opt = getopt(argc, argv, "f:l:nipts:be:d:r:ah")) != -1)
 		switch(opt) {
 		case 'f':
 			first = atoi(optarg);
@@ -86,6 +87,10 @@ int main(int argc, char *argv[]) {
 			break;
 		case 'p':
 			painted = TRUE;
+			break;
+		case 't':
+			tabular = TRUE;
+			sort = -1;
 			break;
 		case 's':
 			sort = atoi(optarg);
@@ -127,7 +132,7 @@ int main(int argc, char *argv[]) {
 		printf("usage:\n");
 		printf("\tpdfrects [-f page] [-l page] ");
 		printf("[-b] [-e direction] [-d distance]\n");
-		printf("\t         [-n [-s n]] [-a] [-r level] [-h] ");
+		printf("\t         [-p|-t] [-n [-s n]] [-a] [-r level] [-h] ");
 		printf("file.pdf\n");
 		printf("\t\t-f page\t\tfirst page\n");
 		printf("\t\t-l page\t\tlast page\n");
@@ -136,6 +141,7 @@ int main(int argc, char *argv[]) {
 		printf("\t\t-d distance\tminimal distance of text boxes\n");
 		printf("\t\t-n\t\tnumber boxes\n");
 		printf("\t\t-p\t\tuse painted squares instead of text\n");
+		printf("\t\t-t\t\tuse text rows instead of text boxes\n");
 		printf("\t\t-s n\t\tsort boxes by method n\n");
 		printf("\t\t-a\t\tadd a test box\n");
 		printf("\t\t-r level\tdebug textarea algorithm\n");
@@ -201,7 +207,9 @@ int main(int argc, char *argv[]) {
 				"        ", "        ", boundingbox);
 		}
 		else {
-			textarea = painted ?
+			textarea = tabular ?
+				rectanglelist_rows(page) :
+				   painted ?
 				rectanglelist_paintedarea_distance(page,
 					distance) :
 				rectanglelist_textarea_distance(page,

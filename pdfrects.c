@@ -1089,6 +1089,33 @@ PopplerRectangle *rectanglelist_boundingbox_painted(PopplerPage *page,
 }
 
 /*
+ * list of rows in a page
+ */
+RectangleList *rectanglelist_rows(PopplerPage *page) {
+	RectangleList *layout, *rows;
+	int i, r;
+
+	layout = rectanglelist_characters(page);
+	qsort(layout->rect, layout->num, sizeof(PopplerRectangle),
+		(int (*)(const void *, const void *)) rectangle_vcompare);
+
+	rows = rectanglelist_new(layout->num);
+	for (i = 0; i < layout->num; i++) {
+		r = rows->num - 1;
+		if (r >= 0 &&
+		    rectangle_vtouch(&rows->rect[r], &layout->rect[i]))
+			rectangle_join(&rows->rect[r], &layout->rect[i]);
+		else {
+			r = rows->num++;
+			rectangle_copy(&rows->rect[r], &layout->rect[i]);
+		}
+	}
+
+	free(layout);
+	return rows;
+}
+
+/*
  * draw a rectangle on a cairo context with a random color
  */
 void rectangle_draw(cairo_t *cr, PopplerRectangle *rect,
