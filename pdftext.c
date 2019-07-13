@@ -132,7 +132,7 @@ void face(FILE *fd, gboolean start, gboolean reset,
  *	rest	character not written (hyphen at end of line) or NONE
  */
 void showcharacter(FILE *fd, char *cur, char *next, char *rest,
-		gboolean newpar, struct format *format) {
+		gboolean newpar, char hyphen, struct format *format) {
 	*rest = NONE;
 	if (*cur == '\\')
 		fputs(format->backslash, fd);
@@ -144,7 +144,7 @@ void showcharacter(FILE *fd, char *cur, char *next, char *rest,
 		fputs(format->greater, fd);
 	else if (*cur == '&')
 		fputs(format->and, fd);
-	else if (*cur == '-' && (*next == '\0' || *next == '\n'))
+	else if (*cur == hyphen && (*next == '\0' || *next == '\n'))
 		*rest = '-';
 	else
 		fwrite(cur, 1, next - cur, fd);
@@ -356,7 +356,8 @@ void showregion(FILE *fd, PopplerRectangle *zone, RectangleList *textarea,
 					/* print character */
 
 			showcharacter(fd, cur, next,
-				&scandata->prev, scandata->newpar, format);
+				&scandata->prev, scandata->newpar,
+				measure->hyphen, format);
 
 					/* update status variables */
 

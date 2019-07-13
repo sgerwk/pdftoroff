@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
 	gboolean usage, opterr;
 	int method = 1, order = 1;
 	int first = 1, last = 0;
-	struct measure measure = {8, 25, 80, 30, 40, 6, 20, 15};
+	struct measure measure = {8, 25, 80, 30, 40, 6, 20, 15, '-'};
 	struct format *format;
 	PopplerRectangle *zone = NULL;
 

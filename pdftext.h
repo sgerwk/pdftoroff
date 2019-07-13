@@ -22,6 +22,7 @@ struct measure {
 	int indent;		/* more than this at start of line is indent */
 	int headfooter;		/* ignore x,y of chars at begin/end of page */
 	int blockdistance;	/* distance between blocks of text */
+	char hyphen;		/* this character is an hyphen */
 };
 
 /*
