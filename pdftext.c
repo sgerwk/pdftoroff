@@ -474,6 +474,7 @@ void showpage(FILE *fd, PopplerPage *page, PopplerRectangle *zone,
 		break;
 	case 4:
 		measure->rightreturn = -1;
+		measure->hyphen = '\0';
 		textarea = rectanglelist_rows(page, measure->blockdistance);
 		region = poppler_rectangle_new();
 		for (r = 0; r < textarea->num; r++) {
