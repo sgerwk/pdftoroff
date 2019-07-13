@@ -413,8 +413,11 @@ void rectanglelist_delete(RectangleList *rl, gint n) {
  * append a rectangle to a list
  */
 void rectanglelist_append(RectangleList *rl, PopplerRectangle *rect) {
-	if (rl->num >= rl->max)
-		return;
+	if (rl->num >= rl->max) {
+		rl->max += MAXRECT;
+		rl->rect =
+			realloc(rl->rect, rl->max * sizeof(PopplerRectangle));
+	}
 	rectangle_copy(rl->rect + rl->num++, rect);
 }
 
@@ -433,9 +436,6 @@ void rectanglelist_append(RectangleList *rl, PopplerRectangle *rect) {
 gboolean rectanglelist_add(RectangleList *rl, PopplerRectangle *rect) {
 	gint r;
 	gboolean placed;
-
-	if (rl->num >= rl->max)
-		return FALSE;
 
 	placed = FALSE;
 
@@ -490,7 +490,7 @@ RectangleList *rectanglelist_directionalextents(RectangleList *src,
 	qsort(sorted->rect, sorted->num, sizeof(PopplerRectangle),
 		(int (*)(const void *, const void *)) compare);
 
-	dst = rectanglelist_new(sorted->num);
+	dst = rectanglelist_new(MAXRECT);
 	for (i = 0; i < sorted->num; i++) {
 		j = dst->num - 1;
 		if (dst->num != 0 && touch(&dst->rect[j], &sorted->rect[i]))

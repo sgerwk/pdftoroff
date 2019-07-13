@@ -75,7 +75,7 @@ void rectangle_page(PopplerPage *page, PopplerRectangle *rect);
  * functions on lists of rectangles
  */
 
-#define MAXRECT 50000
+#define MAXRECT 4096
 typedef struct {
 	/* public */
 	PopplerRectangle *rect;
