@@ -358,7 +358,7 @@ RectangleList *rectanglelist_copy(RectangleList *src) {
 
 	dst = rectanglelist_new(src->max);
 	dst->num = src->num;
-	memcpy(dst->rect, src->rect, dst->max * sizeof(PopplerRectangle));
+	memcpy(dst->rect, src->rect, dst->num * sizeof(PopplerRectangle));
 
 	return dst;
 }
