@@ -1105,9 +1105,10 @@ PopplerRectangle *rectanglelist_boundingbox_painted(PopplerPage *page,
 /*
  * list of rows in a page
  */
-RectangleList *rectanglelist_rows(PopplerPage *page) {
+RectangleList *rectanglelist_rows(PopplerPage *page, gdouble distance) {
 	RectangleList *layout, *rows;
-	int i, r;
+	PopplerRectangle *r;
+	int i, j;
 
 	layout = rectanglelist_characters(page);
 	qsort(layout->rect, layout->num, sizeof(PopplerRectangle),
@@ -1115,14 +1116,13 @@ RectangleList *rectanglelist_rows(PopplerPage *page) {
 
 	rows = rectanglelist_new(layout->num);
 	for (i = 0; i < layout->num; i++) {
-		r = rows->num - 1;
-		if (r >= 0 &&
-		    rectangle_vtouch(&rows->rect[r], &layout->rect[i]))
-			rectangle_join(&rows->rect[r], &layout->rect[i]);
-		else {
-			r = rows->num++;
-			rectangle_copy(&rows->rect[r], &layout->rect[i]);
-		}
+		r = &layout->rect[i];
+		j = rows->num - 1;
+		if (j >= 0 &&
+		    rectangle_vdistance(&rows->rect[j], r) <= MAX(distance, 0))
+			rectangle_join(&rows->rect[j], r);
+		else
+			rectangle_copy(&rows->rect[rows->num++], r);
 	}
 
 	free(layout);

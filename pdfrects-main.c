@@ -208,7 +208,7 @@ int main(int argc, char *argv[]) {
 		}
 		else {
 			textarea = tabular ?
-				rectanglelist_rows(page) :
+				rectanglelist_rows(page, distance) :
 				   painted ?
 				rectanglelist_paintedarea_distance(page,
 					distance) :

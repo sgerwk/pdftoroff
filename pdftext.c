@@ -473,7 +473,7 @@ void showpage(FILE *fd, PopplerPage *page, PopplerRectangle *zone,
 		break;
 	case 4:
 		measure->rightreturn = -1;
-		textarea = rectanglelist_rows(page);
+		textarea = rectanglelist_rows(page, measure->blockdistance);
 		region = poppler_rectangle_new();
 		for (r = 0; r < textarea->num; r++) {
 			delement(fd, "[=== BLOCK %d]", r);
