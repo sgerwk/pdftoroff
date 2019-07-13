@@ -495,10 +495,8 @@ RectangleList *rectanglelist_directionalextents(RectangleList *src,
 		j = dst->num - 1;
 		if (dst->num != 0 && touch(&dst->rect[j], &sorted->rect[i]))
 			rectangle_join(&dst->rect[j], &sorted->rect[i]);
-		else {
-			dst->rect[dst->num] = sorted->rect[i];
-			dst->num++;
-		}
+		else
+			rectanglelist_append(dst, &sorted->rect[i]);
 	}
 
 	rectanglelist_free(sorted);
@@ -1122,7 +1120,7 @@ RectangleList *rectanglelist_rows(PopplerPage *page, gdouble distance) {
 		    rectangle_vdistance(&rows->rect[j], r) <= MAX(distance, 0))
 			rectangle_join(&rows->rect[j], r);
 		else
-			rectangle_copy(&rows->rect[rows->num++], r);
+			rectanglelist_append(rows, r);
 	}
 
 	free(layout);
