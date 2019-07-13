@@ -474,6 +474,7 @@ void showpage(FILE *fd, PopplerPage *page, PopplerRectangle *zone,
 		break;
 	case 4:
 		measure->rightreturn = -1;
+		measure->indent = 100000;
 		measure->hyphen = '\0';
 		textarea = rectanglelist_rows(page, measure->blockdistance);
 		region = poppler_rectangle_new();
@@ -483,7 +484,7 @@ void showpage(FILE *fd, PopplerPage *page, PopplerRectangle *zone,
 				showregion(fd, &textarea->rect[r], textarea,
 					text, attrlist, rects, nrects,
 					measure, format, scandata, FALSE);
-				measure->indent = -1;
+				fprintf(fd, "\n");
 				continue;
 			}
 			if (! rectangle_overlap(zone, &textarea->rect[r]))
@@ -492,7 +493,7 @@ void showpage(FILE *fd, PopplerPage *page, PopplerRectangle *zone,
 			showregion(fd, region, textarea,
 				text, attrlist, rects, nrects,
 				measure, format, scandata, FALSE);
-			measure->indent = -1;
+			fprintf(fd, "\n");
 		}
 		poppler_rectangle_free(region);
 		break;
