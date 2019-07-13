@@ -863,6 +863,7 @@ RectangleList *rectanglelist_characters(PopplerPage *page) {
 	layout = rectanglelist_new(0);
 	poppler_page_get_text_layout(page, &layout->rect, &n);
 	layout->num = n;
+	layout->max = n; // poppler_page_get_text_layout allocated layout->rect
 	text = poppler_page_get_text(page);
 
 	/* nullify rectangles of white spaces ' '; yes, it happens */
@@ -953,7 +954,7 @@ RectangleList *rectanglelist_textarea_bound_fallback(PopplerPage *page,
 	 * large number of rectangles; just return the whole page */
 	res = rectanglelist_new(1);
 	rectangle_page(page, res->rect);
-	res->num = 1;
+	res->num = 1; // res is created with max=1
 	return res;
 }
 
@@ -989,6 +990,7 @@ PopplerRectangle *rectanglelist_boundingbox(PopplerPage *page) {
 	if (n == 0)
 		return NULL;
 	all->num = n;
+	all->max = n; // poppler_page_get_text_layout allocated all->rect
 
 	boundingbox = rectanglelist_joinall(all);
 
