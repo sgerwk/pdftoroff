@@ -235,6 +235,20 @@ gboolean rectangle_touch(PopplerRectangle *a, PopplerRectangle *b) {
 }
 
 /*
+ * horizontal distance between rectangles
+ */
+gdouble rectangle_hdistance(PopplerRectangle *a, PopplerRectangle *b) {
+	return MAX(MAX(b->x1 - a->x2, 0), MAX(a->x1 - b->x2, 0));
+}
+
+/*
+ * vertical distance between rectangles
+ */
+gdouble rectangle_vdistance(PopplerRectangle *a, PopplerRectangle *b) {
+	return MAX(MAX(b->y1 - a->y2, 0), MAX(a->y1 - b->y2, 0));
+}
+
+/*
  * check whether a rectangle satisfies bounds and containment
  */
 gboolean rectangle_boundcontain(PopplerRectangle *r,

@@ -45,6 +45,10 @@ gboolean rectangle_htouch(PopplerRectangle *a, PopplerRectangle *b);
 gboolean rectangle_vtouch(PopplerRectangle *a, PopplerRectangle *b);
 gboolean rectangle_touch(PopplerRectangle *, PopplerRectangle *);
 
+/* horizontal and vertical distance between rectangles */
+gdouble rectangle_hdistance(PopplerRectangle *a, PopplerRectangle *b);
+gdouble rectangle_vdistance(PopplerRectangle *a, PopplerRectangle *b);
+
 /* copy a rectangle onto another */
 void rectangle_copy(PopplerRectangle *dest, PopplerRectangle *orig);
 
