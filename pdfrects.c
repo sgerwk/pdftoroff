@@ -721,45 +721,41 @@ gboolean rectanglelist_subtract_append(RectangleList *dest,
 		RectangleList *orig, PopplerRectangle *sub,
 		PopplerRectangle *cont, RectangleBound *b) {
 	gint i;
-	PopplerRectangle *a, *r;
+	PopplerRectangle *a, r;
 
 	for (i = 0; i < orig->num; i++) {
 		a = orig->rect + i;
 
-		r = dest->rect + dest->num;
-		r->x1 = a->x1;
-		r->y1 = a->y1;
-		r->x2 = MIN(a->x2, sub->x1);
-		r->y2 = a->y2;
-		if (rectangle_boundcontain(r, cont, b))
-			if (! rectanglelist_add(dest, r))
+		r.x1 = a->x1;
+		r.y1 = a->y1;
+		r.x2 = MIN(a->x2, sub->x1);
+		r.y2 = a->y2;
+		if (rectangle_boundcontain(&r, cont, b))
+			if (! rectanglelist_add(dest, &r))
 				return FALSE;
 
-		r = dest->rect + dest->num;
-		r->x1 = a->x1;
-		r->y1 = a->y1;
-		r->x2 = a->x2;
-		r->y2 = MIN(a->y2, sub->y1);
-		if (rectangle_boundcontain(r, cont, b))
-			if (! rectanglelist_add(dest, r))
+		r.x1 = a->x1;
+		r.y1 = a->y1;
+		r.x2 = a->x2;
+		r.y2 = MIN(a->y2, sub->y1);
+		if (rectangle_boundcontain(&r, cont, b))
+			if (! rectanglelist_add(dest, &r))
 				return FALSE;
 
-		r = dest->rect + dest->num;
-		r->x1 = MAX(a->x1, sub->x2);
-		r->y1 = a->y1;
-		r->x2 = a->x2;
-		r->y2 = a->y2;
-		if (rectangle_boundcontain(r, cont, b))
-			if (! rectanglelist_add(dest, r))
+		r.x1 = MAX(a->x1, sub->x2);
+		r.y1 = a->y1;
+		r.x2 = a->x2;
+		r.y2 = a->y2;
+		if (rectangle_boundcontain(&r, cont, b))
+			if (! rectanglelist_add(dest, &r))
 				return FALSE;
 
-		r = dest->rect + dest->num;
-		r->x1 = a->x1;
-		r->y1 = MAX(a->y1, sub->y2);
-		r->x2 = a->x2;
-		r->y2 = a->y2;
-		if (rectangle_boundcontain(r, cont, b))
-			if (! rectanglelist_add(dest, r))
+		r.x1 = a->x1;
+		r.y1 = MAX(a->y1, sub->y2);
+		r.x2 = a->x2;
+		r.y2 = a->y2;
+		if (rectangle_boundcontain(&r, cont, b))
+			if (! rectanglelist_add(dest, &r))
 				return FALSE;
 	}
 
