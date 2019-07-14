@@ -88,11 +88,7 @@ the default method is 1, which is fast and usually gives good results on
 single-column documents; methods 2 is slower, but often produces better results
 on multiple-column documents; method 3 is even slower, but the sorting of the
 blocks may be necessary when the characters in the document are not in the
-correct order
-
-method 4 is for pages containing tables; some programs like to produce pdf
-files where characters are shown by columns instead of rows; this method sorts
-them by rows
+correct order; method 4 is for tables; see \fICONVERSION METHODS\fP, below
 
 .TP
 \fB-d\fP \fIdistance\fP
@@ -278,7 +274,7 @@ replace the ampersand (\fI&\fP) with this
 .
 .
 .
-.SH METHODS
+.SH CONVERSION METHODS
 
 All conversion methods scan the characters in the page in the same order as in
 the pdf file. A new line is detected on:
@@ -329,7 +325,15 @@ third method scans the characters as they occurr in the file; the block
 containing the first is the first block; the block containing the first
 character not in the first block is the second, and so on.
 
-.
+.IP 4
+This method assumes that the document is a single table: a sequence or rows,
+each made of a number of cells. The rows are first located in vertical order,
+then each is converted to a line of text.
+
+This method allows converting tables even if their cells are shown by columns
+instead of rows, which is often the case. The usual rules for line breaking and
+joining are ignored, and every row is output as a single line.
+
 .
 .
 .SH MARKERS
