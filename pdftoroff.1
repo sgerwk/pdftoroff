@@ -331,9 +331,13 @@ This method assumes that the document is a single table: a sequence or rows,
 each made of a number of cells. The rows are first located in vertical order,
 then each is converted to a line of text.
 
-This method allows converting tables even if their cells are shown by columns
-instead of rows, which is often the case. The usual rules for line breaking and
-joining are ignored, and every row is output as a single line.
+This method allows converting tables even if their cells are ordered by columns
+instead of rows, which is often the case.
+
+The usual rules for line breaking and joining are ignored, and every row is
+output as a single line. The minimal text distance (option \fI-f\fP) is used as
+the minimal distance between rows; if they are very close to each other, a
+negative value may be used to separate them.
 
 .
 .
