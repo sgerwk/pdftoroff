@@ -75,6 +75,11 @@ struct cairodevice {
 };
 
 /*
+ * whether to use double buffering or not
+ */
+int doublebuffering();
+
+/*
  * show a pdf file on an arbitrary cairo device
  */
 int hovacui(int argn, char *argv[], struct cairodevice *cairodevice);

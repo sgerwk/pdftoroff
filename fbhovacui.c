@@ -17,7 +17,7 @@ struct cairooutput *cairoinit_fb(char *device, void *data) {
 	if (device == NULL)
 		device = "/dev/fb0";
 
-	cairofb = cairofb_init(device, 1);
+	cairofb = cairofb_init(device, doublebuffering());
 	if (cairofb == NULL) {
 		printf("cannot open %s as a cairo surface\n", device);
 		return NULL;

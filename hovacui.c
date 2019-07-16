@@ -3185,6 +3185,15 @@ void usage() {
 }
 
 /*
+ * whether to use double buffering or not
+ */
+int doublebuffering() {
+	char *dbuf;
+	dbuf = getenv("DOUBLEBUFFERING");
+	return dbuf == NULL || ! ! strcmp(dbuf, "no");
+}
+
+/*
  * signal handling: reload on SIGHUP
  */
 int sig_reload;

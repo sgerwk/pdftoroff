@@ -32,7 +32,8 @@ struct xhovacui {
 	int screenheight;
 	Display *dsp;
 	Window win;
-	Pixmap dbuf;
+	Drawable dbuf;
+	int doublebuffering;
 };
 
 /*
@@ -93,9 +94,12 @@ struct cairooutput *cairoinit_x11(char *device, void *data) {
 		BlackPixelOfScreen(scr), WhitePixelOfScreen(scr));
 	XSelectInput(xhovacui->dsp, xhovacui->win, EVENTMASK);
 
-	xhovacui->dbuf = XCreatePixmap(xhovacui->dsp, xhovacui->win,
-		xhovacui->width, xhovacui->height,
-		DefaultDepth(xhovacui->dsp, 0));
+	xhovacui->doublebuffering = doublebuffering();
+	xhovacui->dbuf = ! xhovacui->doublebuffering ?
+		xhovacui->win :
+		XCreatePixmap(xhovacui->dsp, xhovacui->win,
+			xhovacui->width, xhovacui->height,
+			DefaultDepth(xhovacui->dsp, 0));
 	xhovacui->surface =
 		cairo_xlib_surface_create(xhovacui->dsp, xhovacui->dbuf, vis,
 			xhovacui->width, xhovacui->height);
@@ -189,9 +193,10 @@ void cairoclear_x11(struct cairooutput *cairo) {
 void cairoflush_x11(struct cairooutput *cairo) {
 	struct xhovacui *xhovacui;
 	xhovacui = (struct xhovacui *) cairo;
-	XCopyArea(xhovacui->dsp, xhovacui->dbuf, xhovacui->win,
-		DefaultGC(xhovacui->dsp, 0),
-		0, 0, xhovacui->width, xhovacui->height, 0, 0);
+	if (xhovacui->doublebuffering)
+		XCopyArea(xhovacui->dsp, xhovacui->dbuf, xhovacui->win,
+			DefaultGC(xhovacui->dsp, 0),
+			0, 0, xhovacui->width, xhovacui->height, 0, 0);
 }
 
 /*
@@ -209,13 +214,15 @@ void cairoreconfigure(struct xhovacui *xhovacui, XConfigureEvent *xce) {
 	xhovacui->width = xce->width;
 	xhovacui->height = xce->height;
 
-	XFreePixmap(xhovacui->dsp, xhovacui->dbuf);
+
 	cairo_destroy(xhovacui->cr);
 	cairo_surface_destroy(xhovacui->surface);
-
-	xhovacui->dbuf = XCreatePixmap(xhovacui->dsp, xhovacui->win,
-		xhovacui->width, xhovacui->height,
-		DefaultDepth(xhovacui->dsp, 0));
+	if (xhovacui->doublebuffering) {
+		XFreePixmap(xhovacui->dsp, xhovacui->dbuf);
+		xhovacui->dbuf = XCreatePixmap(xhovacui->dsp, xhovacui->win,
+			xhovacui->width, xhovacui->height,
+			DefaultDepth(xhovacui->dsp, 0));
+	}
 	xhovacui->surface = cairo_xlib_surface_create(xhovacui->dsp,
 			xhovacui->dbuf,
 			DefaultVisual(xhovacui->dsp, 0),
