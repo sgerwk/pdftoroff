@@ -3524,7 +3524,8 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 				output.timeout = NO_TIMEOUT;
 			logstatus(LEVEL_MAIN, "postinput", window, &output, c);
 		}
-		if (c == KEY_SUSPEND || c == KEY_SIGNAL || c == KEY_NONE) {
+		if (c == KEY_SUSPEND || c == KEY_SIGNAL ||
+		    c == KEY_NONE || c == KEY_F(3) || c == KEY_F(4)) {
 			c = KEY_NONE;
 			continue;
 		}
