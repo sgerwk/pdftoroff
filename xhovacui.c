@@ -214,20 +214,19 @@ void cairoreconfigure(struct xhovacui *xhovacui, XConfigureEvent *xce) {
 	xhovacui->width = xce->width;
 	xhovacui->height = xce->height;
 
-
-	cairo_destroy(xhovacui->cr);
-	cairo_surface_destroy(xhovacui->surface);
-	if (xhovacui->doublebuffering) {
-		XFreePixmap(xhovacui->dsp, xhovacui->dbuf);
-		xhovacui->dbuf = XCreatePixmap(xhovacui->dsp, xhovacui->win,
-			xhovacui->width, xhovacui->height,
-			DefaultDepth(xhovacui->dsp, 0));
-	}
-	xhovacui->surface = cairo_xlib_surface_create(xhovacui->dsp,
-			xhovacui->dbuf,
-			DefaultVisual(xhovacui->dsp, 0),
+	if (! xhovacui->doublebuffering) {
+		cairo_xlib_surface_set_size(xhovacui->surface,
 			xhovacui->width, xhovacui->height);
-	xhovacui->cr = cairo_create(xhovacui->surface);
+		return;
+	}
+
+	XFreePixmap(xhovacui->dsp, xhovacui->dbuf);
+	xhovacui->dbuf = XCreatePixmap(xhovacui->dsp, xhovacui->win,
+		xhovacui->width, xhovacui->height,
+		DefaultDepth(xhovacui->dsp, 0));
+	cairo_xlib_surface_set_drawable(xhovacui->surface, xhovacui->dbuf,
+		xhovacui->width, xhovacui->height);
+	return;
 }
 
 /*
