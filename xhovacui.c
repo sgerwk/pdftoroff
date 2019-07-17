@@ -123,10 +123,12 @@ void cairofinish_x11(struct cairooutput *cairo) {
 	xhovacui = (struct xhovacui *) cairo;
 	if (xhovacui == NULL)
 		return;
-	XDestroyWindow(xhovacui->dsp, xhovacui->win);
-	XCloseDisplay(xhovacui->dsp);
 	cairo_destroy(xhovacui->cr);
 	cairo_surface_destroy(xhovacui->surface);
+	if (xhovacui->doublebuffering)
+		XFreePixmap(xhovacui->dsp, xhovacui->dbuf);
+	XDestroyWindow(xhovacui->dsp, xhovacui->win);
+	XCloseDisplay(xhovacui->dsp);
 	free(xhovacui);
 }
 
