@@ -621,6 +621,35 @@ do nothing; lines starting with \fI#\fP have the same effect
 .
 .
 .
+.SH ENVIRONMENT VARIABLES
+
+\fBhovacui\fP is affected by the following enviroment variables:
+
+.TP
+.I DOUBLEBUFFERING
+unless set to \fI"no"\fP, double buffering is used to display pages: rendering
+is done on a buffer, which is shown on screen only when done; disabling double
+buffering allows seeing the pages during drawing; this may be useful in some
+special cases such as pages with lot of content, for example high-resolution
+raster images
+.TP
+.I ESCDELAY
+the milliseconds of delay that make an escape input character to be taken as an
+actual escape keystroke; default is \fI200\fP; for a complete explanation, see
+\fIncurses(3)\fP
+.TP
+.I DISPLAY
+the X11 server to connect to
+.TP
+.I HOME
+the starting path for the configuration file
+\fI$HOME/.config/hovacui/hovacui.conf\fP
+
+
+
+.
+.
+.
 .SH COMPARISON WITH GREEN(1)
 
 \fBgreen\fP (http://github.com/schandinat/green) is a fine pdf viewer for the
