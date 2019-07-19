@@ -1529,12 +1529,18 @@ int savecurrenttextbox(struct position *position, struct output *output) {
 /*
  * print the current box and append it to file
  */
-int savebox(struct position *position, struct output *output) {
-	PopplerRectangle r;
+int savebox(struct position *position, struct output *output, int visible) {
+	PopplerRectangle r, sdoc;
 	char line[70];
 	char *result;
 
-	r = position->textarea->rect[position->box];
+	if (! visible)
+		r = position->textarea->rect[position->box];
+	else {
+		rscreentodoc(output, &sdoc, &output->dest);
+		rectangle_intersect(&r, &sdoc,
+			&position->textarea->rect[position->box]);
+	}
 	snprintf(line, 70, "%g %g %g %g", r.x1, r.y1, r.x2, r.y2);
 
 	if (ensureoutputfile(output))
@@ -1662,7 +1668,8 @@ int document(int c, struct position *position, struct output *output) {
 		output->filename = TRUE;
 		break;
 	case 'b':
-		savebox(position, output);
+	case 'B':
+		savebox(position, output, c == 'B');
 		break;
 	case '\\':	/* for testing */
 		movetonameddestination(position, output, "abcd");
