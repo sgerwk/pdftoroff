@@ -2224,8 +2224,7 @@ int field(int c, struct output *output,
 			current[l] = output->paste[i];
 		current[l] = '\0';
 	}
-	else if (c < KEY_NONE &&
-	         c != KEY_REDRAW && c != KEY_REFRESH && c != KEY_RESIZE) {
+	else if (ISREALKEY(c)) {
 		if (l > 30)
 			return FIELD_UNCHANGED;
 		current[l] = c;

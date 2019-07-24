@@ -39,6 +39,20 @@
 #define KEY_EXTERNAL	((KEY_MAX) + 9)
 #define KEY_PASTE       ((KEY_MAX) + 10)
 
+#define ISIMAGINARYKEY(c) (				   \
+	(c == KEY_NONE)					|| \
+	(c == KEY_INIT)					|| \
+	(c == KEY_REFRESH)				|| \
+	(c == KEY_REDRAW)				|| \
+	(c == KEY_RESIZE)				|| \
+	(c == KEY_TIMEOUT)				|| \
+	(c == KEY_SUSPEND)				|| \
+	(c == KEY_SIGNAL)				|| \
+	(c == KEY_EXTERNAL)				|| \
+	(c == KEY_PASTE)				   \
+)
+#define ISREALKEY(c) (! ISIMAGINARYKEY(c))
+
 /*
  * no timeout
  */
