@@ -414,7 +414,7 @@
  * void *initdata
  *	passed to the init function
  *
- * struct cairooutput *init(char *device, void *initdata);
+ * struct cairooutput *init(char *device, int doublebuffering, void *initdata);
  *	create the cairo context;
  *	return a data structure that is passed to the other functions
  *
@@ -3191,14 +3191,6 @@ void usage() {
 	printf("'m'=menu\n");
 }
 
-/*
- * whether to use double buffering or not
- */
-int doublebuffering() {
-	char *dbuf;
-	dbuf = getenv("DOUBLEBUFFERING");
-	return dbuf == NULL || ! ! strcmp(dbuf, "no");
-}
 
 /*
  * signal handling: reload on SIGHUP
@@ -3227,6 +3219,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	struct output output;
 	double screenaspect;
 	int opt;
+	int doublebuffering;
 	int firstwindow;
 	int noinitlabels;
 	struct command command;
@@ -3340,10 +3333,19 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 					firstwindow = WINDOW_DOCUMENT;
 					noinitlabels = TRUE;
 				}
+				if (! strcmp(s, "doublebuffering"))
+					doublebuffering = 1;
+				if (! strcmp(s, "nodoublebuffering"))
+					doublebuffering = 0;
 			}
 		}
 		fclose(config);
 	}
+
+				/* environment variables */
+
+	if (getenv("DOUBLEBUFFERING") != NULL)
+		doublebuffering = ! ! strcmp(getenv("DOUBLEBUFFERING"), "no");
 
 				/* cmdline arguments */
 
@@ -3438,9 +3440,10 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	sig_reload = 0;
 	signal(SIGHUP, handler);
 
-				/* open fbdev as cairo */
+				/* open output device as cairo */
 
-	cairo = cairodevice->init(outdev, cairodevice->initdata);
+	cairo = cairodevice->init(outdev,
+		doublebuffering, cairodevice->initdata);
 	if (cairo == NULL) {
 		cairodevice->finish(cairo);
 		exit(EXIT_FAILURE);

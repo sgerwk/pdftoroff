@@ -60,7 +60,8 @@ struct command {
 struct cairooutput;
 struct cairodevice {
 	void *initdata;
-	struct cairooutput *(*init)(char *device, void *initdata);
+	struct cairooutput *(*init)(char *device,
+		int doublebuffering, void *initdata);
 	void (*finish)(struct cairooutput *cairo);
 	cairo_t *(*context)(struct cairooutput *cairo);
 	double (*width)(struct cairooutput *cairo);
@@ -73,11 +74,6 @@ struct cairodevice {
 	int (*input)(struct cairooutput *cairo, int timeout,
 	             struct command *command);
 };
-
-/*
- * whether to use double buffering or not
- */
-int doublebuffering();
 
 /*
  * show a pdf file on an arbitrary cairo device

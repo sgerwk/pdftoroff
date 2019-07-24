@@ -51,7 +51,8 @@ struct xhovacui {
 /*
  * create a cairo context
  */
-struct cairooutput *cairoinit_x11(char *device, void *data) {
+struct cairooutput *cairoinit_x11(char *device,
+		int doublebuffering, void *data) {
 	struct initdata *initdata;
 	struct xhovacui *xhovacui;
 	Screen *scr;
@@ -94,7 +95,7 @@ struct cairooutput *cairoinit_x11(char *device, void *data) {
 		BlackPixelOfScreen(scr), WhitePixelOfScreen(scr));
 	XSelectInput(xhovacui->dsp, xhovacui->win, EVENTMASK);
 
-	xhovacui->doublebuffering = doublebuffering();
+	xhovacui->doublebuffering = doublebuffering;
 	xhovacui->dbuf = ! xhovacui->doublebuffering ?
 		xhovacui->win :
 		XCreatePixmap(xhovacui->dsp, xhovacui->win,

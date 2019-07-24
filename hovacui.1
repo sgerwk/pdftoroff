@@ -513,6 +513,17 @@ show page numbers as "page X of Y" instead of "page X"
 .BI noinitlabels
 do not show the file name, the viewing mode etc. at startup
 .TP
+.B doublebuffering
+enable double buffering;
+this is the default,
+but the \fIDOUBLEBUFFERING\fP environment variable takes precedence over this
+option
+.TP
+.B nodoublebuffering
+disable double buffering;
+the \fIDOUBLEBUFFERING\fP environment variable takes precedence over this
+option
+.TP
 .BI fifo " name
 receive commands from the given existing fifo;
 see \fIEXTERNAL COMMANDS\fP, below
@@ -635,7 +646,8 @@ unless set to \fI"no"\fP, double buffering is used to display pages: rendering
 is done on a buffer, which is shown on screen only when done; disabling double
 buffering allows seeing the pages during drawing; this may be useful in some
 special cases such as pages with lot of content, for example high-resolution
-raster images
+raster images; this variable takes precedence over the config file options
+\fIdoublebuffering\fP and \fInodoublebuffering\fP
 .TP
 .I ESCDELAY
 the milliseconds of delay that make an escape input character to be taken as an
