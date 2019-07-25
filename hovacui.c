@@ -8,7 +8,6 @@
  * todo:
  *
  * - search: regular expression; config for pattern=string
- * - pass a configuration option from command line
  * - configuration files specific for the framebuffer and x11, passed as
  *   additional arguments to hovacui()
  *   .config/hovacui/{framebuffer.conf,x11.conf}
@@ -3218,6 +3217,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	struct output output;
 	double screenaspect;
 	int opt;
+	char *res;
 	int doublebuffering;
 	int firstwindow;
 	int noinitlabels;
@@ -3260,7 +3260,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	command.command = malloc(command.max);
 	keepopen = -1;
 
-				/* config file */
+				/* location of the config file */
 
 	snprintf(configfile, 4096, "%s/.config/hovacui/hovacui.conf",
 		getenv("HOME"));
@@ -3271,75 +3271,85 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 			break;
 		}
 
-				/* read config file */
+				/* config file lines and -c options */
 
+	optind = 1;
 	config = fopen(configfile, "r");
-	if (config != NULL) {
-		while (fgets(configline, 900, config)) {
-			if (configline[0] == '#')
-				continue;
-			if (sscanf(configline, "mode %s", s) == 1)
-				output.viewmode = optindex(s[0], "atbp");
-			if (sscanf(configline, "fit %s", s) == 1)
-				output.fit = optindex(s[0], "nhvb");
-			if (sscanf(configline, "minwidth %lg", &d) == 1)
-				output.minwidth = d;
-			if (sscanf(configline, "order %s", s) == 1)
-				output.order = optindex(s[0], "qtc");
-			if (sscanf(configline, "distance %lg", &d) == 1)
-				output.distance = d;
-			if (sscanf(configline, "aspect %s", s) == 1)
-				screenaspect = fraction(s);
-			if (sscanf(configline, "scroll %s", s) == 1)
-				output.scroll = fraction(s);
-			if (sscanf(configline, "fontsize %lg", &d) == 1)
-				fontsize = d;
-			if (sscanf(configline, "margin %lg", &d) == 1)
-				margin = d;
-			if (sscanf(configline, "device %s", s) == 1)
-				outdev = strdup(s);
-			if (sscanf(configline, "fifo %s", s) == 1)
-				openfifo(s, &command, &keepopen);
-			if (sscanf(configline, "outfile %s", s) == 1)
-				output.outname = strdup(s);
-			if (sscanf(configline, "postsave %900c", s) == 1)
-				output.postsave = strdup(s);
-			if (sscanf(configline, "log %d", &i) == 1)
-				output.log = i;
-			if (sscanf(configline, "%s", s) == 1) {
-				if (! strcmp(s, "noui"))
-					output.ui = FALSE;
-				if (! strcmp(s, "immediate"))
-					output.immediate = TRUE;
-				if (! strcmp(s, "nobox"))
-					output.drawbox = FALSE;
-				if (! strcmp(s, "nopagelabel"))
-					output.pagelabel = FALSE;
-				if (! strcmp(s, "notutorial"))
-					firstwindow = WINDOW_DOCUMENT;
-				if (! strcmp(s, "totalpages"))
-					output.totalpages = TRUE;
-				if (! strcmp(s, "noinitlabels"))
-					noinitlabels = TRUE;
-				if (! strcmp(s, "presentation")) {
-					output.viewmode = optindex('p', "atbp");
-					output.fit = optindex('b', "nhvb");
-					output.ui = FALSE;
-					output.drawbox = FALSE;
-					output.pagelabel = FALSE;
-					output.totalpages = TRUE;
-					margin = 0.0;
-					firstwindow = WINDOW_DOCUMENT;
-					noinitlabels = TRUE;
-				}
-				if (! strcmp(s, "doublebuffering"))
-					doublebuffering = 1;
-				if (! strcmp(s, "nodoublebuffering"))
-					doublebuffering = 0;
-			}
+	while ((config != NULL && (res = fgets(configline, 900, config))) ||
+	       (-1 != (opt = getopt(argn, argv, HOVACUIOPTS)) && opt == 'c')) {
+		if (res == NULL) {
+			strncpy(configline, optarg, 900);
+			res = strchr(configline, '=');
+			if (res != NULL)
+				*res = ' ';
 		}
-		fclose(config);
+
+		if (configline[0] == '#')
+			continue;
+
+		if (sscanf(configline, "mode %s", s) == 1)
+			output.viewmode = optindex(s[0], "atbp");
+		if (sscanf(configline, "fit %s", s) == 1)
+			output.fit = optindex(s[0], "nhvb");
+		if (sscanf(configline, "minwidth %lg", &d) == 1)
+			output.minwidth = d;
+		if (sscanf(configline, "order %s", s) == 1)
+			output.order = optindex(s[0], "qtc");
+		if (sscanf(configline, "distance %lg", &d) == 1)
+			output.distance = d;
+		if (sscanf(configline, "aspect %s", s) == 1)
+			screenaspect = fraction(s);
+		if (sscanf(configline, "scroll %s", s) == 1)
+			output.scroll = fraction(s);
+		if (sscanf(configline, "fontsize %lg", &d) == 1)
+			fontsize = d;
+		if (sscanf(configline, "margin %lg", &d) == 1)
+			margin = d;
+		if (sscanf(configline, "device %s", s) == 1)
+			outdev = strdup(s);
+		if (sscanf(configline, "fifo %s", s) == 1)
+			openfifo(s, &command, &keepopen);
+		if (sscanf(configline, "outfile %s", s) == 1)
+			output.outname = strdup(s);
+		if (sscanf(configline, "postsave %900c", s) == 1)
+			output.postsave = strdup(s);
+		if (sscanf(configline, "log %d", &i) == 1)
+			output.log = i;
+
+		if (sscanf(configline, "%s", s) == 1) {
+			if (! strcmp(s, "noui"))
+				output.ui = FALSE;
+			if (! strcmp(s, "immediate"))
+				output.immediate = TRUE;
+			if (! strcmp(s, "nobox"))
+				output.drawbox = FALSE;
+			if (! strcmp(s, "nopagelabel"))
+				output.pagelabel = FALSE;
+			if (! strcmp(s, "notutorial"))
+				firstwindow = WINDOW_DOCUMENT;
+			if (! strcmp(s, "totalpages"))
+				output.totalpages = TRUE;
+			if (! strcmp(s, "noinitlabels"))
+				noinitlabels = TRUE;
+			if (! strcmp(s, "presentation")) {
+				output.viewmode = optindex('p', "atbp");
+				output.fit = optindex('b', "nhvb");
+				output.ui = FALSE;
+				output.drawbox = FALSE;
+				output.pagelabel = FALSE;
+				output.totalpages = TRUE;
+				margin = 0.0;
+				firstwindow = WINDOW_DOCUMENT;
+				noinitlabels = TRUE;
+			}
+			if (! strcmp(s, "doublebuffering"))
+				doublebuffering = 1;
+			if (! strcmp(s, "nodoublebuffering"))
+				doublebuffering = 0;
+		}
 	}
+	if (config != NULL)
+		fclose(config);
 
 				/* environment variables */
 

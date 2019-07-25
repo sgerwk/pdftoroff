@@ -366,8 +366,8 @@ quit the program
 .
 .SH OPTIONS
 
-Not all parameters can be given in the command line. Some can only be set in
-the configuration file (see below).
+Not all parameters have their own command line option. Some can only be set in
+the configuration file (see below) or by the \fI-c\fP option.
 
 .TP
 .BI -m " (auto|textarea|boundingbox|page)
@@ -412,6 +412,12 @@ the output file name;
 it is a text file that contains the boxes saved by key 'b' and
 the logs if enabled by \fI-l\fP;
 the default is \fIhovacui-out.txt\fP
+.TP
+.BI -c " configline
+use \fIconfigline\fP as a configuration file line; the first \fI=\fP is
+translated into a space; for example, \fI-c mode=page\fP is the same as \fImode
+page\fP in the configuration file; this option can occur multiple times to give
+multiple configuration lines
 .TP
 .BI -C " config
 use the given configuration file instead of the default
