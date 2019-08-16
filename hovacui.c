@@ -16,7 +16,6 @@
  * - merge boxes with the same (or very similar) horizontal coordinates
  * - bookmarks, with field() for creating and list() for going to
  * - save last position(s) to $HOME/.pdfpositions
- * - allow cursor moves in field()
  * - commandline option for initial position: -p page,box,scrollx,scrolly any
  *   part can be empty, even page; every one implies a default for the
  *   folliowing ones; if this option is given, the final position is printed in
@@ -2196,38 +2195,59 @@ int menu(int c, struct position *position, struct output *output) {
 #define FIELD_UNCHANGED 3
 #define FIELD_CHANGED 4
 int field(int c, struct output *output,
-		char *prompt, char *current, char *error, char *help) {
+		char *prompt, char *current, int *pos,
+		char *error, char *help) {
 	double percent = 0.8, prop = (1 - percent) / 2;
 	double marginx = (output->dest.x2 - output->dest.x1) * prop;
 	double marginy = 20.0;
 	double startx = output->dest.x1 + marginx;
 	double starty = output->dest.y1 + marginy;
+	double x, y;
 	cairo_text_extents_t te;
-	int l, i;
+	char cursor;
+	int len, plen, i;
 
 	if (c == '\033' || c == KEY_EXIT)
 		return FIELD_LEAVE;
 	if (c == '\n' || c == KEY_ENTER)
 		return FIELD_DONE;
 
-	l = strlen(current);
+	len = strlen(current);
 	if (c == KEY_BACKSPACE || c == KEY_DC) {
-		if (l < 0)
+		if (*pos <= 0)
 			return FIELD_UNCHANGED;
-		current[l - 1] = '\0';
+		for (i = *pos; i <= len; i++)
+			current[i - 1] = current[i];
+		(*pos)--;
+	}
+	else if (c == KEY_LEFT) {
+		if (*pos <= 0)
+			return FIELD_UNCHANGED;
+		(*pos)--;
+	}
+	else if (c == KEY_RIGHT) {
+		if (*pos >= 30 || *pos >= len)
+			return FIELD_UNCHANGED;
+		(*pos)++;
 	}
 	else if (c == KEY_PASTE) {
-		if (l > 30)
+		plen = strlen(output->paste);
+		if (len + plen > 30)
 			return FIELD_UNCHANGED;
-		for (i = 0; output->paste[i] != '\0' && l <= 30; i++, l++)
-			current[l] = output->paste[i];
-		current[l] = '\0';
+		for (i = 0; i < plen; i++) {
+			current[*pos + plen] = current[*pos];
+			current[*pos] = output->paste[i];
+			(*pos)++;
+		}
+		current[len + plen] = '\0';
 	}
 	else if (ISREALKEY(c)) {
-		if (l > 30)
+		if (len > 30)
 			return FIELD_UNCHANGED;
-		current[l] = c;
-		current[l + 1] = '\0';
+		for (i = len + 1; i >= *pos; i--)
+			current[i + 1] = current[i];
+		current[*pos] = c;
+		(*pos)++;
 	}
 	else if (help != NULL)
 		printhelp(output, NO_TIMEOUT, help);
@@ -2249,8 +2269,14 @@ int field(int c, struct output *output,
 		startx + 10.0,
 		starty + 5.0 + output->extents.ascent);
 	cairo_show_text(output->cr, prompt);
+	cursor = current[*pos];
+	current[*pos] = '\0';
 	cairo_show_text(output->cr, current);
-	cairo_show_text(output->cr, "_ ");
+	cairo_get_current_point(output->cr, &x, &y);
+	cairo_show_text(output->cr, "_");
+	cairo_move_to(output->cr, x, y);
+	current[*pos] = cursor;
+	cairo_show_text(output->cr, current + *pos);
 	if (error == NULL)
 		return FIELD_CHANGED;
 	cairo_text_extents(output->cr, error, &te);
@@ -2276,6 +2302,7 @@ int keyfield(int c) {
 	return c == KEY_INIT ||
 		c == KEY_REDRAW || c == KEY_REFRESH || c == KEY_RESIZE ||
 		c == KEY_BACKSPACE || c == KEY_DC ||
+		c == KEY_LEFT || c == KEY_RIGHT ||
 		c == KEY_ENTER || c == '\n' ||
 		c == '\033' || c == KEY_EXIT;
 }
@@ -2291,7 +2318,7 @@ int keynumeric(int c) {
  * generic field for a number
  */
 int number(int c, struct output *output,
-		char *prompt, char *current, char *error, char *help,
+		char *prompt, char *current, int *pos, char *error, char *help,
 		double *destination, double min, double max) {
 	double n;
 	int res;
@@ -2330,7 +2357,7 @@ int number(int c, struct output *output,
 			return FIELD_UNCHANGED;
 	}
 
-	res = field(c, output, prompt, current, error, help);
+	res = field(c, output, prompt, current, pos, error, help);
 	if (res == FIELD_DONE) {
 		if (current[0] == '\0')
 			return FIELD_LEAVE;
@@ -2347,6 +2374,7 @@ int number(int c, struct output *output,
  */
 int search(int c, struct position *position, struct output *output) {
 	static char searchstring[100] = "", prevstring[100] = "";
+	static int pos = 0;
 	static int nsearched = 0;
 	char *prompt = "find: ";
 	int res, page;
@@ -2356,7 +2384,7 @@ int search(int c, struct position *position, struct output *output) {
 
 	if (nsearched == -1 || nsearched > position->totpages) {
 		if (c == KEY_TIMEOUT || c == KEY_REFRESH) {
-			field(KEY_REDRAW, output, prompt, searchstring,
+			field(KEY_REDRAW, output, prompt, searchstring, &pos,
 				nsearched == -1 ? "stopped" : "no match",
 				NULL);
 			return WINDOW_SEARCH;
@@ -2371,7 +2399,7 @@ int search(int c, struct position *position, struct output *output) {
 	}
 
 	res = nsearched == 0 ?
-		field(c, output, prompt, searchstring, NULL, NULL) :
+		field(c, output, prompt, searchstring, &pos, NULL, NULL) :
 		FIELD_DONE;
 
 	if (res == FIELD_LEAVE) {
@@ -2379,6 +2407,7 @@ int search(int c, struct position *position, struct output *output) {
 		pagematch(position, output);
 		strcpy(prevstring, searchstring);
 		searchstring[0] = '\0';
+		pos = 0;
 		return WINDOW_DOCUMENT;
 	}
 
@@ -2389,7 +2418,7 @@ int search(int c, struct position *position, struct output *output) {
 				pagematch(position, output);
 				return WINDOW_DOCUMENT;
 			}
-			field(KEY_REDRAW, output, prompt, searchstring,
+			field(KEY_REDRAW, output, prompt, searchstring, &pos,
 				"searching", NULL);
 		}
 
@@ -2477,6 +2506,7 @@ int next(int c, struct position *position, struct output *output) {
  */
 int gotopage(int c, struct position *position, struct output *output) {
 	static char gotopagestring[100] = "";
+	static int pos = 0;
 	int res;
 	double n;
 
@@ -2499,7 +2529,7 @@ int gotopage(int c, struct position *position, struct output *output) {
 	}
 
 	n = position->npage + 1;
-	res = number(c, output, "go to page: ", gotopagestring, NULL,
+	res = number(c, output, "go to page: ", gotopagestring, &pos, NULL,
 		"c=current l=last up=previous down=next enter=go",
 		&n, 1, position->totpages);
 	switch (res) {
@@ -2514,10 +2544,11 @@ int gotopage(int c, struct position *position, struct output *output) {
 		/* fallthrough */
 	case FIELD_LEAVE:
 		gotopagestring[0] = '\0';
+		pos = 0;
 		return WINDOW_DOCUMENT;
 	case FIELD_INVALID:
 		number(KEY_REDRAW, output,
-			"go to page: ", gotopagestring, "no such page",
+			"go to page: ", gotopagestring, &pos, "no such page",
 			"c=current e=end up=previous down=next enter=go",
 			&n, 1, position->totpages);
 		return WINDOW_GOTOPAGE;
@@ -2531,9 +2562,10 @@ int gotopage(int c, struct position *position, struct output *output) {
  */
 int minwidth(int c, struct position *position, struct output *output) {
 	static char minwidthstring[100] = "";
+	static int pos = 0;
 	int res;
 
-	res = number(c, output, "minimal width: ", minwidthstring, NULL,
+	res = number(c, output, "minimal width: ", minwidthstring, &pos, NULL,
 		"down=increase enter=decrease", &output->minwidth, 0, 1000);
 	if (res == FIELD_DONE) {
 		readpage(position, output);
@@ -2548,9 +2580,10 @@ int minwidth(int c, struct position *position, struct output *output) {
  */
 int textdistance(int c, struct position *position, struct output *output) {
 	static char distancestring[100] = "";
+	static int pos = 0;
 	int res;
 
-	res = number(c, output, "text distance: ", distancestring, NULL,
+	res = number(c, output, "text distance: ", distancestring, &pos, NULL,
 		"down=increase enter=decrease", &output->distance, 0, 1000);
 	if (res == FIELD_DONE) {
 		readpage(position, output);
