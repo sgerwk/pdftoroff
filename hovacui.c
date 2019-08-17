@@ -1682,6 +1682,16 @@ int document(int c, struct position *position, struct output *output) {
 }
 
 /*
+ * return values of basic windows
+ */
+#define WINDOW_DONE 0
+#define WINDOW_LEAVE 1
+#define WINDOW_INVALID 2
+#define WINDOW_UNCHANGED 3
+#define WINDOW_CHANGED 4
+#define WINDOW_RETURN(res) ((res) == WINDOW_DONE || (res) == WINDOW_LEAVE)
+
+/*
  * a list of strings, possibly with a selected one
  */
 int list(int c, struct output *output, char *viewtext[],
@@ -1713,11 +1723,11 @@ int list(int c, struct output *output, char *viewtext[],
 	switch (c) {
 	case KEY_DOWN:
 		if (selected != NULL && *selected >= n - 1)
-			return 0;
-		if (selected != NULL && *selected < *line + lines)
+			return WINDOW_UNCHANGED;
+		else if (selected != NULL && *selected < *line + lines)
 			(*selected)++;
 		else if (*line >= n - lines - 1)
-			return 0;
+			return WINDOW_UNCHANGED;
 		else {
 			if (selected != NULL)
 				(*selected)++;
@@ -1726,11 +1736,11 @@ int list(int c, struct output *output, char *viewtext[],
 		break;
 	case KEY_UP:
 		if (selected != NULL && *selected <= 1)
-			return 0;
+			return WINDOW_UNCHANGED;
 		else if(selected != NULL && *selected > *line + 1)
 			(*selected)--;
 		else if (*line <= 0)
-			return 0;
+			return WINDOW_UNCHANGED;
 		else {
 			if (selected != NULL)
 				(*selected)--;
@@ -1744,12 +1754,12 @@ int list(int c, struct output *output, char *viewtext[],
 		break;
 	case '\033':
 	case KEY_EXIT:
-		return -1;
+		return WINDOW_LEAVE;
 	case KEY_ENTER:
 	case '\n':
-		return selected != NULL ? *selected : -1;
+		return selected != NULL ? WINDOW_DONE : WINDOW_LEAVE;
 	default:
-		return selected != NULL ? 0 : -1;
+		return selected != NULL ? WINDOW_UNCHANGED : WINDOW_LEAVE;
 	}
 
 				/* list heading */
@@ -1821,7 +1831,7 @@ int list(int c, struct output *output, char *viewtext[],
 	}
 
 	output->flush = TRUE;
-	return 0;
+	return WINDOW_CHANGED;
 }
 
 /*
@@ -1858,8 +1868,8 @@ int help(int c, struct position *position, struct output *output) {
 	static int line = 0;
 	(void) position;
 
-	return list(c, output, helptext, &line, NULL) == 0 ?
-		WINDOW_HELP : WINDOW_DOCUMENT;
+	return list(c, output, helptext, &line, NULL) == WINDOW_LEAVE ?
+		WINDOW_DOCUMENT : WINDOW_HELP;
 }
 
 /*
@@ -1895,8 +1905,8 @@ int tutorial(int c, struct position *position, struct output *output) {
 		}
 
 	return c == 'h' ? WINDOW_HELP :
-		list(c, output, tutorialtext, &line, NULL) == 0 ?
-			WINDOW_TUTORIAL : WINDOW_DOCUMENT;
+		list(c, output, tutorialtext, &line, NULL) == WINDOW_LEAVE ?
+			WINDOW_DOCUMENT : WINDOW_TUTORIAL;
 }
 
 /*
@@ -1934,9 +1944,11 @@ int chop(int c, struct position *position, struct output *output) {
 		selected = output->first == -1 ? 1 : output->last == -1 ? 2 : 3;
 
 	res = list(c, output, choptext, &line, &selected);
-	switch (res) {
-	case 0:
+	if (res == WINDOW_LEAVE)
+		return WINDOW_DOCUMENT;
+	if (res != WINDOW_DONE)
 		return WINDOW_CHOP;
+	switch (selected) {
 	case 1:
 		output->first = position->npage;
 		output->help[0] = '\0';
@@ -2025,9 +2037,11 @@ int viewmode(int c, struct position *position, struct output *output) {
 		selected = output->viewmode + 1;
 
 	res = list(c, output, viewmodetext, &line, &selected);
-	switch (res) {
-	case 0:
+	if (res == WINDOW_LEAVE)
+		return WINDOW_DOCUMENT;
+	if (res != WINDOW_DONE)
 		return WINDOW_VIEWMODE;
+	switch (selected) {
 	case 1:
 	case 2:
 	case 3:
@@ -2064,9 +2078,11 @@ int fitdirection(int c, struct position *position, struct output *output) {
 		selected = output->fit + 1;
 
 	res = list(c, output, fitdirectiontext, &line, &selected);
-	switch (res) {
-	case 0:
+	if (res == WINDOW_LEAVE)
+		return WINDOW_DOCUMENT;
+	if (res != WINDOW_DONE)
 		return WINDOW_FITDIRECTION;
+	switch (selected) {
 	case 1:
 	case 2:
 	case 3:
@@ -2101,9 +2117,12 @@ int order(int c, struct position *position, struct output *output) {
 		selected = output->order + 1;
 
 	res = list(c, output, fitdirectiontext, &line, &selected);
-	switch (res) {
-	case 0:
+	if (res == WINDOW_LEAVE)
+		return WINDOW_DOCUMENT;
+	if (res != WINDOW_DONE)
 		return WINDOW_ORDER;
+	switch (selected) {
+	case 0:
 	case 1:
 	case 2:
 	case 3:
@@ -2169,9 +2188,14 @@ int menu(int c, struct position *position, struct output *output) {
 		list(c, output, menutext, &line, &selected) :
 		s - shortcuts + 1;
 
-	if (res >= 0 && res < n)
-		return menunext[res];
-	if (res >= n)
+	if (res == WINDOW_LEAVE)
+		return WINDOW_DOCUMENT;
+	if (res != WINDOW_DONE)
+		return WINDOW_MENU;
+
+	if (selected >= 0 && selected < n)
+		return menunext[selected];
+	if (selected >= n)
 		printhelp(output, 2000, "unimplemented");
 	return WINDOW_DOCUMENT;
 }
@@ -2179,11 +2203,6 @@ int menu(int c, struct position *position, struct output *output) {
 /*
  * generic textfield
  */
-#define FIELD_DONE 0
-#define FIELD_LEAVE 1
-#define FIELD_INVALID 2
-#define FIELD_UNCHANGED 3
-#define FIELD_CHANGED 4
 int field(int c, struct output *output,
 		char *prompt, char *current, int *pos,
 		char *error, char *help) {
@@ -2198,32 +2217,32 @@ int field(int c, struct output *output,
 	int len, plen, i;
 
 	if (c == '\033' || c == KEY_EXIT)
-		return FIELD_LEAVE;
+		return WINDOW_LEAVE;
 	if (c == '\n' || c == KEY_ENTER)
-		return FIELD_DONE;
+		return WINDOW_DONE;
 
 	len = strlen(current);
 	if (c == KEY_BACKSPACE || c == KEY_DC) {
 		if (*pos <= 0)
-			return FIELD_UNCHANGED;
+			return WINDOW_UNCHANGED;
 		for (i = *pos; i <= len; i++)
 			current[i - 1] = current[i];
 		(*pos)--;
 	}
 	else if (c == KEY_LEFT) {
 		if (*pos <= 0)
-			return FIELD_UNCHANGED;
+			return WINDOW_UNCHANGED;
 		(*pos)--;
 	}
 	else if (c == KEY_RIGHT) {
 		if (*pos >= 30 || *pos >= len)
-			return FIELD_UNCHANGED;
+			return WINDOW_UNCHANGED;
 		(*pos)++;
 	}
 	else if (c == KEY_PASTE) {
 		plen = strlen(output->paste);
 		if (len + plen > 30)
-			return FIELD_UNCHANGED;
+			return WINDOW_UNCHANGED;
 		for (i = 0; i < plen; i++) {
 			current[*pos + plen] = current[*pos];
 			current[*pos] = output->paste[i];
@@ -2233,7 +2252,7 @@ int field(int c, struct output *output,
 	}
 	else if (ISREALKEY(c)) {
 		if (len > 30)
-			return FIELD_UNCHANGED;
+			return WINDOW_UNCHANGED;
 		for (i = len + 1; i >= *pos; i--)
 			current[i + 1] = current[i];
 		current[*pos] = c;
@@ -2268,7 +2287,7 @@ int field(int c, struct output *output,
 	current[*pos] = cursor;
 	cairo_show_text(output->cr, current + *pos);
 	if (error == NULL)
-		return FIELD_CHANGED;
+		return WINDOW_CHANGED;
 	cairo_text_extents(output->cr, error, &te);
 	cairo_set_source_rgb(output->cr, 0.8, 0.0, 0.0);
 	cairo_rectangle(output->cr,
@@ -2282,7 +2301,7 @@ int field(int c, struct output *output,
 		starty + 5.0 + output->extents.ascent);
 	cairo_set_source_rgb(output->cr, 1.0, 1.0, 1.0);
 	cairo_show_text(output->cr, error);
-	return FIELD_CHANGED;
+	return WINDOW_CHANGED;
 }
 
 /*
@@ -2330,13 +2349,13 @@ int number(int c, struct output *output,
 			if (c == KEY_DOWN)
 				n = min;
 			else
-				return FIELD_UNCHANGED;
+				return WINDOW_UNCHANGED;
 		}
 		if (n > max) {
 			if (c == KEY_UP)
 				n = max;
 			else
-				return FIELD_UNCHANGED;
+				return WINDOW_UNCHANGED;
 		}
 		sprintf(current, "%lg", n);
 		c = KEY_REDRAW;
@@ -2344,16 +2363,16 @@ int number(int c, struct output *output,
 
 	default:
 		if (! keynumeric(c))
-			return FIELD_UNCHANGED;
+			return WINDOW_UNCHANGED;
 	}
 
 	res = field(c, output, prompt, current, pos, error, help);
-	if (res == FIELD_DONE) {
+	if (res == WINDOW_DONE) {
 		if (current[0] == '\0')
-			return FIELD_LEAVE;
+			return WINDOW_LEAVE;
 		n = atof(current);
 		if (n < min || n > max)
-			return FIELD_INVALID;
+			return WINDOW_INVALID;
 		*destination = n;
 	}
 	return res;
@@ -2390,9 +2409,9 @@ int search(int c, struct position *position, struct output *output) {
 
 	res = nsearched == 0 ?
 		field(c, output, prompt, searchstring, &pos, NULL, NULL) :
-		FIELD_DONE;
+		WINDOW_DONE;
 
-	if (res == FIELD_LEAVE) {
+	if (res == WINDOW_LEAVE) {
 		strcpy(output->search, "");
 		pagematch(position, output);
 		strcpy(prevstring, searchstring);
@@ -2401,7 +2420,7 @@ int search(int c, struct position *position, struct output *output) {
 		return WINDOW_DOCUMENT;
 	}
 
-	if (res == FIELD_DONE) {
+	if (res == WINDOW_DONE) {
 		if (nsearched == 0) {
 			strcpy(output->search, searchstring);
 			if (searchstring[0] == '\0') {
@@ -2523,7 +2542,7 @@ int gotopage(int c, struct position *position, struct output *output) {
 		"c=current l=last up=previous down=next enter=go",
 		&n, 1, position->totpages);
 	switch (res) {
-	case FIELD_DONE:
+	case WINDOW_DONE:
 		if (position->npage != n - 1) {
 			position->npage = n - 1;
 			readpage(position, output);
@@ -2532,11 +2551,11 @@ int gotopage(int c, struct position *position, struct output *output) {
 		if (output->immediate)
 			return WINDOW_REFRESH;
 		/* fallthrough */
-	case FIELD_LEAVE:
+	case WINDOW_LEAVE:
 		gotopagestring[0] = '\0';
 		pos = 0;
 		return WINDOW_DOCUMENT;
-	case FIELD_INVALID:
+	case WINDOW_INVALID:
 		number(KEY_REDRAW, output,
 			"go to page: ", gotopagestring, &pos, "no such page",
 			"c=current e=end up=previous down=next enter=go",
@@ -2557,12 +2576,12 @@ int minwidth(int c, struct position *position, struct output *output) {
 
 	res = number(c, output, "minimal width: ", minwidthstring, &pos, NULL,
 		"down=increase enter=decrease", &output->minwidth, 0, 1000);
-	if (res == FIELD_DONE) {
+	if (res == WINDOW_DONE) {
 		readpage(position, output);
 		firsttextbox(position, output);
 		return output->immediate ? WINDOW_REFRESH : WINDOW_DOCUMENT;
 	}
-	return res == FIELD_LEAVE ? WINDOW_DOCUMENT : WINDOW_WIDTH;
+	return res == WINDOW_LEAVE ? WINDOW_DOCUMENT : WINDOW_WIDTH;
 }
 
 /*
@@ -2575,12 +2594,12 @@ int textdistance(int c, struct position *position, struct output *output) {
 
 	res = number(c, output, "text distance: ", distancestring, &pos, NULL,
 		"down=increase enter=decrease", &output->distance, 0, 1000);
-	if (res == FIELD_DONE) {
+	if (res == WINDOW_DONE) {
 		readpage(position, output);
 		firsttextbox(position, output);
 		return output->immediate ? WINDOW_REFRESH : WINDOW_DOCUMENT;
 	}
-	return res == FIELD_LEAVE ? WINDOW_DOCUMENT : WINDOW_DISTANCE;
+	return res == WINDOW_LEAVE ? WINDOW_DOCUMENT : WINDOW_DISTANCE;
 }
 
 /*
