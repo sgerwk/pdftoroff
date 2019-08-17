@@ -1682,16 +1682,6 @@ int document(int c, struct position *position, struct output *output) {
 }
 
 /*
- * print a line at current position
- */
-void printline(cairo_t *cr, char *string, int advance) {
-	double x, y;
-	cairo_get_current_point(cr, &x, &y);
-	cairo_show_text(cr, string);
-	cairo_move_to(cr, x, y + advance);
-}
-
-/*
  * a list of strings, possibly with a selected one
  */
 int list(int c, struct output *output, char *viewtext[],
@@ -1771,7 +1761,7 @@ int list(int c, struct output *output, char *viewtext[],
 	cairo_set_source_rgb(output->cr, 0.0, 0.0, 0.0);
 	cairo_move_to(output->cr,
 		startx + borderx, starty + bordery + output->extents.ascent);
-	printline(output->cr, viewtext[0], output->extents.height);
+	cairo_show_text(output->cr, viewtext[0]);
 
 				/* clip to make the list scrollable */
 
