@@ -2208,7 +2208,7 @@ int menu(int c, struct position *position, struct output *output) {
  */
 int field(int c, struct output *output,
 		char *prompt, char *current, int *pos,
-		char *error, char *help) {
+		char *error) {
 	double percent = 0.8, prop = (1 - percent) / 2;
 	double marginx = (output->dest.x2 - output->dest.x1) * prop;
 	double marginy = 20.0;
@@ -2261,8 +2261,6 @@ int field(int c, struct output *output,
 		current[*pos] = c;
 		(*pos)++;
 	}
-	else if (help != NULL)
-		printhelp(output, NO_TIMEOUT, help);
 
 	output->flush = TRUE;
 
@@ -2330,7 +2328,7 @@ int keynumeric(int c) {
  * generic field for a number
  */
 int number(int c, struct output *output,
-		char *prompt, char *current, int *pos, char *error, char *help,
+		char *prompt, char *current, int *pos, char *error,
 		double *destination, double min, double max) {
 	double n;
 	int res;
@@ -2369,7 +2367,7 @@ int number(int c, struct output *output,
 			return WINDOW_UNCHANGED;
 	}
 
-	res = field(c, output, prompt, current, pos, error, help);
+	res = field(c, output, prompt, current, pos, error);
 	if (res == WINDOW_DONE) {
 		if (current[0] == '\0')
 			return WINDOW_LEAVE;
@@ -2397,8 +2395,7 @@ int search(int c, struct position *position, struct output *output) {
 	if (nsearched == -1 || nsearched > position->totpages) {
 		if (c == KEY_TIMEOUT || c == KEY_REFRESH) {
 			field(KEY_REDRAW, output, prompt, searchstring, &pos,
-				nsearched == -1 ? "stopped" : "no match",
-				NULL);
+				nsearched == -1 ? "stopped" : "no match");
 			return WINDOW_SEARCH;
 		}
 		gotomatch(position, output, -1, FALSE);
@@ -2411,7 +2408,7 @@ int search(int c, struct position *position, struct output *output) {
 	}
 
 	res = nsearched == 0 ?
-		field(c, output, prompt, searchstring, &pos, NULL, NULL) :
+		field(c, output, prompt, searchstring, &pos, NULL) :
 		WINDOW_DONE;
 
 	if (res == WINDOW_LEAVE) {
@@ -2431,7 +2428,7 @@ int search(int c, struct position *position, struct output *output) {
 				return WINDOW_DOCUMENT;
 			}
 			field(KEY_REDRAW, output, prompt, searchstring, &pos,
-				"searching", NULL);
+				"searching");
 		}
 
 		page = gotomatch(position, output, nsearched, nsearched == 0);
@@ -2542,7 +2539,6 @@ int gotopage(int c, struct position *position, struct output *output) {
 
 	n = position->npage + 1;
 	res = number(c, output, "go to page: ", gotopagestring, &pos, NULL,
-		"c=current l=last up=previous down=next enter=go",
 		&n, 1, position->totpages);
 	switch (res) {
 	case WINDOW_DONE:
@@ -2561,10 +2557,11 @@ int gotopage(int c, struct position *position, struct output *output) {
 	case WINDOW_INVALID:
 		number(KEY_REDRAW, output,
 			"go to page: ", gotopagestring, &pos, "no such page",
-			"c=current e=end up=previous down=next enter=go",
 			&n, 1, position->totpages);
-		return WINDOW_GOTOPAGE;
+		/* fallthrough */
 	default:
+		printhelp(output, NO_TIMEOUT,
+			"c=current l=last up=previous down=next enter=go");
 		return WINDOW_GOTOPAGE;
 	}
 }
@@ -2578,13 +2575,16 @@ int minwidth(int c, struct position *position, struct output *output) {
 	int res;
 
 	res = number(c, output, "minimal width: ", minwidthstring, &pos, NULL,
-		"down=increase enter=decrease", &output->minwidth, 0, 1000);
+		&output->minwidth, 0, 1000);
 	if (res == WINDOW_DONE) {
 		readpage(position, output);
 		firsttextbox(position, output);
 		return output->immediate ? WINDOW_REFRESH : WINDOW_DOCUMENT;
 	}
-	return res == WINDOW_LEAVE ? WINDOW_DOCUMENT : WINDOW_WIDTH;
+	if (res == WINDOW_LEAVE)
+		return WINDOW_DOCUMENT;
+	printhelp(output, NO_TIMEOUT, "down=increase up=decrease");
+	return WINDOW_WIDTH;
 }
 
 /*
@@ -2596,13 +2596,16 @@ int textdistance(int c, struct position *position, struct output *output) {
 	int res;
 
 	res = number(c, output, "text distance: ", distancestring, &pos, NULL,
-		"down=increase enter=decrease", &output->distance, 0, 1000);
+		&output->distance, 0, 1000);
 	if (res == WINDOW_DONE) {
 		readpage(position, output);
 		firsttextbox(position, output);
 		return output->immediate ? WINDOW_REFRESH : WINDOW_DOCUMENT;
 	}
-	return res == WINDOW_LEAVE ? WINDOW_DOCUMENT : WINDOW_DISTANCE;
+	if (res == WINDOW_LEAVE)
+		return WINDOW_DOCUMENT;
+	printhelp(output, NO_TIMEOUT, "down=increase up=decrease");
+	return WINDOW_DISTANCE;
 }
 
 /*
