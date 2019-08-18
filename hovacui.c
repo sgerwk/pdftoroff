@@ -412,29 +412,29 @@
  * void *initdata
  *	passed to the init function
  *
- * struct cairooutput *init(char *device, int doublebuffering, void *initdata);
+ * struct cairoio *init(char *device, int doublebuffering, void *initdata);
  *	create the cairo context;
  *	return a data structure that is passed to the other functions
  *
- * void finish(struct cairooutput *cairo);
+ * void finish(struct cairoio *cairo);
  *	undo what done by init
  *
- * cairo_t *context(struct cairooutput *cairo);
- * double width(struct cairooutput *cairo);
- * double height(struct cairooutput *cairo);
- * double screenwidth(struct cairooutput *cairo);
- * double screenheight(struct cairooutput *cairo);
+ * cairo_t *context(struct cairoio *cairo);
+ * double width(struct cairoio *cairo);
+ * double height(struct cairoio *cairo);
+ * double screenwidth(struct cairoio *cairo);
+ * double screenheight(struct cairoio *cairo);
  *	return the cairo context and its size
  *
- * void clear(struct cairooutput *cairo);
- * void flush(struct cairooutput *cairo);
+ * void clear(struct cairoio *cairo);
+ * void flush(struct cairoio *cairo);
  *	clear and flush
  *
- * int isactive(struct cairooutput *cairo);
+ * int isactive(struct cairoio *cairo);
  *	whether the output is active
  *	do not draw on the framebuffer when the vt is switched out
  *
- * int input(struct cairooutput *cairo, int timeout, struct command *command);
+ * int input(struct cairoio *cairo, int timeout, struct command *command);
  *	return a key
  *	on external command: store it in command->string, return KEY_EXTERNAL
  *	if no input is available block for timeout millisecond (0=infinite)
@@ -473,6 +473,7 @@
 #include <cairo.h>
 #include <cairo-pdf.h>
 #include "pdfrects.h"
+#include "cairoio.h"
 #include "hovacui.h"
 
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
@@ -2906,9 +2907,9 @@ void pageborder(struct position *position, struct output *output) {
 /*
  * draw the document with the labels on top
  */
-void draw(struct cairooutput *cairo,
-		void cairoclear(struct cairooutput *cairo),
-		void cairoflush(struct cairooutput *cairo),
+void draw(struct cairoio *cairo,
+		void cairoclear(struct cairoio *cairo),
+		void cairoflush(struct cairoio *cairo),
 		struct position *position, struct output *output) {
 	if (output->redraw) {
 		cairoclear(cairo);
@@ -3257,7 +3258,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	int i;
 	double d;
 	char *outdev;
-	struct cairooutput *cairo;
+	struct cairoio *cairo;
 	double margin;
 	double fontsize;
 	char *filename;

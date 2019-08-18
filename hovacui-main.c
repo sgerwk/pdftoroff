@@ -1,9 +1,9 @@
-#include <cairo.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include "cairoio.h"
+#include "cairoio-fb.h"
+#include "cairoio-x11.h"
 #include "hovacui.h"
-
-#define NOMAIN
-#include "fbhovacui.c"
-#include "xhovacui.c"
 
 int main(int argn, char *argv[]) {
 	int x11 = 0, opt;
@@ -14,7 +14,7 @@ int main(int argn, char *argv[]) {
 	}
 
 	if (x11 || getenv("DISPLAY")) {
-		setinitdata(argn, argv, &cairodevicex11);
+		setinitdata(argn, argv, HOVACUIOPTS, &cairodevicex11);
 		return hovacui(argn, argv, &cairodevicex11);
 	}
 	else

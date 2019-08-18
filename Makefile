@@ -18,9 +18,9 @@ install: all
 pdftoroff: pdftext.o
 pdfrects: pdfrects-main.o
 pdftoroff pdffit pdfrects hovacui fbhovacui xhovacui: pdfrects.o
-fbhovacui: cairofb.o vt.o hovacui.o fbhovacui.o
-xhovacui: cairofb.o vt.o hovacui.o xhovacui.o
-hovacui: cairofb.o vt.o hovacui.o hovacui-main.o
+fbhovacui: cairofb.o vt.o cairoio-fb.o hovacui.o fbhovacui.o
+xhovacui: cairofb.o vt.o cairoio-x11.o hovacui.o xhovacui.o
+hovacui: cairofb.o vt.o cairoio-fb.o cairoio-x11.o hovacui.o hovacui-main.o
 
 clean:
 	rm -f *.o ${PROGS}
