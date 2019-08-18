@@ -2184,9 +2184,12 @@ int menu(int c, struct position *position, struct output *output) {
 
 	s = strchr(shortcuts, c);
 
-	res = s == NULL ?
-		list(c, output, menutext, &line, &selected) :
-		s - shortcuts + 1;
+	if (s == NULL)
+		res = list(c, output, menutext, &line, &selected);
+	else {
+		res = WINDOW_DONE;
+		selected = s - shortcuts + 1;
+	}
 
 	if (res == WINDOW_LEAVE)
 		return WINDOW_DOCUMENT;
