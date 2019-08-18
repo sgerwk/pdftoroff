@@ -8,7 +8,6 @@
 #include <ncurses.h>
 #include <cairo.h>
 #include <cairo-xlib.h>
-#include "cairofb.h"
 #include "hovacui.h"
 
 /*
