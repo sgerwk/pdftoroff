@@ -3514,10 +3514,6 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 
 	output.cr = cairodevice->context(cairo);
 
-	resize(position, &output,
-		cairodevice->width(cairo), cairodevice->height(cairo),
-		margin, fontsize);
-
 	output.screenwidth = cairodevice->screenwidth(cairo);
 	output.screenheight = cairodevice->screenheight(cairo);
 	output.aspect = screenaspect == -1 ?
@@ -3526,6 +3522,10 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 		output.minwidth = 400;
 	if (fontsize == -1)
 		fontsize = output.screenheight / 25;
+
+	resize(position, &output,
+		cairodevice->width(cairo), cairodevice->height(cairo),
+		margin, fontsize);
 
 	strcpy(output.search, "");
 	output.found = NULL;
@@ -3536,11 +3536,6 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	output.timeout = NO_TIMEOUT;
 	output.help[0] = '\0';
 	output.help[79] = '\0';
-
-	cairo_select_font_face(output.cr, "mono",
-	                CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
-	cairo_set_font_size(output.cr, fontsize);
-	cairo_font_extents(output.cr, &output.extents);
 
 				/* initialize labels */
 
