@@ -2439,6 +2439,7 @@ int search(int c, struct position *position, struct output *output) {
 				"n=next matches p=previous matches");
 			strcpy(prevstring, searchstring);
 			searchstring[0] = '\0';
+			pos = 0;
 			return WINDOW_DOCUMENT;
 		}
 
