@@ -2369,15 +2369,16 @@ int number(int c, struct output *output,
 	}
 
 	res = field(c, output, prompt, current, pos, error);
-	if (res == WINDOW_DONE) {
-		if (current[0] == '\0')
-			return WINDOW_LEAVE;
-		n = atof(current);
-		if (n < min || n > max)
-			return WINDOW_INVALID;
-		*destination = n;
-	}
-	return res;
+	if (res != WINDOW_DONE)
+		return res;
+
+	if (current[0] == '\0')
+		return WINDOW_LEAVE;
+	n = atof(current);
+	if (n < min || n > max)
+		return WINDOW_INVALID;
+	*destination = n;
+	return WINDOW_DONE;
 }
 
 /*
