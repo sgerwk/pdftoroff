@@ -8,12 +8,14 @@
 /*
  * create a cairo context
  */
-struct cairoio *cairoinit_fb(char *device,
-		int doublebuffering, void *data) {
+struct cairoio *cairoinit_fb(char *device, int doublebuffering,
+		int argn, char *argv[], char *allopts) {
 	struct cairofb *cairofb;
 	WINDOW *w;
 
-	(void) data;
+	(void) argn;
+	(void) argv;
+	(void) allopts;
 
 	if (device == NULL)
 		device = "/dev/fb0";
@@ -154,7 +156,7 @@ int cairoinput_fb(struct cairoio *cairo, int timeout,
  * the cairo device for the framebuffer
  */
 struct cairodevice cairodevicefb = {
-	NULL,
+	"",
 	cairoinit_fb, cairofinish_fb,
 	cairocontext_fb,
 	cairowidth_fb, cairoheight_fb,

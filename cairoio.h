@@ -69,9 +69,9 @@ struct command {
  * a cairo device
  */
 struct cairodevice {
-	void *initdata;
+	char *options;
 	struct cairoio *(*init)(char *device,
-		int doublebuffering, void *initdata);
+		int doublebuffering, int argn, char *argv[], char *opts);
 	void (*finish)(struct cairoio *cairo);
 	cairo_t *(*context)(struct cairoio *cairo);
 	double (*width)(struct cairoio *cairo);

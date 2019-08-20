@@ -48,21 +48,57 @@ struct xhovacui {
 #define MAXPASTE 200
 
 /*
+ * check whether b is a prefix of a
+ */
+int prefix(char *a, char *b) {
+	return strncmp(a, b, strlen(b));
+}
+
+/*
+ * extract the last part of a string
+ */
+char *second(char *a) {
+	char *p;
+	p = rindex(a, '=');
+	return p == NULL ? p : p + 1;
+}
+
+/*
  * create a cairo context
  */
-struct cairoio *cairoinit_x11(char *device,
-		int doublebuffering, void *data) {
-	struct initdata *initdata;
+struct cairoio *cairoinit_x11(char *device, int doublebuffering,
+		int argn, char *argv[], char *allopts) {
+	int opt;
+	char *display;
+	char *geometry;
+	char *title;
 	struct xhovacui *xhovacui;
 	Screen *scr;
 	Visual *vis;
 	int x, y;
-	char *title;
+	char *wintitle;
 
-	initdata = (struct initdata *) data;
+	display = NULL;
+	geometry = NULL;
+	optind = 1;
+	while (-1 != (opt = getopt(argn, argv, allopts))) {
+		switch (opt) {
+		case 'x':
+			if (! prefix(optarg, "display="))
+				display = second(optarg);
+			else if (! prefix(optarg, "geometry="))
+				geometry = second(optarg);
+			else {
+				printf("unknown -x suboption: %s\n", optarg);
+				return NULL;
+			}
+			break;
+		}
+	}
+	title = argv[optind];
 
-	if (initdata->display != NULL)
-		device = initdata->display;
+	if (display != NULL)
+		device = display;
 
 	xhovacui = malloc(sizeof(struct xhovacui));
 	xhovacui->dsp = XOpenDisplay(device);
@@ -79,8 +115,8 @@ struct cairoio *cairoinit_x11(char *device,
 	y = 200;
 	xhovacui->width = 600;
 	xhovacui->height = 400;
-	if (initdata->geometry != NULL)
-		XParseGeometry(initdata->geometry,
+	if (geometry != NULL)
+		XParseGeometry(geometry,
 			&x, &y, &xhovacui->width, &xhovacui->height);
 	printf("geometry: %dx%d+%d+%d\n",
 		xhovacui->width, xhovacui->height, x, y);
@@ -105,10 +141,11 @@ struct cairoio *cairoinit_x11(char *device,
 			xhovacui->width, xhovacui->height);
 	xhovacui->cr = cairo_create(xhovacui->surface);
 
-	title = malloc(strlen("hovacui: ") + strlen(initdata->title) + 1);
-	strcpy(title, "hovacui: ");
-	strcat(title, initdata->title);
-	XStoreName(xhovacui->dsp, xhovacui->win, title);
+	wintitle = malloc(strlen("hovacui: ") + strlen(title) + 1);
+	strcpy(wintitle, "hovacui: ");
+	strcat(wintitle, title);
+	XStoreName(xhovacui->dsp, xhovacui->win, wintitle);
+	free(wintitle);
 
 	XMapWindow(xhovacui->dsp, xhovacui->win);
 
@@ -414,7 +451,7 @@ int cairoinput_x11(struct cairoio *cairo, int timeout,
  * the cairo device for X11
  */
 struct cairodevice cairodevicex11 = {
-	NULL,
+	"x:",
 	cairoinit_x11, cairofinish_x11,
 	cairocontext_x11,
 	cairowidth_x11, cairoheight_x11,
@@ -422,57 +459,4 @@ struct cairodevice cairodevicex11 = {
 	cairoclear_x11, cairoflush_x11,
 	cairoisactive_x11, cairoinput_x11
 };
-
-/*
- * check whether b is a prefix of a
- */
-int prefix(char *a, char *b) {
-	return strncmp(a, b, strlen(b));
-}
-
-/*
- * extract the last part of a string
- */
-char *second(char *a) {
-	char *p;
-	p = rindex(a, ' ');
-	return p == NULL ? p : p + 1;
-}
-
-/*
- * x11-specific options
- */
-int setinitdata(int argn, char *argv[], char *mainopts,
-		struct cairodevice *cairodevice) {
-	char *allopts;
-	int opt;
-	struct initdata *initdata;
-	
-	allopts = malloc(strlen(mainopts + 1 + strlen("x:")));
-	strcpy(allopts, mainopts);
-	strcat(allopts, "x:");
-
-	initdata = malloc(sizeof(struct initdata));
-	initdata->display = NULL;
-	initdata->geometry = NULL;
-	while (-1 != (opt = getopt(argn, argv, allopts))) {
-		switch (opt) {
-		case 'x':
-			if (! prefix(optarg, "display "))
-				initdata->display = second(optarg);
-			else if (! prefix(optarg, "geometry "))
-				initdata->geometry = second(optarg);
-			else {
-				printf("unknown -x suboption: %s\n", optarg);
-				free(initdata);
-				return -1;
-			}
-			break;
-		}
-	}
-	initdata->title = argv[optind];
-	cairodevice->initdata = initdata;
-	free(allopts);
-	return 0;
-}
 

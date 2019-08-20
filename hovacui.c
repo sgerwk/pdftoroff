@@ -409,12 +409,14 @@
  * the cairo context, for drawing and getting input to the aim of showing the
  * pdf file until the keystroke 'q' is received
  *
- * void *initdata
- *	passed to the init function
+ * char *options;
+ *	the commandline options specific to this cairodevice
  *
- * struct cairoio *init(char *device, int doublebuffering, void *initdata);
- *	create the cairo context;
- *	return a data structure that is passed to the other functions
+ * struct cairoio *init(char *device, int doublebuffering,
+ *		int argn, char *argv[], char *allopts);
+ *	create the cairo context
+ *	also parse the device-specific commandline options
+ *	return an opaque structure that is passed to the other functions
  *
  * void finish(struct cairoio *cairo);
  *	undo what done by init
@@ -3255,6 +3257,7 @@ void handler(int s) {
  * show a pdf file on an arbitrary cairo device
  */
 int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
+	char *mainopts = "m:f:w:t:o:d:s:pe:z:l:c:C:h", *allopts;
 	char configfile[4096], configline[1000], s[1000];
 	FILE *config;
 	int i;
@@ -3311,12 +3314,18 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	command.command = malloc(command.max);
 	keepopen = -1;
 
+				/* all options */
+	
+	allopts = malloc(strlen(mainopts) + strlen(cairodevice->options) + 1);
+	strcpy(allopts, mainopts);
+	strcat(allopts, cairodevice->options);
+
 				/* location of the config file */
 
 	snprintf(configfile, 4096, "%s/.config/hovacui/hovacui.conf",
 		getenv("HOME"));
 	optind = 1;
-	while (-1 != (opt = getopt(argn, argv, HOVACUIOPTS)))
+	while (-1 != (opt = getopt(argn, argv, allopts)))
 		if (opt == 'C') {
 			snprintf(configfile, 4096, "%s", optarg);
 			break;
@@ -3327,7 +3336,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	optind = 1;
 	config = fopen(configfile, "r");
 	while ((config != NULL && (res = fgets(configline, 900, config))) ||
-	       (-1 != (opt = getopt(argn, argv, HOVACUIOPTS)) && opt == 'c')) {
+	       (-1 != (opt = getopt(argn, argv, allopts)) && opt == 'c')) {
 		if (res == NULL) {
 			strncpy(configline, optarg, 900);
 			res = strchr(configline, '=');
@@ -3410,7 +3419,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 				/* cmdline arguments */
 
 	optind = 1;
-	while (-1 != (opt = getopt(argn, argv, HOVACUIOPTS)))
+	while (-1 != (opt = getopt(argn, argv, allopts)))
 		switch (opt) {
 		case 'm':
 			output.viewmode = optindex(optarg[0], "atbp");
@@ -3502,8 +3511,9 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 
 				/* open output device as cairo */
 
-	cairo = cairodevice->init(outdev,
-		doublebuffering, cairodevice->initdata);
+	cairo = cairodevice->init(outdev, doublebuffering,
+		argn, argv, allopts);
+	free(allopts);
 	if (cairo == NULL) {
 		cairodevice->finish(cairo);
 		exit(EXIT_FAILURE);
