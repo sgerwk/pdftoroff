@@ -3250,7 +3250,7 @@ int sig_reload;
 void handler(int s) {
 	if (s != SIGHUP)
 		return;
-	sig_reload = 1;
+	sig_reload = TRUE;
 }
 
 /*
@@ -3506,7 +3506,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 
 				/* signal handling */
 
-	sig_reload = 0;
+	sig_reload = FALSE;
 	signal(SIGHUP, handler);
 
 				/* open output device as cairo */
