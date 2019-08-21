@@ -3552,9 +3552,11 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 
 	output.redraw = FALSE;
 	output.flush = FALSE;
-	if (noinitlabels || firstwindow != WINDOW_DOCUMENT)
+	if (noinitlabels || firstwindow != WINDOW_DOCUMENT) {
 		draw(cairo, cairodevice->clear, cairodevice->flush,
 			position, &output);
+		output.timeout = NO_TIMEOUT;
+	}
 	else {
 		output.filename = firstwindow == WINDOW_DOCUMENT;
 		strncpy(output.help, "press 'h' for help", 79);
@@ -3565,8 +3567,8 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	readpage(position, &output);
 	window = firstwindow;
 	output.reload = FALSE;
+	output.redraw = TRUE;
 	output.flush = TRUE;
-	output.redraw = firstwindow == WINDOW_DOCUMENT;
 	c = firstwindow == WINDOW_DOCUMENT ? KEY_NONE : KEY_INIT;
 	if (checkannotations(position))
 		output.pagenumber = TRUE;
