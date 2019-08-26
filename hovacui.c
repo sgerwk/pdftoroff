@@ -11,7 +11,6 @@
  * - configuration files specific for the framebuffer and x11, passed as
  *   additional arguments to hovacui()
  *   .config/hovacui/{framebuffer.conf,x11.conf}
- * - utf8 or widechar in cairodevice->input() and field()
  * - merge narrow textarea boxes with others, minimizing size increase
  * - merge boxes with the same (or very similar) horizontal coordinates
  * - bookmarks, with field() for creating and list() for going to
@@ -31,7 +30,7 @@
  * - save an arbitrary selection/order of pages to file, not just a range;
  *   allow moving when chop() is active;
  *   progress label during save: requires savepdf to be a window, so that it
- *   can return WINDOW_REFRESH and be called again at each step
+ *   can return CAIROUI_REFRESH and be called again at each step
  *
  * - printf format string for page number label, with total pages
  * - make minwidth depend on the size of the letters
@@ -39,15 +38,11 @@
  * - allow reloading during search
  * - man page: compare with fbpdf and jfbview
  * - field() for executing a shell command
- * - allow tabs in list(), make it display a table rather than a list;
- *   use in help() to separate keys from functions,
- *   in menu() to show the current values for viewmode, fit, etc.
  * - info(), based on list(): filename, number of pages, page size, etc.
  * - rotate
  * - lines of previous and next scroll: where the top or bottom of the screen
  *   were before the last scroll, or will be after scrolling up or down
  * - stack of windows; a window returns WINDOW_PREVIOUS to go back
- * - support 8bpp framebuffers (via a fixed colormap)
  * - cache the textarea list of pages already scanned
  * - config opt "nolabel" for no label at all: skip the label part from draw()
  * - multiple files, list()-based window; return WINDOW_FILE+n to tell main()
@@ -57,11 +52,8 @@
  * - allow for a password (field() or commandline)
  * - last two require document() to show a black screen if no document is open
  * - non-expert mode: every unassigned key calls WINDOW_MENU
- * - in list(): separator, skip it when using a selected line
- * - add an optional help to the bottom of list()
  * - clip window title in list()
  * - history of searches
- * - numbermode: 2 is a, 22 is b, 222 is c, etc.
  * - split pdf viewing functions to pdfview.c and gui stuff to cairogui.c
  * - include images (in pdfrects.c)
  * - key to reset viewmode and fit direction to initial values
@@ -69,7 +61,6 @@
  * - order of rectangles for right-to-left and top-to-bottom scripts
  *   (generalize sorting functions in pdfrects.c)
  * - i18n
- * - function to be possibly called before list() to wrap lines too long
  * - annotations and links:
  *   some key switches to anchor navigation mode, where keyup/keydown move to
  *   the next anchor (annotation or link) in displayed part of the current
@@ -166,146 +157,6 @@
  */
 
 /*
- * user interface
- * --------------
- *
- * a simple user interface is implemented: windows receive input, labels do
- * not; both are functions with state stored as static variables or fields in
- * the output structure
- *
- * int window(int c, struct position *position, struct output *output);
- *	the given window is activated (if not already) and receive input c:
- *	- input is a key, but can also be KEY_INIT, KEY_REDRAW or KEY_REFRESH
- *	- output is the next window to become active
- *
- * void label(struct position *position, struct output *output);
- *	all label functions are called at each step; they have to decide by
- *	themselves whether to draw something; they choose based on the content
- *	of the position and output structures; for example, the pagenumber()
- *	labels draws when the page number changes and when output->pagenumber
- *	is true
- *
- * each window is a specific instance of a generic window:
- *
- * field()
- *	a generic textfield
- *	called by search()
- *
- * number()
- *	a textfield for a number; calls field()
- *	called by gotopage(), minwidth() and textdistance()
- *
- * list()
- *	a list of strings, possibly with a selected one
- *	called by help(), tutorial() and menu()
- *
- * the generic windows draw and set output->flush; a specific window
- * preprocesses the input character if necessary, then calls the generic window
- * and processes its return value, possibly changing the output and the
- * position structures; it returns the next window, or WINDOW_REFRESH to have
- * the document be redrawn and be called again with input KEY_REFRESH
- *
- * a particular window is document(), which draws nothing and deal with normal
- * input (when no other window is active); this is the only window that can set
- * output->redraw to redraw the document
- *
- * the document is not redrawn at each step; rather, windows and labels are
- * just drawn over it, and therefore remain on the screen until the document is
- * redrawn; the document is redrawn only when:
- * - the input timeout was set >0 and it either expires or a key arrived
- * - the virtual terminal is switched in
- * - document() sets output->redraw; it does when it changes position
- * - a window other than WINDOW_DOCUMENT returns another window
- * - a window or external command returns WINDOW_REFRESH
- *
- * a window requests probing the input by setting output->timeout=0 and
- * returning itself; the document is redrawn only if output->redraw is set;
- * instead, WINDOW_REFRESH does no input probe and always redraws the document
- */
-
-/*
- * note: the main loop
- *
- * is a sequence of three steps, each skipped in certain situations
- *
- * 1. draw the document, call the label functions, flush
- *	nothing is done if the output is not active (vt switched out)
- *	drawing and flushing depends on output->redraw and output->flush
- *
- * 2. receive input
- *	actual input is read only if c == KEY_NONE
- *	input may be KEY_TIMEOUT, KEY_REDRAW, etc. (see below)
- *	in some cases this step ends with a "continue" to skip step 3
- *
- * 3. call the window function or the external command function
- *	draw the window
- *	set output->redraw or output->flush if necessary
- *
- * relevant variables:
- * c		if an input character is read, it is stored in this variable;
- *		special values KEY_* carry instructions for the next iteration
- *		such as skipping input and refreshing the screen instead, etc.
- * window	the current window
- * next		the next window, or WINDOW_REFRESH
- * output.redraw whether to redraw the document at the next step 1
- * output.flush	whether to flush the document afterward
- *
- * example: change a page by an external command while the main menu is active;
- * external commands are read in step 2; step 3 calls the external() function,
- * which changes the page number and returns WINDOW_REFRESH; this causes step 3
- * to set output->redraw=TRUE, output->flush=FALSE and c=KEY_REFRESH; in step
- * 1, output->redraw=TRUE causes the document to be redrawn, and output->redraw
- * to be set to false; when the pagelabel() function is called it detects a
- * page change and draws the page number label; flushing is not done because
- * output->flush=FALSE; step 2 skips reading input since c is not KEY_NONE;
- * step 3 calls the menu window with c=KEY_REFRESH, which causes it to redraw
- * itself and set output->flush=TRUE; step 1 this time has output->redraw=FALSE
- * and output->flush=TRUE, and therefore flushes the output
- */
-
-/*
- * note: input
- *
- * a window is a function; one of its arguments is the user input, represented
- * as an integer; when the window is open, it is called on each keystroke, and
- * may also be called with one of the imaginary keys:
- *
- * KEY_NONE
- *	no window ever receives this
- *
- * KEY_INIT
- *	upon opening, the window is called the first time with this value;
- *	every input different than KEY_INIT indicate that the window has not
- *	been closed in the meantime
- *
- * KEY_REDRAW
- *	received when the window has to redraw itself because of an external
- *	reason (the terminal has been switched in)
- *
- * KEY_REFRESH
- *	the window has requested a redraw of the document or the labels by
- *	returning WINDOW_REFRESH, and now is its turn to redraw itself
- *
- * KEY_RESIZE
- *	the space where the pdf is drawn has been resized
- *
- * KEY_TIMEOUT
- *	user input is normally waited with no time limit, but windows and
- *	labels may set a timeout in output->timeout; this value tells that the
- *	timeout expired; windows generally ignore this value
- *
- * KEY_SUSPEND
- *	the program should not draw anything
- *
- * KEY_SIGNAL
- *	the input select() was interrupted by a signal; none of the windows use
- *	this value
- *
- * KEY_EXTERNAL
- *	an external command come from the input fifo; no window receives this
- */
-
-/*
  * note: fit=none
  * --------------
  *
@@ -334,13 +185,13 @@
 /*
  * note: reload
  *
- * a file is reloaded in the main loop whenever output->reload=TRUE
+ * a file is reloaded in the main loop whenever cairoui->reload=TRUE
  *
  * this field is set in:
  *
  * - document(), upon receiving keystroke 'r'
  * - external(), upon receiving the external command "reload"
- * - draw(), if a file change is detected (see below)
+ * - draw() or textarea() if a file change is detected (see below)
  *
  * file changes are detected via poppler_document_get_id(), but this only works
  * after trying to render the document; this is why detection is done in draw()
@@ -399,73 +250,6 @@
  * previous match
  */
 
-/*
- * note: the cairodevice
- *
- * the struct cairodevice allows hovacui to be run whenever a cairo context can
- * be obtained and input is available
- *
- * hovacui() receives one such structure; it uses its functions for creating
- * the cairo context, for drawing and getting input to the aim of showing the
- * pdf file until the keystroke 'q' is received
- *
- * char *options;
- *	the commandline options specific to this cairodevice
- *
- * struct cairoio *init(char *device, int doublebuffering,
- *		int argn, char *argv[], char *allopts);
- *	create the cairo context
- *	also parse the device-specific commandline options
- *	return an opaque structure that is passed to the other functions
- *
- * void finish(struct cairoio *cairo);
- *	undo what done by init
- *
- * cairo_t *context(struct cairoio *cairo);
- * double width(struct cairoio *cairo);
- * double height(struct cairoio *cairo);
- * double screenwidth(struct cairoio *cairo);
- * double screenheight(struct cairoio *cairo);
- *	return the cairo context and its size
- *
- * void clear(struct cairoio *cairo);
- * void flush(struct cairoio *cairo);
- *	clear and flush
- *
- * int isactive(struct cairoio *cairo);
- *	whether the output is active
- *	do not draw on the framebuffer when the vt is switched out
- *
- * int input(struct cairoio *cairo, int timeout, struct command *command);
- *	return a key
- *	on external command: store it in command->string, return KEY_EXTERNAL
- *	if no input is available block for timeout millisecond (0=infinite)
- */
-
-/*
- * note: paste
- *
- * paste is implemented by cairodevice->input storing the text in
- * command->string and returning KEY_PASTE; the active window decides what to
- * do with this text: field() includes it, the other windows ignore it; more
- * generally, only the windows waiting for a string use the pasted text; the
- * windows expecting a command in form of a keystroke do not
- *
- * paste is implemented in both xhovacui and fbhovacui; the latter is not
- * obvious because, by default, a virtual terminal sends the pasted text one
- * character at time from stdin as if they were regular keystrokes;
- * fbhovacui->input tell the difference by an heuristics: if four or more
- * characters are available after one select, they are pasted text; this works
- * reasonably in most practical cases, since pasted text is typically not too
- * short, and three characters or less that are interpreted as commands instead
- * of text should not be much of a problem anyway
- *
- * the alternative is to receive mouse events instead; but ncurses does not
- * expose the mouse file descriptor to be used in a select; event if it did,
- * the linux kernel does not allow to retrieve the selection; it only allows it
- * to be fed to the virtual terminal as regular input characters
- */
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>
@@ -476,31 +260,12 @@
 #include <cairo-pdf.h>
 #include "pdfrects.h"
 #include "cairoio.h"
+#include "cairoui.h"
 #include "hovacui.h"
 
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
-
-/*
- * the windows
- */
-enum window {
-	WINDOW_DOCUMENT,
-	WINDOW_HELP,
-	WINDOW_TUTORIAL,
-	WINDOW_GOTOPAGE,
-	WINDOW_SEARCH,
-	WINDOW_NEXT,
-	WINDOW_CHOP,
-	WINDOW_VIEWMODE,
-	WINDOW_FITDIRECTION,
-	WINDOW_ORDER,
-	WINDOW_MENU,
-	WINDOW_WIDTH,
-	WINDOW_DISTANCE,
-	WINDOW_REFRESH,
-	WINDOW_EXIT
-};
+#undef clear
 
 /*
  * output parameters
@@ -515,15 +280,16 @@ struct output {
 	/* the size of the whole screen */
 	double screenwidth;
 	double screenheight;
+	double screenaspect;
 
 	/* the pixel aspect */
 	double aspect;
 
 	/* the minimal textbox-to-textbox distance */
-	double distance;
+	int distance;
 
 	/* the minimal width; tells the maximal zoom */
-	double minwidth;
+	int minwidth;
 
 	/* zoom to: 0=text, 1=boundingbox, 2=page */
 	int viewmode;
@@ -550,16 +316,7 @@ struct output {
 	int pagelabel;
 
 	/* whether the document has to be reloaded */
-	int reload;
-
-	/* whether the document has to be redrawn */
-	int redraw;
-
-	/* whether the output is to be flushed */
-	int flush;
-
-	/* if not NO_TIMEOUT, stop input on timeout and return KEY_TIMEOUT */
-	int timeout;
+	int *reload;
 
 	/* labels */
 	gboolean pagenumber;
@@ -568,9 +325,6 @@ struct output {
 	gboolean showfit;
 	gboolean filename;
 	char help[80];
-
-	/* size of font */
-	cairo_font_extents_t extents;
 
 	/* search */
 	char search[100];
@@ -581,18 +335,10 @@ struct output {
 	GList *selection;
 	double texfudge;
 
-	/* text output and logging file */
-	int log;
-	char *outname;
-	FILE *outfile;
-
 	/* pdf output */
 	char *pdfout;
 	int first, last;
 	char *postsave;
-
-	/* pasted text */
-	char *paste;
 };
 
 /*
@@ -620,6 +366,16 @@ struct position {
 };
 
 /*
+ * the callback data structure
+ */
+struct callback {
+	struct output *output;
+	struct position *position;
+};
+#define POSITION(cairoui) (((struct callback *) (cairoui)->cb)->position)
+#define OUTPUT(cairoui)   (((struct callback *) (cairoui)->cb)->output)
+
+/*
  * initialize position
  */
 void initposition(struct position *position) {
@@ -631,16 +387,6 @@ void initposition(struct position *position) {
 	position->viewbox = NULL;
 	position->scrollx = 0;
 	position->scrolly = 0;
-}
-
-/*
- * ensure the output file is open
- */
-int ensureoutputfile(struct output *output) {
-	if (output->outfile != NULL)
-		return 0;
-	output->outfile = fopen(output->outname, "w");
-	return output->outfile == NULL;
 }
 
 /*
@@ -749,7 +495,7 @@ int textarea(struct position *position, struct output *output) {
 	double overlap, frag;
 
 	if (! POPPLER_IS_PAGE(position->page)) {
-		output->reload = TRUE;
+		*output->reload = TRUE;
 		return -1;
 	}
 
@@ -1323,28 +1069,14 @@ int gotomatch(struct position *position, struct output *output,
 }
 
 /*
- * formatted print to the help label; timeout=NO_TIMEOUT means infinite
- */
-int printhelp(struct output *output, int timeout, char *format, ...) {
-	va_list ap;
-	int res;
-
-	va_start(ap, format);
-	res = vsnprintf(output->help, 80, format, ap);
-	va_end(ap);
-
-	output->timeout = timeout;
-	output->flush = TRUE;
-
-	return res;
-}
-
-/*
  * move to a given page
  */
-int movetopage(struct position *position, struct output *output, int page) {
+int movetopage(struct cairoui *cairoui, int page) {
+	struct position *position = POSITION(cairoui);
+	struct output *output = OUTPUT(cairoui);
 	if (page < 1 || page > position->totpages) {
-		printhelp(output, 2000, "no such page: %d", page);
+		cairoui_printlabel(cairoui, output->help,
+			2000, "no such page: %d", page);
 		return -1;
 	}
 	if (page - 1 == position->npage)
@@ -1357,8 +1089,9 @@ int movetopage(struct position *position, struct output *output, int page) {
 /*
  * move to a named destination
  */
-int movetonameddestination(struct position *position, struct output *output,
-		char *name) {
+int movetonameddestination(struct cairoui *cairoui, char *name) {
+	struct position *position = POSITION(cairoui);
+	struct output *output = OUTPUT(cairoui);
 	PopplerDest *dest;
 	double width, height;
 	PopplerRectangle r, *s, *p;
@@ -1366,7 +1099,8 @@ int movetonameddestination(struct position *position, struct output *output,
 
 	dest = poppler_document_find_dest(position->doc, name);
 	if (dest == NULL) {
-		printhelp(output, 2000, "no such destination: %s", name);
+		cairoui_printlabel(cairoui, output->help,
+			2000, "no such destination: %s", name);
 		return -1;
 	}
 
@@ -1494,7 +1228,9 @@ int savepdf(PopplerDocument *doc, char *pattern,
 /*
  * save current textbox to file
  */
-int savecurrenttextbox(struct position *position, struct output *output) {
+int savecurrenttextbox(struct cairoui *cairoui) {
+	struct position *position = POSITION(cairoui);
+	struct output *output = OUTPUT(cairoui);
 	int o;
 	char *fmt, *command;
 	PopplerRectangle screen, sdoc, save;
@@ -1508,13 +1244,14 @@ int savecurrenttextbox(struct position *position, struct output *output) {
 	o = savepdf(position->doc, output->pdfout,
 			position->npage, position->npage, &save);
 	if (o < 0) {
-		printhelp(output, 3000, "error saving pdf");
+		cairoui_printlabel(cairoui, output->help,
+			3000, "error saving pdf");
 		return o;
 	}
 
 	fmt = malloc(strlen(output->pdfout) + 100);
 	sprintf(fmt, "saved current textbox to %s", output->pdfout);
-	printhelp(output, 3000, fmt, o);
+	cairoui_printlabel(cairoui, output->help, 3000, fmt, o);
 	free(fmt);
 
 	if (output->postsave != NULL) {
@@ -1530,7 +1267,9 @@ int savecurrenttextbox(struct position *position, struct output *output) {
 /*
  * print the current box and append it to file
  */
-int savebox(struct position *position, struct output *output, int visible) {
+int savebox(struct cairoui *cairoui, int visible) {
+	struct position *position = POSITION(cairoui);
+	struct output *output = OUTPUT(cairoui);
 	PopplerRectangle r, sdoc;
 	char line[70];
 	char *result;
@@ -1544,27 +1283,49 @@ int savebox(struct position *position, struct output *output, int visible) {
 	}
 	snprintf(line, 70, "%g %g %g %g", r.x1, r.y1, r.x2, r.y2);
 
-	if (ensureoutputfile(output))
+	if (ensureoutputfile(cairoui))
 		result = "- error opening output file";
 	else {
-		rectangle_print(output->outfile, &r);
-		fputs("\n", output->outfile);
-		fflush(output->outfile);
+		rectangle_print(cairoui->outfile, &r);
+		fputs("\n", cairoui->outfile);
+		fflush(cairoui->outfile);
 		result = "- saved to";
 	}
 
-	printhelp(output, 2000, "%s %s %s", line, result, output->outname);
+	cairoui_printlabel(cairoui, output->help,
+		2000, "%s %s %s", line, result, cairoui->outname);
 	return 0;
 }
 
 /*
+ * the windows
+ */
+enum window {
+	WINDOW_DOCUMENT,
+	WINDOW_HELP,
+	WINDOW_TUTORIAL,
+	WINDOW_GOTOPAGE,
+	WINDOW_SEARCH,
+	WINDOW_NEXT,
+	WINDOW_CHOP,
+	WINDOW_VIEWMODE,
+	WINDOW_FITDIRECTION,
+	WINDOW_ORDER,
+	WINDOW_MENU,
+	WINDOW_WIDTH,
+	WINDOW_DISTANCE
+};
+
+/*
  * document window
  */
-int document(int c, struct position *position, struct output *output) {
+int document(int c, struct cairoui *cairoui) {
+	struct position *position = POSITION(cairoui);
+	struct output *output = OUTPUT(cairoui);
 	switch (c) {
 	case 'r':
-		output->reload = TRUE;
-		output->redraw = TRUE;
+		cairoui->reload = TRUE;
+		cairoui->redraw = TRUE;
 		break;
 	case KEY_INIT:
 	case KEY_TIMEOUT:
@@ -1572,10 +1333,10 @@ int document(int c, struct position *position, struct output *output) {
 	case KEY_RESIZE:
 		return WINDOW_DOCUMENT;
 	case KEY_REFRESH:
-		output->flush = TRUE;
+		cairoui->flush = TRUE;
 		return WINDOW_DOCUMENT;
 	case 'q':
-		return WINDOW_EXIT;
+		return CAIROUI_EXIT;
 	case KEY_HELP:
 	case 'h':
 		return output->ui ? WINDOW_HELP : WINDOW_DOCUMENT;
@@ -1588,7 +1349,7 @@ int document(int c, struct position *position, struct output *output) {
 	case 'c':
 		return WINDOW_CHOP;
 	case 'C':
-		savecurrenttextbox(position, output);
+		savecurrenttextbox(cairoui);
 		break;
 	case 'w':
 		return WINDOW_WIDTH;
@@ -1662,7 +1423,7 @@ int document(int c, struct position *position, struct output *output) {
 		position->scrolly = 0;
 		break;
 	case 's':
-		output->timeout = 3000;
+		cairoui->timeout = 3000;
 		output->pagenumber = TRUE;
 		output->showmode = TRUE;
 		output->showfit = TRUE;
@@ -1670,177 +1431,24 @@ int document(int c, struct position *position, struct output *output) {
 		break;
 	case 'b':
 	case 'B':
-		savebox(position, output, c == 'B');
+		savebox(cairoui, c == 'B');
 		break;
 	case '\\':	/* for testing */
-		movetonameddestination(position, output, "abcd");
+		movetonameddestination(cairoui, "abcd");
 		break;
 	default:
 		;
 	}
 
-	output->redraw = TRUE;
-	output->flush = TRUE;
+	cairoui->redraw = TRUE;
+	cairoui->flush = TRUE;
 	return WINDOW_DOCUMENT;
-}
-
-/*
- * return values of basic windows
- */
-#define WINDOW_DONE 0
-#define WINDOW_LEAVE 1
-#define WINDOW_INVALID 2
-#define WINDOW_UNCHANGED 3
-#define WINDOW_CHANGED 4
-#define WINDOW_RETURN(res) ((res) == WINDOW_DONE || (res) == WINDOW_LEAVE)
-
-/*
- * a list of strings, possibly with a selected one
- */
-int list(int c, struct output *output, char *viewtext[],
-		int *line, int *selected) {
-	double percent = 0.8;
-	double width = output->dest.x2 - output->dest.x1;
-	double height = output->dest.y2 - output->dest.y1;
-	double marginx = width * (1 - percent) / 2;
-	double marginy = height * (1 - percent) / 2;
-	double borderx = 10.0;
-	double bordery = 10.0;
-	double titleheight = output->extents.height + 2 * bordery;
-	double textheight, listheight;
-	double startx = output->dest.x1 + marginx;
-	double starty = output->dest.y1 + marginy;
-	double startlist = starty + titleheight + bordery;
-	int n, l, lines;
-
-	for (n = 1; viewtext[n] != NULL; n++) {
-	}
-
-	cairo_identity_matrix(output->cr);
-	lines = (int) (height * percent - titleheight - bordery * 2) /
-		(int) output->extents.height;
-	textheight = (n - 1 < lines ? n - 1 : lines) * output->extents.height;
-	listheight = textheight + 2 * bordery;
-	height = textheight + listheight;
-
-	switch (c) {
-	case KEY_DOWN:
-		if (selected != NULL && *selected >= n - 1)
-			return WINDOW_UNCHANGED;
-		else if (selected != NULL && *selected < *line + lines)
-			(*selected)++;
-		else if (*line >= n - lines - 1)
-			return WINDOW_UNCHANGED;
-		else {
-			if (selected != NULL)
-				(*selected)++;
-			(*line)++;
-		}
-		break;
-	case KEY_UP:
-		if (selected != NULL && *selected <= 1)
-			return WINDOW_UNCHANGED;
-		else if(selected != NULL && *selected > *line + 1)
-			(*selected)--;
-		else if (*line <= 0)
-			return WINDOW_UNCHANGED;
-		else {
-			if (selected != NULL)
-				(*selected)--;
-			(*line)--;
-		}
-		break;
-	case KEY_INIT:
-	case KEY_REDRAW:
-	case KEY_RESIZE:
-	case KEY_REFRESH:
-		break;
-	case '\033':
-	case KEY_EXIT:
-		return WINDOW_LEAVE;
-	case KEY_ENTER:
-	case '\n':
-		return selected != NULL ? WINDOW_DONE : WINDOW_LEAVE;
-	default:
-		return selected != NULL ? WINDOW_UNCHANGED : WINDOW_LEAVE;
-	}
-
-				/* list heading */
-
-	cairo_set_source_rgb(output->cr, 0.6, 0.6, 0.8);
-	cairo_rectangle(output->cr,
-		startx, starty, width - marginx * 2, titleheight);
-	cairo_fill(output->cr);
-	cairo_set_source_rgb(output->cr, 0.0, 0.0, 0.0);
-	cairo_move_to(output->cr,
-		startx + borderx, starty + bordery + output->extents.ascent);
-	cairo_show_text(output->cr, viewtext[0]);
-
-				/* clip to make the list scrollable */
-
-	cairo_set_source_rgb(output->cr, 0.8, 0.8, 0.8);
-	cairo_rectangle(output->cr,
-		output->dest.x1 + marginx,
-		output->dest.y1 + marginy + titleheight,
-		output->dest.x2 - output->dest.x1 - marginx * 2,
-		listheight);
-	cairo_fill(output->cr);
-
-				/* background */
-
-	cairo_set_source_rgb(output->cr, 0.0, 0.0, 0.0);
-	cairo_save(output->cr);
-	cairo_rectangle(output->cr,
-		output->dest.x1 + marginx, startlist,
-		width - marginx * 2, textheight);
-	cairo_clip(output->cr);
-
-				/* draw the list elements */
-
-	cairo_translate(output->cr, 0.0, - output->extents.height * *line);
-	for (l = 1; viewtext[l] != NULL; l++) {
-		if (selected == NULL || l != *selected)
-			cairo_set_source_rgb(output->cr, 0.0, 0.0, 0.0);
-		else {
-			cairo_set_source_rgb(output->cr, 0.3, 0.3, 0.3);
-			cairo_rectangle(output->cr,
-				startx,
-				startlist + output->extents.height * (l - 1),
-				width - 2 * marginx,
-				output->extents.height);
-			cairo_fill(output->cr);
-			cairo_set_source_rgb(output->cr, 0.8, 0.8, 0.8);
-		}
-		cairo_move_to(output->cr,
-			startx + borderx,
-			startlist + output->extents.height * (l - 1) +
-				output->extents.ascent);
-		cairo_show_text(output->cr, viewtext[l]);
-	}
-	cairo_stroke(output->cr);
-	cairo_restore(output->cr);
-
-				/* draw the scrollbar */
-
-	if (lines < n - 1) {
-		cairo_rectangle(output->cr,
-			output->dest.x2 - marginx - borderx,
-			output->dest.y1 + marginy + titleheight +
-				*line / (double) (n - 1) * listheight,
-			borderx,
-			lines / (double) (n - 1) * listheight);
-		cairo_fill(output->cr);
-		cairo_stroke(output->cr);
-	}
-
-	output->flush = TRUE;
-	return WINDOW_CHANGED;
 }
 
 /*
  * help
  */
-int help(int c, struct position *position, struct output *output) {
+int help(int c, struct cairoui *cairoui) {
 	static char *helptext[] = {
 		"hovacui - pdf viewer with autozoom to text",
 		"PageUp     previous page",
@@ -1869,16 +1477,16 @@ int help(int c, struct position *position, struct output *output) {
 		NULL
 	};
 	static int line = 0;
-	(void) position;
 
-	return list(c, output, helptext, &line, NULL) == WINDOW_LEAVE ?
-		WINDOW_DOCUMENT : WINDOW_HELP;
+	return cairoui_list(c, cairoui, helptext, &line, NULL) ==
+		CAIROUI_LEAVE ? WINDOW_DOCUMENT : WINDOW_HELP;
 }
 
 /*
  * tutorial
  */
-int tutorial(int c, struct position *position, struct output *output) {
+int tutorial(int c, struct cairoui *cairoui) {
+	struct output *output = OUTPUT(cairoui);
 	static char *tutorialtext[] = {
 		"hovacui - pdf viewer with autozoom to text",
 		"hovacui displays a block of text at time",
@@ -1897,7 +1505,6 @@ int tutorial(int c, struct position *position, struct output *output) {
 	static char cursor[100];
 	static int line = 0;
 	int i;
-	(void) position;
 
 	for (i = 0; tutorialtext[i] != NULL; i++)
 		if (strstr(tutorialtext[i], "%s")) {
@@ -1908,14 +1515,16 @@ int tutorial(int c, struct position *position, struct output *output) {
 		}
 
 	return c == 'h' ? WINDOW_HELP :
-		list(c, output, tutorialtext, &line, NULL) == WINDOW_LEAVE ?
-			WINDOW_DOCUMENT : WINDOW_TUTORIAL;
+		cairoui_list(c, cairoui, tutorialtext, &line, NULL)
+			== CAIROUI_LEAVE ? WINDOW_DOCUMENT : WINDOW_TUTORIAL;
 }
 
 /*
  * chop menu, to save a range of pages
  */
-int chop(int c, struct position *position, struct output *output) {
+int chop(int c, struct cairoui *cairoui) {
+	struct position *position = POSITION(cairoui);
+	struct output *output = OUTPUT(cairoui);
 	static char *choptext[] = {
 		"page range",
 		"first page",
@@ -1934,22 +1543,25 @@ int chop(int c, struct position *position, struct output *output) {
 	char *fmt;
 
 	if (output->first != -1 && output->last != -1)
-		printhelp(output, NO_TIMEOUT, "range: %d-%d",
+		cairoui_printlabel(cairoui, output->help,
+			NO_TIMEOUT, "range: %d-%d",
 			output->first + 1, output->last + 1);
 	else if (output->first != -1)
-		printhelp(output, NO_TIMEOUT, "range: %d-", output->first + 1);
+		cairoui_printlabel(cairoui, output->help,
+			NO_TIMEOUT, "range: %d-", output->first + 1);
 	else if (output->last != -1)
-		printhelp(output, NO_TIMEOUT, "range: -%d", output->last + 1);
+		cairoui_printlabel(cairoui, output->help,
+			NO_TIMEOUT, "range: -%d", output->last + 1);
 	else
 		output->help[0] = '\0';
 
 	if (c == KEY_INIT)
 		selected = output->first == -1 ? 1 : output->last == -1 ? 2 : 3;
 
-	res = list(c, output, choptext, &line, &selected);
-	if (res == WINDOW_LEAVE)
+	res = cairoui_list(c, cairoui, choptext, &line, &selected);
+	if (res == CAIROUI_LEAVE)
 		return WINDOW_DOCUMENT;
-	if (res != WINDOW_DONE)
+	if (res != CAIROUI_DONE)
 		return WINDOW_CHOP;
 	switch (selected) {
 	case 1:
@@ -1971,12 +1583,14 @@ int chop(int c, struct position *position, struct output *output) {
 				output->last;
 		o = savepdf(position->doc, output->pdfout, first, last, NULL);
 		if (o < 0) {
-			printhelp(output, 3000, "error saving pdf");
+			cairoui_printlabel(cairoui, output->help,
+				3000, "error saving pdf");
 			break;
 		}
 		fmt = malloc(strlen(output->pdfout) + 100);
 		sprintf(fmt, "saved pages %%d-%%d to %s", output->pdfout);
-		printhelp(output, 3000, fmt, first + 1, last + 1, o);
+		cairoui_printlabel(cairoui, output->help,
+			3000, fmt, first + 1, last + 1, o);
 		free(fmt);
 		output->first = -1;
 		output->last = -1;
@@ -1991,28 +1605,31 @@ int chop(int c, struct position *position, struct output *output) {
 		last = position->totpages - 1;
 		o = savepdf(position->doc, output->pdfout, first, last, NULL);
 		if (o < 0) {
-			printhelp(output, 3000, "error saving pdf");
+			cairoui_printlabel(cairoui, output->help,
+				3000, "error saving pdf");
 			break;
 		}
 		fmt = malloc(strlen(output->pdfout) + 100);
 		sprintf(fmt, "saved document to %s", output->pdfout);
-		printhelp(output, 3000, fmt, o);
+		cairoui_printlabel(cairoui, output->help, 3000, fmt, o);
 		free(fmt);
 		break;
 	case 6:
 		o = savepdf(position->doc, output->pdfout,
 			position->npage, position->npage, NULL);
 		if (o < 0) {
-			printhelp(output, 3000, "error saving pdf");
+			cairoui_printlabel(cairoui, output->help,
+				3000, "error saving pdf");
 			break;
 		}
 		fmt = malloc(strlen(output->pdfout) + 100);
 		sprintf(fmt, "saved page %%d to %s", output->pdfout);
-		printhelp(output, 3000, fmt, position->npage + 1, o);
+		cairoui_printlabel(cairoui, output->help,
+			3000, fmt, position->npage + 1, o);
 		free(fmt);
 		break;
 	case 7:
-		savecurrenttextbox(position, output);
+		savecurrenttextbox(cairoui);
 		break;
 	}
 
@@ -2022,7 +1639,9 @@ int chop(int c, struct position *position, struct output *output) {
 /*
  * viewmode menu
  */
-int viewmode(int c, struct position *position, struct output *output) {
+int viewmode(int c, struct cairoui *cairoui) {
+	struct position *position = POSITION(cairoui);
+	struct output *output = OUTPUT(cairoui);
 	static char *viewmodetext[] = {
 		"view mode",
 		"auto",
@@ -2039,21 +1658,21 @@ int viewmode(int c, struct position *position, struct output *output) {
 	if (c == KEY_INIT)
 		selected = output->viewmode + 1;
 
-	res = list(c, output, viewmodetext, &line, &selected);
-	if (res == WINDOW_LEAVE)
+	res = cairoui_list(c, cairoui, viewmodetext, &line, &selected);
+	if (res == CAIROUI_LEAVE)
 		return WINDOW_DOCUMENT;
-	if (res != WINDOW_DONE)
+	if (res != CAIROUI_DONE)
 		return WINDOW_VIEWMODE;
 	switch (selected) {
 	case 1:
 	case 2:
 	case 3:
 	case 4:
-		output->viewmode = res - 1;
+		output->viewmode = selected - 1;
 		textarea(position, output);
 		firsttextbox(position, output);
 		if (output->immediate)
-			return WINDOW_REFRESH;
+			return CAIROUI_REFRESH;
 		/* fallthrough */
 	default:
 		return WINDOW_DOCUMENT;
@@ -2063,7 +1682,9 @@ int viewmode(int c, struct position *position, struct output *output) {
 /*
  * fit direction menu
  */
-int fitdirection(int c, struct position *position, struct output *output) {
+int fitdirection(int c, struct cairoui *cairoui) {
+	struct position *position = POSITION(cairoui);
+	struct output *output = OUTPUT(cairoui);
 	static char *fitdirectiontext[] = {
 		"fit direction",
 		"none",
@@ -2080,20 +1701,20 @@ int fitdirection(int c, struct position *position, struct output *output) {
 	if (c == KEY_INIT)
 		selected = output->fit + 1;
 
-	res = list(c, output, fitdirectiontext, &line, &selected);
-	if (res == WINDOW_LEAVE)
+	res = cairoui_list(c, cairoui, fitdirectiontext, &line, &selected);
+	if (res == CAIROUI_LEAVE)
 		return WINDOW_DOCUMENT;
-	if (res != WINDOW_DONE)
+	if (res != CAIROUI_DONE)
 		return WINDOW_FITDIRECTION;
 	switch (selected) {
 	case 1:
 	case 2:
 	case 3:
 	case 4:
-		output->fit = res - 1;
+		output->fit = selected - 1;
 		firsttextbox(position, output);
 		if (output->immediate)
-			return WINDOW_REFRESH;
+			return CAIROUI_REFRESH;
 		/* fallthrough */
 	default:
 		return WINDOW_DOCUMENT;
@@ -2103,7 +1724,9 @@ int fitdirection(int c, struct position *position, struct output *output) {
 /*
  * sorting algorithm menu
  */
-int order(int c, struct position *position, struct output *output) {
+int order(int c, struct cairoui *cairoui) {
+	struct position *position = POSITION(cairoui);
+	struct output *output = OUTPUT(cairoui);
 	static char *fitdirectiontext[] = {
 		"block ordering algorithm",
 		"quick",
@@ -2119,10 +1742,10 @@ int order(int c, struct position *position, struct output *output) {
 	if (c == KEY_INIT)
 		selected = output->order + 1;
 
-	res = list(c, output, fitdirectiontext, &line, &selected);
-	if (res == WINDOW_LEAVE)
+	res = cairoui_list(c, cairoui, fitdirectiontext, &line, &selected);
+	if (res == CAIROUI_LEAVE)
 		return WINDOW_DOCUMENT;
-	if (res != WINDOW_DONE)
+	if (res != CAIROUI_DONE)
 		return WINDOW_ORDER;
 	switch (selected) {
 	case 0:
@@ -2130,11 +1753,11 @@ int order(int c, struct position *position, struct output *output) {
 	case 2:
 	case 3:
 	case 4:
-		output->order = res - 1;
+		output->order = selected - 1;
 		textarea(position, output);
 		firsttextbox(position, output);
 		if (output->immediate)
-			return WINDOW_REFRESH;
+			return CAIROUI_REFRESH;
 		/* fallthrough */
 	default:
 		return WINDOW_DOCUMENT;
@@ -2144,7 +1767,9 @@ int order(int c, struct position *position, struct output *output) {
 /*
  * main menu
  */
-int menu(int c, struct position *position, struct output *output) {
+int menu(int c, struct cairoui *cairoui) {
+	struct position *position = POSITION(cairoui);
+	struct output *output = OUTPUT(cairoui);
 	static char *menutext[] = {
 		"hovacui - menu",
 		"(g) go to page",
@@ -2171,7 +1796,7 @@ int menu(int c, struct position *position, struct output *output) {
 		WINDOW_DISTANCE,
 		WINDOW_ORDER,
 		WINDOW_HELP,
-		WINDOW_EXIT,
+		CAIROUI_EXIT,
 		-1,
 	};
 	static int line = 0;
@@ -2188,205 +1813,31 @@ int menu(int c, struct position *position, struct output *output) {
 	s = strchr(shortcuts, c);
 
 	if (s == NULL)
-		res = list(c, output, menutext, &line, &selected);
+		res = cairoui_list(c, cairoui, menutext, &line, &selected);
 	else {
-		res = WINDOW_DONE;
+		res = CAIROUI_DONE;
 		selected = s - shortcuts + 1;
 	}
 
-	if (res == WINDOW_LEAVE)
+	if (res == CAIROUI_LEAVE)
 		return WINDOW_DOCUMENT;
-	if (res != WINDOW_DONE)
+	if (res != CAIROUI_DONE)
 		return WINDOW_MENU;
 
 	if (selected >= 0 && selected < n)
 		return menunext[selected];
 	if (selected >= n)
-		printhelp(output, 2000, "unimplemented");
+		cairoui_printlabel(cairoui, output->help,
+			2000, "unimplemented");
 	return WINDOW_DOCUMENT;
-}
-
-/*
- * generic textfield
- */
-int field(int c, struct output *output,
-		char *prompt, char *current, int *pos,
-		char *error) {
-	double percent = 0.8, prop = (1 - percent) / 2;
-	double marginx = (output->dest.x2 - output->dest.x1) * prop;
-	double marginy = 20.0;
-	double startx = output->dest.x1 + marginx;
-	double starty = output->dest.y1 + marginy;
-	double x, y;
-	cairo_text_extents_t te;
-	char cursor;
-	int len, plen, i;
-
-	if (c == '\033' || c == KEY_EXIT)
-		return WINDOW_LEAVE;
-	if (c == '\n' || c == KEY_ENTER)
-		return WINDOW_DONE;
-
-	len = strlen(current);
-	if (c == KEY_BACKSPACE || c == KEY_DC) {
-		if (*pos <= 0)
-			return WINDOW_UNCHANGED;
-		for (i = *pos; i <= len; i++)
-			current[i - 1] = current[i];
-		(*pos)--;
-	}
-	else if (c == KEY_LEFT) {
-		if (*pos <= 0)
-			return WINDOW_UNCHANGED;
-		(*pos)--;
-	}
-	else if (c == KEY_RIGHT) {
-		if (*pos >= 30 || *pos >= len)
-			return WINDOW_UNCHANGED;
-		(*pos)++;
-	}
-	else if (c == KEY_PASTE) {
-		plen = strlen(output->paste);
-		if (len + plen > 30)
-			return WINDOW_UNCHANGED;
-		for (i = 0; i < plen; i++) {
-			current[*pos + plen] = current[*pos];
-			current[*pos] = output->paste[i];
-			(*pos)++;
-		}
-		current[len + plen] = '\0';
-	}
-	else if (ISREALKEY(c)) {
-		if (len > 30)
-			return WINDOW_UNCHANGED;
-		for (i = len + 1; i >= *pos; i--)
-			current[i + 1] = current[i];
-		current[*pos] = c;
-		(*pos)++;
-	}
-
-	output->flush = TRUE;
-
-	cairo_identity_matrix(output->cr);
-
-	cairo_set_source_rgb(output->cr, 0.8, 0.8, 0.8);
-	cairo_rectangle(output->cr,
-		startx,
-		starty,
-		output->dest.x2 - output->dest.x1 - marginx * 2,
-		output->extents.height + 10);
-	cairo_fill(output->cr);
-
-	cairo_set_source_rgb(output->cr, 0.0, 0.0, 0.0);
-	cairo_move_to(output->cr,
-		startx + 10.0,
-		starty + 5.0 + output->extents.ascent);
-	cairo_show_text(output->cr, prompt);
-	cursor = current[*pos];
-	current[*pos] = '\0';
-	cairo_show_text(output->cr, current);
-	cairo_get_current_point(output->cr, &x, &y);
-	cairo_show_text(output->cr, "_");
-	cairo_move_to(output->cr, x, y);
-	current[*pos] = cursor;
-	cairo_show_text(output->cr, current + *pos);
-	if (error == NULL)
-		return WINDOW_CHANGED;
-	cairo_text_extents(output->cr, error, &te);
-	cairo_set_source_rgb(output->cr, 0.8, 0.0, 0.0);
-	cairo_rectangle(output->cr,
-		output->dest.x2 - marginx - te.x_advance - 20.0,
-		starty,
-		te.x_advance + 20.0,
-		output->extents.height + 10.0);
-	cairo_fill(output->cr);
-	cairo_move_to(output->cr,
-		output->dest.x2 - marginx - te.x_advance - 10.0,
-		starty + 5.0 + output->extents.ascent);
-	cairo_set_source_rgb(output->cr, 1.0, 1.0, 1.0);
-	cairo_show_text(output->cr, error);
-	return WINDOW_CHANGED;
-}
-
-/*
- * keys always allowed for a field
- */
-int keyfield(int c) {
-	return c == KEY_INIT ||
-		c == KEY_REDRAW || c == KEY_REFRESH || c == KEY_RESIZE ||
-		c == KEY_BACKSPACE || c == KEY_DC ||
-		c == KEY_LEFT || c == KEY_RIGHT ||
-		c == KEY_ENTER || c == '\n' ||
-		c == '\033' || c == KEY_EXIT;
-}
-
-/*
- * allowed input for a numeric field
- */
-int keynumeric(int c) {
-	return (c >= '0' && c <= '9') || keyfield(c);
-}
-
-/*
- * generic field for a number
- */
-int number(int c, struct output *output,
-		char *prompt, char *current, int *pos, char *error,
-		double *destination, double min, double max) {
-	double n;
-	int res;
-
-	switch (c) {
-	case 'q':
-		c = KEY_EXIT;
-		break;
-
-	case KEY_INIT:
-		sprintf(current, "%lg", *destination);
-		break;
-
-	case KEY_DOWN:
-	case KEY_UP:
-		n = current[0] == '\0' ? *destination : atof(current);
-		n = n + (c == KEY_DOWN ? +1 : -1);
-		if (n < min) {
-			if (c == KEY_DOWN)
-				n = min;
-			else
-				return WINDOW_UNCHANGED;
-		}
-		if (n > max) {
-			if (c == KEY_UP)
-				n = max;
-			else
-				return WINDOW_UNCHANGED;
-		}
-		sprintf(current, "%lg", n);
-		c = KEY_REDRAW;
-		break;
-
-	default:
-		if (! keynumeric(c))
-			return WINDOW_UNCHANGED;
-	}
-
-	res = field(c, output, prompt, current, pos, error);
-	if (res != WINDOW_DONE)
-		return res;
-
-	if (current[0] == '\0')
-		return WINDOW_LEAVE;
-	n = atof(current);
-	if (n < min || n > max)
-		return WINDOW_INVALID;
-	*destination = n;
-	return WINDOW_DONE;
 }
 
 /*
  * field for a search keyword
  */
-int search(int c, struct position *position, struct output *output) {
+int search(int c, struct cairoui *cairoui) {
+	struct position *position = POSITION(cairoui);
+	struct output *output = OUTPUT(cairoui);
 	static char searchstring[100] = "", prevstring[100] = "";
 	static int pos = 0;
 	static int nsearched = 0;
@@ -2398,7 +1849,8 @@ int search(int c, struct position *position, struct output *output) {
 
 	if (nsearched == -1 || nsearched > position->totpages) {
 		if (c == KEY_TIMEOUT || c == KEY_REFRESH) {
-			field(KEY_REDRAW, output, prompt, searchstring, &pos,
+			cairoui_field(KEY_REDRAW, cairoui,
+				prompt, searchstring, &pos,
 				nsearched == -1 ? "stopped" : "no match");
 			return WINDOW_SEARCH;
 		}
@@ -2412,10 +1864,10 @@ int search(int c, struct position *position, struct output *output) {
 	}
 
 	res = nsearched == 0 ?
-		field(c, output, prompt, searchstring, &pos, NULL) :
-		WINDOW_DONE;
+		cairoui_field(c, cairoui, prompt, searchstring, &pos, NULL) :
+		CAIROUI_DONE;
 
-	if (res == WINDOW_LEAVE) {
+	if (res == CAIROUI_LEAVE) {
 		strcpy(output->search, "");
 		pagematch(position, output);
 		strcpy(prevstring, searchstring);
@@ -2424,44 +1876,44 @@ int search(int c, struct position *position, struct output *output) {
 		return WINDOW_DOCUMENT;
 	}
 
-	if (res == WINDOW_DONE) {
+	if (res == CAIROUI_DONE) {
 		if (nsearched == 0) {
 			strcpy(output->search, searchstring);
 			if (searchstring[0] == '\0') {
 				pagematch(position, output);
 				return WINDOW_DOCUMENT;
 			}
-			field(KEY_REDRAW, output, prompt, searchstring, &pos,
-				"searching");
+			cairoui_field(KEY_REDRAW, cairoui,
+				prompt, searchstring, &pos, "searching");
 		}
 
 		page = gotomatch(position, output, nsearched, nsearched == 0);
 		if (page == -1) {
-			printhelp(output, 2000,
-				"n=next matches p=previous matches");
+			cairoui_printlabel(cairoui, output->help,
+				2000, "n=next matches p=previous matches");
 			strcpy(prevstring, searchstring);
 			searchstring[0] = '\0';
 			pos = 0;
 			return WINDOW_DOCUMENT;
 		}
 
-		output->timeout = 0;
+		cairoui->timeout = 0;
 
 		if (c == KEY_EXIT || c == '\033' || c == 's' || c == 'q') {
 			readpage(position, output);
-			output->redraw = 1;
+			cairoui->redraw = 1;
 			nsearched = -1;
 			return WINDOW_SEARCH;
 		}
 
 		nsearched++;
 		if (nsearched > position->totpages) {
-			output->redraw = 1;
-			printhelp(output, 0, "");
+			cairoui->redraw = 1;
+			cairoui_printlabel(cairoui, output->help, 0, "");
 		}
 		else
-			printhelp(output, 0,
-				"    searching page %-5d ", page + 1);
+			cairoui_printlabel(cairoui, output->help,
+				0, "    searching page %-5d ", page + 1);
 		return WINDOW_SEARCH;
 	}
 
@@ -2471,7 +1923,9 @@ int search(int c, struct position *position, struct output *output) {
 /*
  * next match of a search
  */
-int next(int c, struct position *position, struct output *output) {
+int next(int c, struct cairoui *cairoui) {
+	struct position *position = POSITION(cairoui);
+	struct output *output = OUTPUT(cairoui);
 	static int nsearched = 0;
 	int page;
 
@@ -2481,36 +1935,40 @@ int next(int c, struct position *position, struct output *output) {
 	if (nsearched == -1 || nsearched > position->totpages) {
 		gotomatch(position, output, -1, FALSE);
 		nsearched = 0;
-		printhelp(output, 2000, "not found: %s\n", output->search);
+		cairoui_printlabel(cairoui, output->help,
+			2000, "not found: %s\n", output->search);
 		return WINDOW_DOCUMENT;
 	}
 
 	page = gotomatch(position, output, nsearched, FALSE);
 	if (page == -1) {
-		printhelp(output, 2000, "n=next matches p=previous matches");
+		cairoui_printlabel(cairoui, output->help,
+			2000, "n=next matches p=previous matches");
 		return WINDOW_DOCUMENT;
 	}
 	else if (page == -2) {
-		printhelp(output, 2000, "no previous search");
+		cairoui_printlabel(cairoui, output->help,
+			2000, "no previous search");
 		return WINDOW_DOCUMENT;
 	}
 
-	output->timeout = 0;
+	cairoui->timeout = 0;
 
 	if (c == KEY_EXIT || c == '\033' || c == 's' || c == 'q') {
 		readpage(position, output);
-		output->redraw = 1;
+		cairoui->redraw = 1;
 		nsearched = -1;
 		return WINDOW_DOCUMENT;
 	}
 
 	nsearched++;
 	if (nsearched > position->totpages) {
-		output->redraw = 1;
-		printhelp(output, 0, "");
+		cairoui->redraw = 1;
+		cairoui_printlabel(cairoui, output->help, 0, "");
 	}
 	else
-		printhelp(output, 0, "    searching \"%s\" on page %-5d ",
+		cairoui_printlabel(cairoui, output->help,
+			0, "    searching \"%s\" on page %-5d ",
 			output->search, page + 1);
 	return WINDOW_NEXT;
 }
@@ -2518,11 +1976,13 @@ int next(int c, struct position *position, struct output *output) {
 /*
  * field for a page number
  */
-int gotopage(int c, struct position *position, struct output *output) {
+int gotopage(int c, struct cairoui *cairoui) {
+	struct position *position = POSITION(cairoui);
+	struct output *output = OUTPUT(cairoui);
 	static char gotopagestring[100] = "";
 	static int pos = 0;
 	int res;
-	double n;
+	int n;
 
 	switch (c) {
 	case KEY_INIT:
@@ -2543,29 +2003,30 @@ int gotopage(int c, struct position *position, struct output *output) {
 	}
 
 	n = position->npage + 1;
-	res = number(c, output, "go to page: ", gotopagestring, &pos, NULL,
+	res = cairoui_number(c, cairoui,
+		"go to page: ", gotopagestring, &pos, NULL,
 		&n, 1, position->totpages);
 	switch (res) {
-	case WINDOW_DONE:
+	case CAIROUI_DONE:
 		if (position->npage != n - 1) {
 			position->npage = n - 1;
 			readpage(position, output);
 			firsttextbox(position, output);
 		}
 		if (output->immediate)
-			return WINDOW_REFRESH;
+			return CAIROUI_REFRESH;
 		/* fallthrough */
-	case WINDOW_LEAVE:
+	case CAIROUI_LEAVE:
 		gotopagestring[0] = '\0';
 		pos = 0;
 		return WINDOW_DOCUMENT;
-	case WINDOW_INVALID:
-		number(KEY_REDRAW, output,
+	case CAIROUI_INVALID:
+		cairoui_number(KEY_REDRAW, cairoui,
 			"go to page: ", gotopagestring, &pos, "no such page",
 			&n, 1, position->totpages);
 		/* fallthrough */
 	default:
-		printhelp(output, NO_TIMEOUT,
+		cairoui_printlabel(cairoui, output->help, NO_TIMEOUT,
 			"c=current l=last up=previous down=next enter=go");
 		return WINDOW_GOTOPAGE;
 	}
@@ -2574,117 +2035,80 @@ int gotopage(int c, struct position *position, struct output *output) {
 /*
  * field for the minimal width
  */
-int minwidth(int c, struct position *position, struct output *output) {
+int minwidth(int c, struct cairoui *cairoui) {
+	struct position *position = POSITION(cairoui);
+	struct output *output = OUTPUT(cairoui);
 	static char minwidthstring[100] = "";
 	static int pos = 0;
 	int res;
 
-	res = number(c, output, "minimal width: ", minwidthstring, &pos, NULL,
+	res = cairoui_number(c, cairoui,
+		"minimal width: ", minwidthstring, &pos, NULL,
 		&output->minwidth, 0, 1000);
-	if (res == WINDOW_DONE) {
+	if (res == CAIROUI_DONE) {
 		readpage(position, output);
 		firsttextbox(position, output);
-		return output->immediate ? WINDOW_REFRESH : WINDOW_DOCUMENT;
+		return output->immediate ? CAIROUI_REFRESH : WINDOW_DOCUMENT;
 	}
-	if (res == WINDOW_LEAVE)
+	if (res == CAIROUI_LEAVE)
 		return WINDOW_DOCUMENT;
-	printhelp(output, NO_TIMEOUT, "down=increase up=decrease");
+	cairoui_printlabel(cairoui, output->help,
+		NO_TIMEOUT, "down=increase up=decrease");
 	return WINDOW_WIDTH;
 }
 
 /*
  * field for the text distance
  */
-int textdistance(int c, struct position *position, struct output *output) {
+int textdistance(int c, struct cairoui *cairoui) {
+	struct position *position = POSITION(cairoui);
+	struct output *output = OUTPUT(cairoui);
 	static char distancestring[100] = "";
 	static int pos = 0;
 	int res;
 
-	res = number(c, output, "text distance: ", distancestring, &pos, NULL,
+	res = cairoui_number(c, cairoui,
+		"text distance: ", distancestring, &pos, NULL,
 		&output->distance, 0, 1000);
-	if (res == WINDOW_DONE) {
+	if (res == CAIROUI_DONE) {
 		readpage(position, output);
 		firsttextbox(position, output);
-		return output->immediate ? WINDOW_REFRESH : WINDOW_DOCUMENT;
+		return output->immediate ? CAIROUI_REFRESH : WINDOW_DOCUMENT;
 	}
-	if (res == WINDOW_LEAVE)
+	if (res == CAIROUI_LEAVE)
 		return WINDOW_DOCUMENT;
-	printhelp(output, NO_TIMEOUT, "down=increase up=decrease");
+	cairoui_printlabel(cairoui, output->help,
+		NO_TIMEOUT, "down=increase up=decrease");
 	return WINDOW_DISTANCE;
 }
 
-/*
- * window selector
- */
-int selectwindow(int window, int c,
-		struct position *position, struct output *output) {
-	switch (window) {
-	case WINDOW_DOCUMENT:
-		return document(c, position, output);
-	case WINDOW_HELP:
-		return help(c, position, output);
-	case WINDOW_TUTORIAL:
-		return tutorial(c, position, output);
-	case WINDOW_MENU:
-		return menu(c, position, output);
-	case WINDOW_GOTOPAGE:
-		return gotopage(c, position, output);
-	case WINDOW_SEARCH:
-		return search(c, position, output);
-	case WINDOW_NEXT:
-		return next(c, position, output);
-	case WINDOW_CHOP:
-		return chop(c, position, output);
-	case WINDOW_VIEWMODE:
-		return viewmode(c, position, output);
-	case WINDOW_FITDIRECTION:
-		return fitdirection(c, position, output);
-	case WINDOW_WIDTH:
-		return minwidth(c, position, output);
-	case WINDOW_DISTANCE:
-		return textdistance(c, position, output);
-	case WINDOW_ORDER:
-		return order(c, position, output);
-	default:
-		return WINDOW_DOCUMENT;
-	}
-}
-
-/*
- * show an arbitrary label at the given number of labels from the bottom
- */
-void label(struct output *output, char *string, int bottom) {
-	double width, x, y;
-
-	cairo_identity_matrix(output->cr);
-
-	width = strlen(string) * output->extents.max_x_advance;
-	x = (output->dest.x2 + output->dest.x1) / 2 - width / 2;
-	y = output->dest.y2 - bottom * (output->extents.height + 20.0 + 2.0);
-
-	cairo_set_source_rgb(output->cr, 0, 0, 0);
-	cairo_rectangle(output->cr,
-		x - 10.0, y - 20.0,
-		width + 20.0, output->extents.height + 20.0);
-	cairo_fill(output->cr);
-
-	cairo_set_source_rgb(output->cr, 0.8, 0.8, 0.8);
-	cairo_move_to(output->cr, x, y - 10.0 + output->extents.ascent);
-	cairo_show_text(output->cr, string);
-
-	cairo_stroke(output->cr);
-}
+struct windowlist windowlist[] = {
+{	WINDOW_DOCUMENT,	"DOCUMENT",	document	},
+{	WINDOW_HELP,		"HELP",		help		},
+{	WINDOW_TUTORIAL,	"TUTORIAL",	tutorial	},
+{	WINDOW_GOTOPAGE,	"GOTOPAGE",	gotopage	},
+{	WINDOW_SEARCH,		"SEARCH",	search		},
+{	WINDOW_NEXT,		"NEXT",		next		},
+{	WINDOW_CHOP,		"CHOP",		chop		},
+{	WINDOW_VIEWMODE,	"VIEWMODE",	viewmode	},
+{	WINDOW_FITDIRECTION,	"FITDIRECTION",	fitdirection	},
+{	WINDOW_ORDER,		"ORDER",	order		},
+{	WINDOW_MENU,		"MENU",		menu		},
+{	WINDOW_WIDTH,		"WIDTH",	minwidth	},
+{	WINDOW_DISTANCE,	"DISTANCE",	textdistance	},
+{	0,			NULL,		NULL		}
+};
 
 /*
  * show some help
  */
-void helplabel(struct position *position, struct output *output) {
-	(void) position;
+void helplabel(struct cairoui *cairoui) {
+	struct output *output = OUTPUT(cairoui);
 
 	if (output->help[0] == '\0')
 		return;
 
-	label(output, output->help, 1);
+	cairoui_label(cairoui, output->help, 1);
 	output->help[0] = '\0';
 }
 
@@ -2746,7 +2170,9 @@ int checkactions(struct position *position) {
 /*
  * show the current page number
  */
-void pagenumber(struct position *position, struct output *output) {
+void pagenumber(struct cairoui *cairoui) {
+	struct position *position = POSITION(cairoui);
+	struct output *output = OUTPUT(cairoui);
 	static int prev = -1;
 	char r[30], s[100];
 	int hasannots, hasactions;
@@ -2779,10 +2205,10 @@ void pagenumber(struct position *position, struct output *output) {
 	else
 		sprintf(s, "page %d%s%s%s%s", position->npage + 1,
 			other, annots, actions, r);
-	label(output, s, 2);
+	cairoui_label(cairoui, s, 2);
 
-	if (output->timeout == NO_TIMEOUT)
-		output->timeout = 1200;
+	if (cairoui->timeout == NO_TIMEOUT)
+		cairoui->timeout = 1200;
 	output->pagenumber = FALSE;
 	prev = position->npage;
 }
@@ -2790,7 +2216,9 @@ void pagenumber(struct position *position, struct output *output) {
 /*
  * show the current mode
  */
-void showmode(struct position *position, struct output *output) {
+void showmode(struct cairoui *cairoui) {
+	struct position *position = POSITION(cairoui);
+	struct output *output = OUTPUT(cairoui);
 	static int prev = -1;
 	char s[100];
 	char *modes[] = {"auto", "textarea", "boundingbox", "page"};
@@ -2805,10 +2233,10 @@ void showmode(struct position *position, struct output *output) {
 		position->textarea == NULL || position->textarea->num == 1 ?
 			" (boundingbox)" : " (textarea)";
 	sprintf(s, "viewmode: %s%s", modes[output->viewmode], actual);
-	label(output, s, 3);
+	cairoui_label(cairoui, s, 3);
 
-	if (output->timeout == NO_TIMEOUT)
-		output->timeout = 1200;
+	if (cairoui->timeout == NO_TIMEOUT)
+		cairoui->timeout = 1200;
 	output->showmode = FALSE;
 	prev = output->viewmode;
 }
@@ -2816,7 +2244,9 @@ void showmode(struct position *position, struct output *output) {
 /*
  * show the current fit direction
  */
-void showfit(struct position *position, struct output *output) {
+void showfit(struct cairoui *cairoui) {
+	struct position *position = POSITION(cairoui);
+	struct output *output = OUTPUT(cairoui);
 	static int prev = -1;
 	char s[100];
 	char *fits[] = {"none", "horizontal", "vertical", "both"};
@@ -2827,10 +2257,10 @@ void showfit(struct position *position, struct output *output) {
 		return;
 
 	sprintf(s, "fit: %s", fits[output->fit]);
-	label(output, s, 4);
+	cairoui_label(cairoui, s, 4);
 
-	if (output->timeout == NO_TIMEOUT)
-		output->timeout = 1200;
+	if (cairoui->timeout == NO_TIMEOUT)
+		cairoui->timeout = 1200;
 	output->showfit = FALSE;
 	prev = output->fit;
 }
@@ -2838,24 +2268,40 @@ void showfit(struct position *position, struct output *output) {
 /*
  * show the filename
  */
-void filename(struct position *position, struct output *output) {
+void filename(struct cairoui *cairoui) {
+	struct position *position = POSITION(cairoui);
+	struct output *output = OUTPUT(cairoui);
 	char s[100];
 
 	if (! output->filename)
 		return;
 
 	sprintf(s, "%s", position->filename);
-	label(output, s, 5);
+	cairoui_label(cairoui, s, 5);
 
-	if (output->timeout == NO_TIMEOUT)
-		output->timeout = 1200;
+	if (cairoui->timeout == NO_TIMEOUT)
+		cairoui->timeout = 1200;
 	output->filename = FALSE;
 }
 
 /*
+ * list of labels
+ */
+void (*labellist[])(struct cairoui *) = {
+	helplabel,
+	pagenumber,
+	showmode,
+	showfit,
+	filename,
+	NULL
+};
+
+/*
  * draw a list of rectangles in pdf points
  */
-void selection(struct position *position, struct output *output, GList *s) {
+void selection(struct cairoui *cairoui, GList *s) {
+	struct position *position = POSITION(cairoui);
+	struct output *output = OUTPUT(cairoui);
 	double width, height;
 	GList *l;
 	PopplerRectangle *r;
@@ -2909,66 +2355,54 @@ void pageborder(struct position *position, struct output *output) {
 }
 
 /*
- * draw the document with the labels on top
+ * draw the document
  */
-void draw(struct cairoio *cairo,
-		void cairoclear(struct cairoio *cairo),
-		void cairoflush(struct cairoio *cairo),
-		struct position *position, struct output *output) {
-	if (output->redraw) {
-		cairoclear(cairo);
-		moveto(position, output);
-		if (! POPPLER_IS_PAGE(position->page)) {
-			output->reload = TRUE;
-			output->redraw = TRUE;
-			return;
-		}
-		poppler_page_render(position->page, output->cr);
-		if (changedpdf(position)) {
-			output->reload = TRUE;
-			output->redraw = TRUE;
-			return;
-		}
-		if (output->drawbox) {
-			rectangle_draw(output->cr,
-				&position->textarea->rect[position->box],
-				FALSE, FALSE, TRUE);
-			pageborder(position, output);
-		}
-		selection(position, output, output->found);
-		selection(position, output, output->selection);
-		output->redraw = FALSE;
-	}
+void draw(struct cairoui *cairoui) {
+	struct position *position = POSITION(cairoui);
+	struct output *output = OUTPUT(cairoui);
 
-	helplabel(position, output);
-	pagenumber(position, output);
-	showmode(position, output);
-	showfit(position, output);
-	filename(position, output);
-
-	if (output->flush) {
-		cairoflush(cairo);
-		output->flush = FALSE;
+	moveto(position, output);
+	if (! POPPLER_IS_PAGE(position->page)) {
+		cairoui->reload = TRUE;
+		cairoui->redraw = TRUE;
+		return;
 	}
+	poppler_page_render(position->page, output->cr);
+	if (changedpdf(position)) {
+		cairoui->reload = TRUE;
+		cairoui->redraw = TRUE;
+		return;
+	}
+	if (output->drawbox) {
+		rectangle_draw(output->cr,
+			&position->textarea->rect[position->box],
+			FALSE, FALSE, TRUE);
+		pageborder(position, output);
+	}
+	selection(cairoui, output->found);
+	selection(cairoui, output->selection);
 }
 
 /*
  * resize output
  */
-void resize(struct position *position, struct output *output,
-		double width, double height,
-		double margin, double fontsize) {
-	output->dest.x1 = margin;
-	output->dest.y1 = margin;
-	output->dest.x2 = width - margin;
-	output->dest.y2 = height - margin;
+void resize(struct cairoui *cairoui) {
+	struct cairodevice *cairodevice = cairoui->cairodevice;
+	struct position *position = POSITION(cairoui);
+	struct output *output = OUTPUT(cairoui);
 
-	/* set font again because a resize may have implied the destruction and
-	 * recreation of the context */
-	cairo_select_font_face(output->cr, "mono",
-	                CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
-	cairo_set_font_size(output->cr, fontsize);
-	cairo_font_extents(output->cr, &output->extents);
+	output->cr = cairoui->cr;
+
+	output->dest.x1 = cairoui->dest.x;
+	output->dest.y1 = cairoui->dest.y;
+	output->dest.x2 = cairoui->dest.x + cairoui->dest.width;
+	output->dest.y2 = cairoui->dest.y + cairoui->dest.height;
+
+	output->screenwidth = cairodevice->screenwidth(cairodevice);
+	output->screenheight = cairodevice->screenheight(cairodevice);
+	output->aspect = output->screenaspect == -1 ?
+		1 : output->screenaspect * output->screenheight /
+		output->screenwidth;
 
 	/* undo box centering */
 	if (output->fit & 0x1)
@@ -3018,14 +2452,14 @@ struct position *openpdf(char *filename) {
 /*
  * reload a pdf file
  */
-struct position *reloadpdf(struct position *position, struct output *output) {
+void reloadpdf(struct cairoui *cairoui) {
+	struct position *position = POSITION(cairoui);
+	struct output *output = OUTPUT(cairoui);
 	struct position *new;
-
-	output->reload = FALSE;
 
 	new = openpdf(position->filename);
 	if (new == NULL)
-		return NULL;
+		return;
 	initposition(new);
 
 	if (position->npage >= new->totpages) {
@@ -3033,7 +2467,7 @@ struct position *reloadpdf(struct position *position, struct output *output) {
 		readpage(new, output);
 		lasttextbox(new, output);
 		free(position);
-		return new;
+		return;
 	}
 	new->npage = position->npage;
 	readpage(new, output);
@@ -3042,7 +2476,7 @@ struct position *reloadpdf(struct position *position, struct output *output) {
 		new->textarea->num - 1 :
 		position->box;
 	free(position);
-	return new;
+	((struct callback *) cairoui->cb)->position = new;
 }
 
 /*
@@ -3056,8 +2490,9 @@ void closepdf(struct position *position) {
 /*
  * execute an external command
  */
-int external(int window, struct command *command,
-		struct position *position, struct output *output) {
+int external(struct cairoui* cairoui, int window) {
+	struct output *output = OUTPUT(cairoui);
+	struct command *command = &cairoui->command;
 	char *newline;
 	int page;
 	char dest[100];
@@ -3069,23 +2504,24 @@ int external(int window, struct command *command,
 	if (command->command[0] == '#' || ! strcmp(command->command, "nop"))
 		return window;
 	if (! strcmp(command->command, "quit"))
-		return WINDOW_EXIT;
+		return CAIROUI_EXIT;
 	if (! strcmp(command->command, "document"))
 		return WINDOW_DOCUMENT;
 	if (! strcmp(command->command, "reload")) {
-		output->reload = TRUE;
-		return WINDOW_REFRESH;
+		cairoui->reload = TRUE;
+		return CAIROUI_REFRESH;
 	}
 	if (1 == sscanf(command->command, "gotopage %d", &page)) {
-		return movetopage(position, output, page) ?
-			window : WINDOW_REFRESH;
+		return movetopage(cairoui, page) ?
+			window : CAIROUI_REFRESH;
 	}
 	if (1 == sscanf(command->command, "gotodestination %90s", dest)) {
-		return movetonameddestination(position, output, dest) ?
-			window : WINDOW_REFRESH;
+		return movetonameddestination(cairoui, dest) ?
+			window : CAIROUI_REFRESH;
 	}
 
-	printhelp(output, 4000, "error in command: %s", command->command);
+	cairoui_printlabel(cairoui, output->help,
+		4000, "error in command: %s", command->command);
 	return window;
 }
 
@@ -3108,90 +2544,6 @@ int openfifo(char *name, struct command *command, int *keepopen) {
 	*keepopen = open(name, O_WRONLY);
 	command->stream = fdopen(command->fd, "r");
 	return 0;
-}
-
-/*
- * log the state of the main loop
- */
-#define LEVEL_MAIN  0x0001
-void logstatus(int level, char *prefix, int window,
-		struct output *output, int c) {
-	char *levname, levnum[8];
-	char *keyname, keynum[8];
-	char *winname, winnum[3];
-
-	if ((level & output->log) == 0)
-		return;
-
-	switch (level) {
-	case LEVEL_MAIN:
-		levname = "MAIN";
-		break;
-	default:
-		snprintf(levname = levnum, 8, "LEVEL%d", level);
-	}
-
-	switch (c) {
-	case KEY_NONE:
-		keyname = "KEY_NONE";
-		break;
-	case KEY_INIT:
-		keyname = "KEY_INIT";
-		break;
-	case KEY_REFRESH:
-		keyname = "KEY_REFRESH";
-		break;
-	case KEY_REDRAW:
-		keyname = "KEY_REDRAW";
-		break;
-	case KEY_RESIZE:
-		keyname = "KEY_RESIZE";
-		break;
-	case KEY_TIMEOUT:
-		keyname = "KEY_TIMEOUT";
-		break;
-	case KEY_SUSPEND:
-		keyname = "KEY_SUSPEND";
-		break;
-	case KEY_SIGNAL:
-		keyname = "KEY_SIGNAL";
-		break;
-	case KEY_EXTERNAL:
-		keyname = "KEY_EXTERNAL";
-		break;
-	default:
-		if (isprint(c))
-			snprintf(keyname = keynum, 8, "%c", c);
-		else
-			snprintf(keyname = keynum, 8, "[%d]", c);
-	}
-
-	switch (window) {
-	case WINDOW_DOCUMENT:
-		winname = "WINDOW_DOCUMENT";
-		break;
-	case WINDOW_MENU:
-		winname = "WINDOW_MENU";
-		break;
-	case WINDOW_REFRESH:
-		winname = "WINDOW_REFRESH";
-		break;
-	case WINDOW_EXIT:
-		winname = "WINDOW_EXIT";
-		break;
-	default:
-		snprintf(winname = winnum, 3, "%d", window);
-	}
-
-	ensureoutputfile(output);
-	fprintf(output->outfile, "%-5s", levname);
-	fprintf(output->outfile, " %-12s", prefix);
-	fprintf(output->outfile, " %-15s", winname);
-	fprintf(output->outfile, " %-12s", keyname);
-	fprintf(output->outfile, " timeout=%-5d", output->timeout);
-	fprintf(output->outfile, " redraw=%d", output->redraw);
-	fprintf(output->outfile, " flush=%d\n", output->flush);
-	fflush(output->outfile);
 }
 
 /*
@@ -3242,17 +2594,6 @@ void usage() {
 	printf("'m'=menu\n");
 }
 
-
-/*
- * signal handling: reload on SIGHUP
- */
-int sig_reload;
-void handler(int s) {
-	if (s != SIGHUP)
-		return;
-	sig_reload = TRUE;
-}
-
 /*
  * show a pdf file on an arbitrary cairo device
  */
@@ -3263,26 +2604,36 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	int i;
 	double d;
 	char *outdev;
-	struct cairoio *cairo;
-	double margin;
-	double fontsize;
+	int canopen;
 	char *filename;
-	struct position *position;
+	struct cairoui cairoui;
+	struct callback callback;
 	struct output output;
-	double screenaspect;
 	int opt;
 	char *res;
 	int doublebuffering;
 	int firstwindow;
 	int noinitlabels;
-	struct command command;
 	int keepopen;
 
-	int c;
-	int window, next;
-	int pending;
-
 				/* defaults */
+
+	cairoui_default(&cairoui);
+
+	cairoui.cairodevice = cairodevice;
+	callback.output = &output;
+	cairoui.cb = &callback;
+
+	cairoui.draw = draw;
+	cairoui.resize = resize;
+	cairoui.update = reloadpdf;
+	cairoui.external = external;
+	cairoui.windowlist = windowlist;
+	cairoui.labellist = labellist;
+
+	cairoui.outname = "hovacui-out.txt";
+	cairoui.margin = 10.0;
+	cairoui.fontsize = -1;
 
 	output.viewmode = 0;
 	output.totalpages = FALSE;
@@ -3293,29 +2644,23 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	output.scroll = 1.0 / 4.0;
 	output.ui = TRUE;
 	output.immediate = FALSE;
+	output.reload = &cairoui.reload;
 	output.drawbox = TRUE;
 	output.pagelabel = TRUE;
-	output.log = FALSE;
-	output.outname = "hovacui-out.txt";
-	output.outfile = NULL;
 	output.pdfout = "selection-%d.pdf";
 	output.postsave = NULL;
 	output.first = -1;
 	output.last = -1;
-	screenaspect = -1;
+	output.screenaspect = -1;
+
 	firstwindow = WINDOW_TUTORIAL;
-	margin = 10.0;
-	fontsize = -1;
 	outdev = NULL;
 	noinitlabels = FALSE;
-	command.fd = -1;
-	command.stream = NULL;
-	command.max = 4096;
-	command.command = malloc(command.max);
 	keepopen = -1;
+	doublebuffering = TRUE;
 
-				/* all options */
-	
+				/* merge commandline options */
+
 	allopts = malloc(strlen(mainopts) + strlen(cairodevice->options) + 1);
 	strcpy(allopts, mainopts);
 	strcat(allopts, cairodevice->options);
@@ -3358,23 +2703,24 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 		if (sscanf(configline, "distance %lg", &d) == 1)
 			output.distance = d;
 		if (sscanf(configline, "aspect %s", s) == 1)
-			screenaspect = fraction(s);
+			output.screenaspect = fraction(s);
 		if (sscanf(configline, "scroll %s", s) == 1)
 			output.scroll = fraction(s);
 		if (sscanf(configline, "fontsize %lg", &d) == 1)
-			fontsize = d;
+			cairoui.fontsize = d;
 		if (sscanf(configline, "margin %lg", &d) == 1)
-			margin = d;
+			cairoui.margin = d;
 		if (sscanf(configline, "device %s", s) == 1)
 			outdev = strdup(s);
 		if (sscanf(configline, "fifo %s", s) == 1)
-			openfifo(s, &command, &keepopen);
+			if (openfifo(s, &cairoui.command, &keepopen))
+				exit(EXIT_FAILURE);
 		if (sscanf(configline, "outfile %s", s) == 1)
-			output.outname = strdup(s);
+			cairoui.outname = strdup(s);
 		if (sscanf(configline, "postsave %900c", s) == 1)
 			output.postsave = strdup(s);
 		if (sscanf(configline, "log %d", &i) == 1)
-			output.log = i;
+			cairoui.log = i;
 
 		if (sscanf(configline, "%s", s) == 1) {
 			if (! strcmp(s, "noui"))
@@ -3398,7 +2744,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 				output.drawbox = FALSE;
 				output.pagelabel = FALSE;
 				output.totalpages = TRUE;
-				margin = 0.0;
+				cairoui.margin = 0.0;
 				firstwindow = WINDOW_DOCUMENT;
 				noinitlabels = TRUE;
 			}
@@ -3466,7 +2812,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 			output.drawbox = FALSE;
 			output.pagelabel = FALSE;
 			output.totalpages = TRUE;
-			margin = 0.0;
+			cairoui.margin = 0.0;
 			firstwindow = WINDOW_DOCUMENT;
 			noinitlabels = TRUE;
 			break;
@@ -3474,16 +2820,17 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 			outdev = optarg;
 			break;
 		case 's':
-			screenaspect = fraction(optarg);
+			output.screenaspect = fraction(optarg);
 			break;
 		case 'e':
-			openfifo(optarg, &command, &keepopen);
+			if (openfifo(optarg, &cairoui.command, &keepopen))
+				exit(EXIT_FAILURE);
 			break;
 		case 'z':
-			output.outname = optarg;
+			cairoui.outname = optarg;
 			break;
 		case 'l':
-			output.log = atoi(optarg);
+			cairoui.log = atoi(optarg);
 			break;
 		case 'h':
 			usage();
@@ -3500,179 +2847,48 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 
 				/* open input file */
 
-	position = openpdf(filename);
-	if (position == NULL)
+	callback.position = openpdf(filename);
+	if (callback.position == NULL)
 		exit(EXIT_FAILURE);
-
-				/* signal handling */
-
-	sig_reload = FALSE;
-	signal(SIGHUP, handler);
+	initposition(callback.position);
 
 				/* open output device as cairo */
 
-	cairo = cairodevice->init(outdev, doublebuffering,
-		argn, argv, allopts);
-	free(allopts);
-	if (cairo == NULL) {
-		cairodevice->finish(cairo);
+	canopen = cairodevice->init(cairodevice,
+		outdev, doublebuffering, argn, argv, allopts);
+	if (canopen == -1) {
+		cairodevice->finish(cairodevice);
 		exit(EXIT_FAILURE);
 	}
+	free(allopts);
 
-				/* initialize position and output */
-
-	initposition(position);
-
-	output.cr = cairodevice->context(cairo);
-
-	output.screenwidth = cairodevice->screenwidth(cairo);
-	output.screenheight = cairodevice->screenheight(cairo);
-	output.aspect = screenaspect == -1 ?
-		1 : screenaspect * output.screenheight / output.screenwidth;
-	if (output.minwidth == -1)
-		output.minwidth = 400;
-	if (fontsize == -1)
-		fontsize = output.screenheight / 25;
-
-	resize(position, &output,
-		cairodevice->width(cairo), cairodevice->height(cairo),
-		margin, fontsize);
+				/* initialize output */
 
 	strcpy(output.search, "");
 	output.found = NULL;
 	output.selection = NULL;
 	output.texfudge = 0; // 24;
-	output.paste = command.command;
-
-	output.timeout = NO_TIMEOUT;
 	output.help[0] = '\0';
 	output.help[79] = '\0';
+	if (output.minwidth == -1)
+		output.minwidth = 400;
 
-				/* initialize labels */
+	if (noinitlabels)
+		cairoui_initlabels(&cairoui);
+	else
+		cairoui_printlabel(&cairoui, output.help,
+			2000, "press 'h' for help");
 
-	output.redraw = FALSE;
-	output.flush = FALSE;
-	if (noinitlabels || firstwindow != WINDOW_DOCUMENT) {
-		draw(cairo, cairodevice->clear, cairodevice->flush,
-			position, &output);
-		output.timeout = NO_TIMEOUT;
-	}
-	else {
-		output.filename = firstwindow == WINDOW_DOCUMENT;
-		strncpy(output.help, "press 'h' for help", 79);
-	}
-
-				/* first window */
-
-	readpage(position, &output);
-	window = firstwindow;
-	output.reload = FALSE;
-	output.redraw = TRUE;
-	output.flush = TRUE;
-	c = firstwindow == WINDOW_DOCUMENT ? KEY_NONE : KEY_INIT;
-	if (checkannotations(position))
+	readpage(callback.position, &output);
+	if (checkannotations(callback.position))
 		output.pagenumber = TRUE;
 
 				/* event loop */
 
-	while (window != WINDOW_EXIT) {
+	cairoui_main(&cairoui, firstwindow);
 
-					/* draw document and labels */
-
-		logstatus(LEVEL_MAIN, "start", window, &output, c);
-		if (output.reload || sig_reload) {
-			if (sig_reload)
-				output.redraw = TRUE;
-			sig_reload = 0;
-			position = reloadpdf(position, &output);
-			c = output.redraw ? KEY_REDRAW : KEY_NONE;
-		}
-		if (! cairodevice->isactive(cairo))
-			c = KEY_NONE;
-		else if (c != KEY_INIT || output.redraw) {
-			logstatus(LEVEL_MAIN, "draw", window, &output, c);
-			draw(cairo, cairodevice->clear, cairodevice->flush,
-				position, &output);
-			if (output.reload)
-				continue;
-		}
-
-					/* read input */
-
-		logstatus(LEVEL_MAIN, "preinput", window, &output, c);
-		if (c != KEY_NONE)
-			pending = 0;
-		else {
-			pending = output.timeout != NO_TIMEOUT &&
-				output.timeout != 0;
-			c = cairodevice->input(cairo, output.timeout, &command);
-			if (c != KEY_REDRAW)
-				output.timeout = NO_TIMEOUT;
-			logstatus(LEVEL_MAIN, "postinput", window, &output, c);
-		}
-		if (c == KEY_SUSPEND || c == KEY_SIGNAL ||
-		    c == KEY_NONE || c == KEY_F(3) || c == KEY_F(4)) {
-			c = KEY_NONE;
-			continue;
-		}
-		if (c == KEY_RESIZE || c == KEY_REDRAW || pending) {
-			if (c == KEY_RESIZE)
-				resize(position, &output,
-					cairodevice->width(cairo),
-					cairodevice->height(cairo),
-					margin, fontsize);
-			output.redraw = TRUE;
-			output.flush = FALSE;
-			if (pending && c == KEY_TIMEOUT) {
-				output.timeout = NO_TIMEOUT;
-				c = KEY_REFRESH;
-				continue;
-			}
-			if (c == KEY_RESIZE || c == KEY_REDRAW) {
-				c = KEY_REFRESH;
-				continue;
-			}
-		}
-
-					/* pass input to window or external */
-
-		logstatus(LEVEL_MAIN, "prewindow", window, &output, c);
-		next = c == KEY_EXTERNAL ?
-			external(window, &command, position, &output) :
-			selectwindow(window, c, position, &output);
-		logstatus(LEVEL_MAIN, "postwindow", next, &output, c);
-		c = KEY_NONE;
-		if (next == window)
-			continue;
-		if (next == WINDOW_REFRESH) {
-			/* for WINDOW_DOCUMENT, redraw the page and flush; all
-			 * other windows: redraw the page and call the window
-			 * again with KEY_REFRESH; flush then (not now) */
-			output.redraw = TRUE;
-			output.flush = window == WINDOW_DOCUMENT;
-			c = window == WINDOW_DOCUMENT ? KEY_NONE : KEY_REFRESH;
-			continue;
-		}
-		if (next == WINDOW_DOCUMENT) {
-			output.redraw = TRUE;
-			output.flush = TRUE;
-			window = next;
-			continue;
-		}
-		if (window != WINDOW_DOCUMENT)
-			output.redraw = TRUE;
-		window = next;
-		c = KEY_INIT;
-	}
-
-				/* close */
-
-	closepdf(position);
-	cairodevice->finish(cairo);
-	close(keepopen);
-	if (command.fd != -1)
-		fclose(command.stream);
-	if (output.outfile != NULL)
-		fclose(output.outfile);
+	closepdf(callback.position);
+	if (keepopen != -1)
+		close(keepopen);
 	return EXIT_SUCCESS;
 }

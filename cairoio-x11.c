@@ -11,18 +11,9 @@
 #include "cairoio-x11.h"
 
 /*
- * structure for init data
- */
-struct initdata {
-	char *display;
-	char *geometry;
-	char *title;
-};
-
-/*
  * structure for a window
  */
-struct xhovacui {
+struct cairoio {
 	cairo_surface_t *surface;
 	cairo_t *cr;
 	unsigned int width;
@@ -59,20 +50,21 @@ int prefix(char *a, char *b) {
  */
 char *second(char *a) {
 	char *p;
-	p = rindex(a, '=');
+	p = rindex(a, ' ');
 	return p == NULL ? p : p + 1;
 }
 
 /*
  * create a cairo context
  */
-struct cairoio *cairoinit_x11(char *device, int doublebuffering,
+int cairoinit_x11(struct cairodevice *cairodevice,
+		char *device, int doublebuffering,
 		int argn, char *argv[], char *allopts) {
 	int opt;
+	struct cairoio *xhovacui;
 	char *display;
 	char *geometry;
 	char *title;
-	struct xhovacui *xhovacui;
 	Screen *scr;
 	Visual *vis;
 	int x, y;
@@ -80,17 +72,16 @@ struct cairoio *cairoinit_x11(char *device, int doublebuffering,
 
 	display = NULL;
 	geometry = NULL;
-	optind = 1;
 	while (-1 != (opt = getopt(argn, argv, allopts))) {
 		switch (opt) {
 		case 'x':
-			if (! prefix(optarg, "display="))
+			if (! prefix(optarg, "display "))
 				display = second(optarg);
-			else if (! prefix(optarg, "geometry="))
+			else if (! prefix(optarg, "geometry "))
 				geometry = second(optarg);
 			else {
 				printf("unknown -x suboption: %s\n", optarg);
-				return NULL;
+				return -1;
 			}
 			break;
 		}
@@ -100,13 +91,13 @@ struct cairoio *cairoinit_x11(char *device, int doublebuffering,
 	if (display != NULL)
 		device = display;
 
-	xhovacui = malloc(sizeof(struct xhovacui));
+	xhovacui = malloc(sizeof(struct cairoio));
 	xhovacui->dsp = XOpenDisplay(device);
 	if (xhovacui->dsp == NULL) {
 		printf("cannot open display %s\n",
 			device == NULL ? getenv("DISPLAY") : device);
 		free(xhovacui);
-		return NULL;
+		return -1;
 	}
 	scr = DefaultScreenOfDisplay(xhovacui->dsp);
 	vis = DefaultVisualOfScreen(scr);
@@ -142,22 +133,22 @@ struct cairoio *cairoinit_x11(char *device, int doublebuffering,
 	xhovacui->cr = cairo_create(xhovacui->surface);
 
 	wintitle = malloc(strlen("hovacui: ") + strlen(title) + 1);
-	strcpy(wintitle, "hovacui: ");
-	strcat(wintitle, title);
+	strcpy(title, "hovacui: ");
+	strcat(title, title);
 	XStoreName(xhovacui->dsp, xhovacui->win, wintitle);
-	free(wintitle);
 
 	XMapWindow(xhovacui->dsp, xhovacui->win);
 
-	return (struct cairoio *) xhovacui;
+	cairodevice->cairoio = xhovacui;
+	return 0;
 }
 
 /*
  * close a cairo context
  */
-void cairofinish_x11(struct cairoio *cairo) {
-	struct xhovacui *xhovacui;
-	xhovacui = (struct xhovacui *) cairo;
+void cairofinish_x11(struct cairodevice *cairodevice) {
+	struct cairoio *xhovacui;
+	xhovacui = cairodevice->cairoio;
 	if (xhovacui == NULL)
 		return;
 	cairo_destroy(xhovacui->cr);
@@ -172,54 +163,44 @@ void cairofinish_x11(struct cairoio *cairo) {
 /*
  * get the cairo context
  */
-cairo_t *cairocontext_x11(struct cairoio *cairo) {
-	struct xhovacui *xhovacui;
-	xhovacui = (struct xhovacui *) cairo;
-	return xhovacui->cr;
+cairo_t *cairocontext_x11(struct cairodevice *cairodevice) {
+	return cairodevice->cairoio->cr;
 }
 
 /*
  * get the width of the window
  */
-double cairowidth_x11(struct cairoio *cairo) {
-	struct xhovacui *xhovacui;
-	xhovacui = (struct xhovacui *) cairo;
-	return xhovacui->width;
+double cairowidth_x11(struct cairodevice *cairodevice) {
+	return cairodevice->cairoio->width;
 }
 
 /*
  * get the heigth of the window
  */
-double cairoheight_x11(struct cairoio *cairo) {
-	struct xhovacui *xhovacui;
-	xhovacui = (struct xhovacui *) cairo;
-	return xhovacui->height;
+double cairoheight_x11(struct cairodevice *cairodevice) {
+	return cairodevice->cairoio->height;
 }
 
 /*
  * get the width of the screen
  */
-double cairoscreenwidth_x11(struct cairoio *cairo) {
-	struct xhovacui *xhovacui;
-	xhovacui = (struct xhovacui *) cairo;
-	return xhovacui->screenwidth;
+double cairoscreenwidth_x11(struct cairodevice *cairodevice) {
+	return cairodevice->cairoio->screenwidth;
 }
 
 /*
  * get the heigth of the screen
  */
-double cairoscreenheight_x11(struct cairoio *cairo) {
-	struct xhovacui *xhovacui;
-	xhovacui = (struct xhovacui *) cairo;
-	return xhovacui->screenheight;
+double cairoscreenheight_x11(struct cairodevice *cairodevice) {
+	return cairodevice->cairoio->screenheight;
 }
 
 /*
  * clear
  */
-void cairoclear_x11(struct cairoio *cairo) {
-	struct xhovacui *xhovacui;
-	xhovacui = (struct xhovacui *) cairo;
+void cairoclear_x11(struct cairodevice *cairodevice) {
+	struct cairoio *xhovacui;
+	xhovacui = cairodevice->cairoio;
 	cairo_identity_matrix(xhovacui->cr);
 	cairo_set_source_rgb(xhovacui->cr, 1.0, 1.0, 1.0);
 	cairo_rectangle(xhovacui->cr, 0, 0, xhovacui->width, xhovacui->height);
@@ -229,9 +210,9 @@ void cairoclear_x11(struct cairoio *cairo) {
 /*
  * flush
  */
-void cairoflush_x11(struct cairoio *cairo) {
-	struct xhovacui *xhovacui;
-	xhovacui = (struct xhovacui *) cairo;
+void cairoflush_x11(struct cairodevice *cairodevice) {
+	struct cairoio *xhovacui;
+	xhovacui = cairodevice->cairoio;
 	if (xhovacui->doublebuffering)
 		XCopyArea(xhovacui->dsp, xhovacui->dbuf, xhovacui->win,
 			DefaultGC(xhovacui->dsp, 0),
@@ -241,15 +222,15 @@ void cairoflush_x11(struct cairoio *cairo) {
 /*
  * whether the output is currently active
  */
-int cairoisactive_x11(struct cairoio *cairo) {
-	(void) cairo;
+int cairoisactive_x11(struct cairodevice *cairodevice) {
+	(void) cairodevice;
 	return TRUE;
 }
 
 /*
  * reconfigure
  */
-void cairoreconfigure(struct xhovacui *xhovacui, XConfigureEvent *xce) {
+void cairoreconfigure(struct cairoio *xhovacui, XConfigureEvent *xce) {
 	xhovacui->width = xce->width;
 	xhovacui->height = xce->height;
 
@@ -343,9 +324,9 @@ int nextevent(Display *dsp, int timeout, XEvent *evt, struct command *command) {
 /*
  * get a single input
  */
-int cairoinput_x11(struct cairoio *cairo, int timeout,
+int cairoinput_x11(struct cairodevice *cairodevice, int timeout,
 		struct command *command) {
-	struct xhovacui *xhovacui;
+	struct cairoio *xhovacui;
 	int res;
 	XEvent evt;
 	int key;
@@ -354,7 +335,7 @@ int cairoinput_x11(struct cairoio *cairo, int timeout,
 	unsigned long nitems, after;
 	unsigned char *selection;
 
-	xhovacui = (struct xhovacui *) cairo;
+	xhovacui = cairodevice->cairoio;
 
 	while (1) {
 		res = nextevent(xhovacui->dsp, timeout, &evt, command);
@@ -452,6 +433,7 @@ int cairoinput_x11(struct cairoio *cairo, int timeout,
  */
 struct cairodevice cairodevicex11 = {
 	"x:",
+	NULL,
 	cairoinit_x11, cairofinish_x11,
 	cairocontext_x11,
 	cairowidth_x11, cairoheight_x11,

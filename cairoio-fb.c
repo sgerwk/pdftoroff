@@ -6,9 +6,16 @@
 #include "cairoio-fb.h"
 
 /*
+ * structure for init data
+ */
+struct initdata {
+};
+
+/*
  * create a cairo context
  */
-struct cairoio *cairoinit_fb(char *device, int doublebuffering,
+int cairoinit_fb(struct cairodevice *cairodevice,
+		char *device, int doublebuffering,
 		int argn, char *argv[], char *allopts) {
 	struct cairofb *cairofb;
 	WINDOW *w;
@@ -23,7 +30,7 @@ struct cairoio *cairoinit_fb(char *device, int doublebuffering,
 	cairofb = cairofb_init(device, doublebuffering);
 	if (cairofb == NULL) {
 		printf("cannot open %s as a cairo surface\n", device);
-		return NULL;
+		return -1;
 	}
 
 	if (getenv("ESCDELAY") == NULL)
@@ -39,15 +46,16 @@ struct cairoio *cairoinit_fb(char *device, int doublebuffering,
 
 	vt_setup();
 
-	return (struct cairoio *) cairofb;
+	cairodevice->cairoio = (struct cairoio *) cairofb;
+	return 0;
 }
 
 /*
  * close a cairo context
  */
-void cairofinish_fb(struct cairoio *cairo) {
-	if (cairo != NULL)
-		cairofb_finish((struct cairofb *)cairo);
+void cairofinish_fb(struct cairodevice *cairodevice) {
+	if (cairodevice != NULL && cairodevice->cairoio != NULL)
+		cairofb_finish((struct cairofb *) cairodevice->cairoio);
 	clear();
 	refresh();
 	endwin();
@@ -56,57 +64,57 @@ void cairofinish_fb(struct cairoio *cairo) {
 /*
  * get the cairo context from a cairo envelope
  */
-cairo_t *cairocontext_fb(struct cairoio *cairo) {
-	return ((struct cairofb *) cairo)->cr;
+cairo_t *cairocontext_fb(struct cairodevice *cairodevice) {
+	return ((struct cairofb *) cairodevice->cairoio)->cr;
 }
 
 /*
  * get the width from a cairo envelope
  */
-double cairowidth_fb(struct cairoio *cairo) {
-	return ((struct cairofb *) cairo)->width;
+double cairowidth_fb(struct cairodevice *cairodevice) {
+	return ((struct cairofb *) cairodevice->cairoio)->width;
 }
 
 /*
  * get the heigth from a cairo envelope
  */
-double cairoheight_fb(struct cairoio *cairo) {
-	return ((struct cairofb *) cairo)->height;
+double cairoheight_fb(struct cairodevice *cairodevice) {
+	return ((struct cairofb *) cairodevice->cairoio)->height;
 }
 
 /*
  * clear a cairo envelope
  */
-void cairoclear_fb(struct cairoio *cairo) {
-	cairofb_clear((struct cairofb *) cairo, 1.0, 1.0, 1.0);
+void cairoclear_fb(struct cairodevice *cairodevice) {
+	cairofb_clear((struct cairofb *) cairodevice->cairoio, 1.0, 1.0, 1.0);
 }
 
 /*
  * flush a cairo envelope
  */
-void cairoflush_fb(struct cairoio *cairo) {
-	cairofb_flush((struct cairofb *) cairo);
+void cairoflush_fb(struct cairodevice *cairodevice) {
+	cairofb_flush((struct cairofb *) cairodevice->cairoio);
 }
 
 /*
  * whether the output is currently active
  */
-int cairoisactive_fb(struct cairoio *cairo) {
-	(void) cairo;
+int cairoisactive_fb(struct cairodevice *cairodevice) {
+	(void) cairodevice;
 	return ! vt_suspend;
 }
 
 /*
  * get a single input from a cairo envelope
  */
-int cairoinput_fb(struct cairoio *cairo, int timeout,
+int cairoinput_fb(struct cairodevice *cairodevice, int timeout,
 		struct command *command) {
 	fd_set fds;
 	int max, ret;
 	struct timeval tv;
 	int c, l, r;
 
-	(void) cairo;
+	(void) cairodevice;
 
 	FD_ZERO(&fds);
 	FD_SET(STDIN_FILENO, &fds);
@@ -157,6 +165,7 @@ int cairoinput_fb(struct cairoio *cairo, int timeout,
  */
 struct cairodevice cairodevicefb = {
 	"",
+	NULL,
 	cairoinit_fb, cairofinish_fb,
 	cairocontext_fb,
 	cairowidth_fb, cairoheight_fb,

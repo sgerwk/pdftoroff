@@ -1,4 +1,4 @@
-/* 
+/*
  * cairofb.h
  *
  * a cairo context for drawing in a linux framebuffer

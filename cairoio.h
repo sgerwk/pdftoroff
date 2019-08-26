@@ -2,6 +2,42 @@
  * cairoio.h
  */
 
+/*
+ * the cairodevice
+ *
+ * the cairodevice structure allows the cairoui interface to be run whenever a
+ * cairo context can be obtained and input is available
+ *
+ * void init(struct cairodevice *cairodevice,
+ *		char *device, int doublebuffering,
+ *		int argn, char *argv[], char *opts);
+ *	create the cairo context
+ *
+ * void finish(struct cairodevice *cairodevice);
+ *	undo what done by init
+ *
+ * cairo_t *context(struct cairodevice *cairodevice);
+ * double width(struct cairodevice *cairodevice);
+ * double height(struct cairodevice *cairodevice);
+ * double screenwidth(struct cairodevice *cairodevice);
+ * double screenheight(struct cairodevice *cairodevice);
+ *	return the cairo context and its size
+ *
+ * void clear(struct cairodevice *cairodevice);
+ * void flush(struct cairodevice *cairodevice);
+ *	clear and flush
+ *
+ * int isactive(struct cairodevice *cairodevice);
+ *	whether the output is active
+ *	do not draw on the framebuffer when the vt is switched out
+ *
+ * int input(struct cairodevice *cairodevice,
+ *		int timeout, struct command *command);
+ *	return a key
+ *	on external command: store it in command->command, return KEY_EXTERNAL
+ *	block for at most timeout milliseconds, NO_TIMEOUT=infinite
+ */
+
 #ifdef _CAIROOUTPUT_H
 #else
 #define _CAIROOUTPUT_H
@@ -70,18 +106,20 @@ struct command {
  */
 struct cairodevice {
 	char *options;
-	struct cairoio *(*init)(char *device,
-		int doublebuffering, int argn, char *argv[], char *opts);
-	void (*finish)(struct cairoio *cairo);
-	cairo_t *(*context)(struct cairoio *cairo);
-	double (*width)(struct cairoio *cairo);
-	double (*height)(struct cairoio *cairo);
-	double (*screenwidth)(struct cairoio *cairo);
-	double (*screenheight)(struct cairoio *cairo);
-	void (*clear)(struct cairoio *cairo);
-	void (*flush)(struct cairoio *cairo);
-	int (*isactive)(struct cairoio *cairo);
-	int (*input)(struct cairoio *cairo, int timeout,
+	struct cairoio *cairoio;
+	int (*init)(struct cairodevice *cairodevice,
+		char *device, int doublebuffering,
+		int argn, char *argv[], char *opts);
+	void (*finish)(struct cairodevice *cairodevice);
+	cairo_t *(*context)(struct cairodevice *cairodevice);
+	double (*width)(struct cairodevice *cairodevice);
+	double (*height)(struct cairodevice *cairodevice);
+	double (*screenwidth)(struct cairodevice *cairodevice);
+	double (*screenheight)(struct cairodevice *cairodevice);
+	void (*clear)(struct cairodevice *cairodevice);
+	void (*flush)(struct cairodevice *cairodevice);
+	int (*isactive)(struct cairodevice *cairodevice);
+	int (*input)(struct cairodevice *cairodevice, int timeout,
 	             struct command *command);
 };
 
