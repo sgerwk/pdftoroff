@@ -154,7 +154,7 @@ groff -Dutf8 -Tpdf - > new.pdf
 .
 .
 .
-.SH OUPUT FORMAT
+.SH OUTPUT FORMAT
 
 The text from the pdf file is scanned for font changes and paragraph breaks.
 Short lines, indents and vertical spaces are taken as the start of a new
@@ -407,7 +407,7 @@ from \fIbox1,box2,box3\fP from the first page, from \fIbox4\fP from the second,
 from \fIbox5\fP from the third, and the repeat with \fIbox4\fP and \fIbox5\fP
 until the end of the document.
 
-The html ouput is not always correct. If the document starts with an italic
+The html output is not always correct. If the document starts with an italic
 font, then switches to italic and bold and then to bold only, the resulting
 code is \fI<i>...<b>....</i>...</b>\fP, which is not nested correctly. The
 right code would be \fI<i>...<b>....</b></i><b>...</b>\fP. Two solutions are
