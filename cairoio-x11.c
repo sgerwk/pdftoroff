@@ -133,8 +133,8 @@ int cairoinit_x11(struct cairodevice *cairodevice,
 	xhovacui->cr = cairo_create(xhovacui->surface);
 
 	wintitle = malloc(strlen("hovacui: ") + strlen(title) + 1);
-	strcpy(title, "hovacui: ");
-	strcat(title, title);
+	strcpy(wintitle, "hovacui: ");
+	strcat(wintitle, title);
 	XStoreName(xhovacui->dsp, xhovacui->win, wintitle);
 
 	XMapWindow(xhovacui->dsp, xhovacui->win);
