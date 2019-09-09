@@ -319,6 +319,8 @@ void showregion(FILE *fd, PopplerRectangle *zone, RectangleList *textarea,
 			if (crect.y1 - y > measure->newline) {
 				if (crect.y1 - y > measure->newpar) {
 					dnewpar(fd, "[V]");
+					fputs(format->parend, fd);
+					fputs(format->parstart, fd);
 					scandata->newpar = TRUE;
 				}
 				y = crect.y1;
