@@ -3,13 +3,10 @@
  *
  * functions on poppler rectangles:
  *
- * - functions on individual rectangles (containment, join, etc)
- * - functions for rectangle lists representing the union of the areas
+ * - functions on individual rectangles (containment, join, etc.)
+ * - functions for rectangle lists representing the union of their areas
  * - functions for blocks of text in a page
- *
- * the functions that find the blocks of text first nullify the rectangles of
- * white space by turning them into 0-width rectangles; the resulting rectangle
- * list may not contain them
+ * - functions for short, recurring blocks of text
  */
 
 #ifdef _PDFRECTS_H
@@ -30,14 +27,24 @@ PopplerRectangle *rectangle_parse(char *s);
 /* normalize a rectangle: x1 <= x2 and y1 <= y2 */
 void rectangle_normalize(PopplerRectangle *);
 
-/* width and height of a rectangle */
+/* width, height and area of a rectangle */
 double rectangle_width(PopplerRectangle *);
 double rectangle_height(PopplerRectangle *);
+double rectangle_area(PopplerRectangle *r);
+
+/* check if two rectangles are the same */
+gboolean rectangle_hequal(PopplerRectangle *a, PopplerRectangle *b);
+gboolean rectangle_vequal(PopplerRectangle *a, PopplerRectangle *b);
+gboolean rectangle_equal(PopplerRectangle *a, PopplerRectangle *b);
 
 /* check whether the first rectangle contains the second */
+gboolean rectangle_hcontain(PopplerRectangle *, PopplerRectangle *);
+gboolean rectangle_vcontain(PopplerRectangle *, PopplerRectangle *);
 gboolean rectangle_contain(PopplerRectangle *, PopplerRectangle *);
 
 /* check if rectangles overlap */
+gboolean rectangle_hoverlap(PopplerRectangle *, PopplerRectangle *);
+gboolean rectangle_voverlap(PopplerRectangle *, PopplerRectangle *);
 gboolean rectangle_overlap(PopplerRectangle *, PopplerRectangle *);
 
 /* check if rectangles touch (meet or overlap) */
@@ -49,10 +56,11 @@ gboolean rectangle_touch(PopplerRectangle *, PopplerRectangle *);
 gdouble rectangle_hdistance(PopplerRectangle *a, PopplerRectangle *b);
 gdouble rectangle_vdistance(PopplerRectangle *a, PopplerRectangle *b);
 
-/* copy a rectangle onto another */
+/* copy and swap rectangles */
 void rectangle_copy(PopplerRectangle *dest, PopplerRectangle *orig);
+void rectangle_swap(PopplerRectangle *a, PopplerRectangle *b);
 
-/* shift or expand a rectangle */
+/* shift and expand a rectangle */
 void rectangle_shift(PopplerRectangle *, gdouble x, gdouble y);
 void rectangle_expand(PopplerRectangle *, gdouble dx, gdouble dy);
 
@@ -67,6 +75,9 @@ void rectangle_join(PopplerRectangle *, PopplerRectangle *);
 int rectangle_hcompare(PopplerRectangle *a, PopplerRectangle *b);
 int rectangle_vcompare(PopplerRectangle *a, PopplerRectangle *b);
 int rectangle_compare(PopplerRectangle *, PopplerRectangle *);
+
+/* compare the area of two rectangles */
+int rectangle_areacompare(PopplerRectangle *a, PopplerRectangle *b);
 
 /* a rectangle as large as the page */
 void rectangle_page(PopplerPage *page, PopplerRectangle *rect);
@@ -144,6 +155,10 @@ void rectanglelist_quicksort(RectangleList *, PopplerPage *);
 void rectanglelist_twosort(RectangleList *, PopplerPage *);
 void rectanglelist_charsort(RectangleList *, PopplerPage *);
 
+/* find the largest rectangle in a list or sort by area */
+PopplerRectangle *rectanglelist_largest(RectangleList *);
+void rectanglelist_areasort(RectangleList *);
+
 /* position a rectangle in a page partially filled by others */
 gboolean rectanglelist_place(PopplerRectangle *page,
 		RectangleList *rl, PopplerRectangle *r,
@@ -193,8 +208,52 @@ PopplerRectangle *rectanglelist_boundingbox_painted(PopplerPage *page, int d);
 RectangleList *rectanglelist_rows(PopplerPage *page, gdouble distance);
 
 /*
+ * functions for recurring blocks of text (page numbers, headers and footers)
+ */
+
+typedef struct {
+	int num;
+	int size;
+	struct {
+		int rank;
+		PopplerRectangle rect;
+	} rect[];
+} RectangleVector;
+
+/* debug areas often taken by short blocks of text */
+extern int debugfrequent;
+
+/* create an empty rectangle vector of a given size */
+RectangleVector *rectanglevector_create(int size);
+
+/* print a rectangle vector */
+void rectanglevector_print(FILE *fd, RectangleVector *v);
+void rectanglevector_printyaml(FILE *fd, char *first, char *indent,
+		RectangleVector *v);
+
+/* make a rectangle list out of a rectangle vector */
+RectangleList *rectanglevector_list(RectangleVector *c);
+
+/* insert a rectangle in a vector */
+void rectanglevector_insert(RectangleVector *v, int rank, PopplerRectangle *r);
+
+/* add a rectangle to a frequency vector, allowing horizontal containment */
+void rectanglevector_add(RectangleVector *v, PopplerRectangle *r);
+
+/* rectangles often taken by short blocks of text */
+RectangleList *rectanglevector_frequent(PopplerDocument *doc,
+		gdouble height, gdouble distance);
+
+/* a rectangle as large as the page minus headers and footers */
+PopplerRectangle *rectanglevector_main(PopplerDocument *doc,
+		RectangleList *recur, gdouble height, gdouble distance);
+
+/*
  * drawing-related functions
  */
+
+/* use rectangle in cairo */
+void rectangle_cairo(cairo_t *cr, PopplerRectangle *rect, gdouble enlarge);
 
 /* draw a rectangle, possibly filled or enclosing */
 void rectangle_draw(cairo_t *, PopplerRectangle *,
@@ -212,6 +271,10 @@ void rectangle_map_to_cairo(cairo_t *cr,
 		PopplerRectangle *dst, PopplerRectangle *src,
 		gboolean horizontal, gboolean vertical,
 		gboolean ratio, gboolean topalign, gboolean leftalign);
+
+/* clip out all textarea rectangles containing any in the remove list */
+void rectanglelist_clip_containing(cairo_t *cr, PopplerPage *page,
+		RectangleList *textarea, RectangleList *rm);
 
 /*
  * helper functions

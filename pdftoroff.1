@@ -12,7 +12,7 @@ pdftoroff - convert pdf to various text formats (roff, html, TeX, text)
 \fBpdftoroff\fP
 [\fI-r\fP|\fI-w\fP|\fI-p\fP|\fI-f\fP|\fI-t\fP|\fI-s fmt\fP]
 [\fI-m method\fP [\fI-d distance\fP] [\fI-o order\fP]]
-[\fI-i range\fP] [\fI-b box\fP] [\fI-v\fP]
+[\fI-i range\fP] [\fI-b box\fP] [\fI-n\fP] [\fI-v\fP]
 \fIfile.pdf\fP
 .
 .
@@ -121,6 +121,13 @@ for example, \fI-2:0\fP is the range for converting the last three pages
 \fB-b\fP \fI[x1,y1-x2,y2]\fP
 convert only the characters that are positioned
 within the coordinates \fIx1,y1\fP and \fIx2,y2\fP
+
+.TP
+.B -n
+do not convert the recurring elements in the page, such as page numbers,
+headers and footers; locating these elements takes time, making the conversion
+not to start immediately; it may fail, resulting in loss of text or these
+elements ending up in the output; see \fIpdfrecur(1)\fP for details
 
 .TP
 .B -v

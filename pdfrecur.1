@@ -1,0 +1,109 @@
+.TH pdfrecur 1 "September 11, 2019"
+
+.
+.
+.
+.SH NAME
+pdfrecur - locate or remove the recurring blocks of text in a PDF file
+
+.
+.
+.
+.SH SYNOPOSIS
+.TP 9
+.B pdfrecur
+[\fI-s height\fP] [\fI-t distance\fP] [\fI-d\fP]
+[\fI-m\fP] [\fI-c\fP] [\fI-n\fP] [\fI-h\fP]
+.I file.pdf
+
+.
+.
+.
+.SH DESCRIPTION
+
+Locate or remove page numbers, headers and footers from a PDF file.
+
+These are not part of the main content of the document. Removing them improves
+the quality of a following text extraction, for example by \fIpdftoroff(1)\fP.
+
+.
+.
+.
+.SH OPTIONS
+.TP
+.BI -s " height
+maximal height of recurring text
+.TP
+.BI -t " distance
+text-to-text distance
+.TP
+.B -c
+do not remove recurring text; useful with \fI-d\fP
+.TP
+.B -m
+remove everything outside the main text in the page
+.TP
+.BI -d
+draw a box around recurring text; with \fI-m\fP, shade the main text in the
+page
+.TP
+.B -n
+only print location of recurring elemens
+.TP
+.B -h
+online help
+
+.
+.
+.
+.SH DETECTION
+
+Page numbers, headers and footers are located by three features they usually
+exhibit:
+
+.IP "  * " 4
+they are short, one or two lines tall at most
+.IP "  * "
+they have the same size in more than one page
+.IP "  * "
+they have the same vertical placement and similar horizontal placement in many
+pages
+
+.P
+
+For example, page numbers are blocks of text made of a single line; this is the
+first feature that helps identifying them. If they are located in the
+lower-right corner in odd pages and lower-left in even pages, numbers 3, 5, 7
+and 9 have the very same position and size; numbers 11, 13, 15 also have. This
+is the second feature: same position in more than one page. Finally, 9 and 11,
+as well as any other pair such as 5 and 25, have same vertical placement and
+they do not differ too much horizontally. Still better, the space taken by one
+contains the space taken by the other (the space of 11 contains that of 9).
+
+Detecting all three features relies on identifying the blocks of text in the
+page, which requires the text-to-text distance (the minimal white space that
+makes two pieces of text not to be considered in the same block of text). This
+amount can be specified by option \fI-t\fP.
+
+Option \fI-s\fP tells the maximal height of blocks of text considered for being
+candidate recurring elements. If the font in the headers is at most 12 points
+tall, passing 12 helps the algorithm by excluding all blocks of text made of
+two lines or more.
+
+Alternatively, instead of removing the recurring elements, the largest
+rectangle remaining in the page when they are removed is used to clip the text,
+if option \fI-m\fP is used.
+
+The remaining options control whether the recurring elements are only to be
+detected without producing an output file (\fI-n\fP), whether to draw a box
+around detected recurring elements (for testing purposes, option \fI-d\fP), and
+whether the output file contains the recurring elements (again for testing,
+option \fI-c\fP).
+
+.
+.
+.
+.SH SEE ALSO
+
+\fIpdfrects(1)\fP, \fIpdftoroff(1)\fP, \fIpdffit(1)\fP, \fIhovacui(1)\fP
+

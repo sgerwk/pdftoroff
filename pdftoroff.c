@@ -147,6 +147,12 @@ int main(int argc, char *argv[]) {
 			argc--;
 			argv++;
 			break;
+		case 'n':
+			zone = poppler_rectangle_new();
+			zone->x1 = -100;
+			zone->x2 = -100;
+			zone->y2 = -1;
+			break;
 		case 'v':
 			debugpar = TRUE;
 			break;
@@ -167,7 +173,7 @@ int main(int argc, char *argv[]) {
 		printf("pdftoroff converts pdf to various text formats\n");
 		printf("usage:\n\tpdftoroff [-r|-w|-p|-f|-t|-s fmt]");
 		printf(" [-m method [-d dist] [-o order]]\n");
-		printf("\t          [-i range] [-b box] [-v] file.pdf\n");
+		printf("\t          [-i range] [-b box] [-n] [-v] file.pdf\n");
 		printf("\t\t-r\t\tconvert to roff (default)\n");
 		printf("\t\t-w\t\tconvert to html\n");
 		printf("\t\t-p\t\tconvert to plain TeX\n");
@@ -180,6 +186,7 @@ int main(int argc, char *argv[]) {
 		printf("\t\t-o order\tblock sorting algorithm (0-2)\n");
 		printf("\t\t-i range\tpages to convert (n:m)\n");
 		printf("\t\t-b box\t\tonly convert characters in box\n");
+		printf("\t\t-n\t\tdo not convert recurring elements\n");
 		printf("\t\t-v\t\treason for line breaks\n");
 
 		exit(opterr || ! usage ? EXIT_FAILURE : EXIT_SUCCESS);

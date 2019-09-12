@@ -545,6 +545,7 @@ void showdocumentpart(FILE *fd, PopplerDocument *doc, int first, int last,
 	struct scandata scandata;
 	int npage;
 	PopplerPage *page;
+	gdouble h;
 
 	if (first < 0)
 		first = poppler_document_get_n_pages(doc) + first;
@@ -555,6 +556,14 @@ void showdocumentpart(FILE *fd, PopplerDocument *doc, int first, int last,
 		first = 0;
 	if (last >= poppler_document_get_n_pages(doc))
 		last = poppler_document_get_n_pages(doc) - 1;
+
+	if (zone != NULL && zone->x1 == -100 && zone->x2 == -100) {
+		h = zone->y2;
+		poppler_rectangle_free(zone);
+		debugfrequent = 0;
+		zone = rectanglevector_main(doc, NULL,
+			h, measure->blockdistance);
+	}
 
 	startdocument(fd, method, measure, format, &scandata);
 	for (npage = first; npage <= last; npage++) {

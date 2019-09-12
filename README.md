@@ -40,6 +40,10 @@ user-defined format. It is used by the included **pdftoebook** script to
 reformat a pdf file to a smaller page, so that it becomes suited to be read on
 a small tablet or e-ink ebook reader.
 
+## pdfrecur
+
+The **pdfrecur** filter removes page numbers, headers and footers.
+
 ## installation
 
 Generic instructions:

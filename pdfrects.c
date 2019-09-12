@@ -6,6 +6,13 @@
  * - functions on individual rectangles (containment, join, etc)
  * - functions for rectangle lists representing the union of the areas
  * - functions for blocks of text in a page
+ * - functions for short, recurring blocks of text
+ */
+
+/*
+ * the textarea
+ *
+ * the union of the rectangles in the page that contain text
  *
  * the functions that find the blocks of text first nullify the rectangles of
  * white space by turning them into 0-width rectangles; the resulting rectangle
@@ -91,6 +98,53 @@
  */
 
 /*
+ * the recurring blocks of text
+ *
+ * a document may contain text that is not part of its main content, like page
+ * numbers or more generally headers or footers
+ *
+ * RectangleList *rectanglevector_frequent(PopplerDocument *doc,
+ *		gdouble height, gdouble distance);
+ *	try to locate the recurring text in a page; the result is a set of
+ *	rectangles such that every recurring text contains at least one of
+ *	them; this is an heuristics function, so it is not guaranteed to work
+ *	in all cases (see below); also, for large document pages are sampled at
+ *	random, so the result may change every time
+ *
+ * PopplerRectangle *rectanglevector_main(PopplerDocument *doc,
+ *		RectangleList *recur, gdouble height, gdouble distance);
+ *	the largest rectangle in the page once the rectangles in recur have
+ *	been removed; clipping to this rectangle is the first way to remove the
+ *	recurring text from the page
+ *
+ * void rectanglelist_clip_containing(cairo_t *cr, PopplerPage *page,
+ * 		RectangleList *textarea, RectangleList *rm);
+ *	clip out from the page all rectangles in the textarea that contains any
+ *	of the rectangles in the rm list; this is the second way to remove the
+ *	recurring text from the page
+ *
+
+ * recurring text is usually short in height and positioned the same in most
+ * pages, or in most even pages or most odd pages; these blocks are identified
+ * by searching for short areas of text present identical or similar in many
+ * pages
+ *
+
+ * page numbers may change size (e.g., from a single digit to two); headers and
+ * footers also may (e.g., the chapter title or author); for this reason,
+ * containment is allowed: if a short block of text in a page is contained in
+ * one of another page, it is counted as occurring in two pages; height is
+ * required to be the same; two blocks of identical size count much more than
+ * one contained in another
+ *
+ * the recurring blocks are found by a vector of rectangles sorted by rank; if
+ * a rectangle to insert contains some in the vector, their rank is increased
+ * by one; if it is contained in some it replaces them, again with increased
+ * rank; otherwise, the rectangle is inserted with rank one; at the end only
+ * the top rectangles are retained; this algorithm is not exact
+ */
+
+/*
  * todo:
  *	images
  *	fix rectangle sorting by position
@@ -115,6 +169,14 @@
  * step; if -1, print the number of rectangles every time it changes
  */
 int debugtextrectangles = 0;
+
+/*
+ * print the frequent text areas during their construction or clip:
+ * 0x01 = yaml
+ * 0x02 = simple text
+ * 0x04 = rectangles being cut out
+ */
+int debugfrequent = 0x02 | 0x04;
 
 /*
  * print a rectangle
@@ -172,7 +234,9 @@ void rectangle_normalize(PopplerRectangle *rect) {
 	}
 }
 
-/* width and height of a rectangle */
+/*
+ * width and height of a rectangle
+ */
 double rectangle_width(PopplerRectangle *r) {
 	return r->x2 - r->x1;
 }
@@ -181,12 +245,10 @@ double rectangle_height(PopplerRectangle *r) {
 }
 
 /*
- * a rectangle as large as the page
+ * area of a rectangle
  */
-void rectangle_page(PopplerPage *page, PopplerRectangle *rect) {
-	rect->x1 = 0;
-	rect->y1 = 0;
-	poppler_page_get_size(page, &rect->x2, &rect->y2);
+double rectangle_area(PopplerRectangle *r) {
+	return rectangle_width(r) * rectangle_height(r);
 }
 
 /*
@@ -198,52 +260,68 @@ gboolean rectangle_bound(PopplerRectangle *r, RectangleBound *b) {
 }
 
 /*
- * check if rectangle a contains rectangle b
+ * floating number tolerance
  */
+#define TOLERANCE 0.001
+
+/*
+ * check if two rectangles are the same
+ */
+gboolean rectangle_hequal(PopplerRectangle *a, PopplerRectangle *b) {
+	return a->x1 == b->x1 && a->x2 == b->x2;
+}
+gboolean rectangle_vequal(PopplerRectangle *a, PopplerRectangle *b) {
+	return a->y1 == b->y1 && a->y2 == b->y2;
+}
+gboolean rectangle_equal(PopplerRectangle *a, PopplerRectangle *b) {
+	return rectangle_hequal(a, b) && rectangle_vequal(a, b);
+}
+
+/*
+ * check whether the first rectangle contains the second
+ */
+gboolean rectangle_hcontain(PopplerRectangle *a, PopplerRectangle *b) {
+	return a->x1 <= b->x1 + TOLERANCE && b->x2 - TOLERANCE <= a->x2;
+}
+gboolean rectangle_vcontain(PopplerRectangle *a, PopplerRectangle *b) {
+	return a->y1 <= b->y1 + TOLERANCE && b->y2 -TOLERANCE <= a->y2;
+}
 gboolean rectangle_contain(PopplerRectangle *a, PopplerRectangle *b) {
-	return	a->x1 <= b->x1 && a->y1 <= b->y1 &&
-		a->x2 >= b->x2 && a->y2 >= b->y2;
+	return rectangle_hcontain(a, b) && rectangle_vcontain(a, b);
 }
 
 /*
  * check if rectangles overlap
  */
+gboolean rectangle_hoverlap(PopplerRectangle *a, PopplerRectangle *b) {
+	return ! (a->x2 <= b->x1 || a->x1 >= b->x2);
+}
+gboolean rectangle_voverlap(PopplerRectangle *a, PopplerRectangle *b) {
+	return ! (a->y2 <= b->y1 || a->y1 >= b->y2);
+}
 gboolean rectangle_overlap(PopplerRectangle *a, PopplerRectangle *b) {
-	return ! (a->x2 <= b->x1 || a->x1 >= b->x2 ||
-		  a->y2 <= b->y1 || a->y1 >= b->y2);
-}
-
-/*
- * check if rectangles touch (meet or overlap) horizontally
- */
-gboolean rectangle_htouch(PopplerRectangle *a, PopplerRectangle *b) {
-	return ! (a->x2 < b->x1 || a->x1 > b->x2);
-}
-
-/*
- * check if rectangles touch (meet or overlap) vertically
- */
-gboolean rectangle_vtouch(PopplerRectangle *a, PopplerRectangle *b) {
-	return ! (a->y2 < b->y1 || a->y1 > b->y2);
+	return rectangle_hoverlap(a, b) && rectangle_voverlap(a, b);
 }
 
 /*
  * check if rectangles touch (meet or overlap)
  */
+gboolean rectangle_htouch(PopplerRectangle *a, PopplerRectangle *b) {
+	return ! (a->x2 < b->x1 || a->x1 > b->x2);
+}
+gboolean rectangle_vtouch(PopplerRectangle *a, PopplerRectangle *b) {
+	return ! (a->y2 < b->y1 || a->y1 > b->y2);
+}
 gboolean rectangle_touch(PopplerRectangle *a, PopplerRectangle *b) {
 	return rectangle_htouch(a, b) && rectangle_vtouch(a, b);
 }
 
 /*
- * horizontal distance between rectangles
+ * distance between rectangles
  */
 gdouble rectangle_hdistance(PopplerRectangle *a, PopplerRectangle *b) {
 	return MAX(MAX(b->x1 - a->x2, 0), MAX(a->x1 - b->x2, 0));
 }
-
-/*
- * vertical distance between rectangles
- */
 gdouble rectangle_vdistance(PopplerRectangle *a, PopplerRectangle *b) {
 	return MAX(MAX(b->y1 - a->y2, 0), MAX(a->y1 - b->y2, 0));
 }
@@ -334,6 +412,25 @@ int rectangle_compare(PopplerRectangle *a, PopplerRectangle *b) {
 	return rectangle_htouch(a, b) ?
 		rectangle_vcompare(a, b) :
 		rectangle_hcompare(a, b);
+}
+
+/*
+ * compare the area of two rectangles
+ */
+int rectangle_areacompare(PopplerRectangle *a, PopplerRectangle *b) {
+	gdouble aa, ab;
+	aa = rectangle_area(a);
+	ab = rectangle_area(b);
+	return aa < ab ? -1 : aa == ab ? 0 : 1;
+}
+
+/*
+ * a rectangle as large as the page
+ */
+void rectangle_page(PopplerPage *page, PopplerRectangle *rect) {
+	rect->x1 = 0;
+	rect->y1 = 0;
+	poppler_page_get_size(page, &rect->x2, &rect->y2);
 }
 
 /*
@@ -678,6 +775,38 @@ void rectanglelist_charsort(RectangleList *rl, PopplerPage *page) {
 				break;
 			}
 	g_free(rect);
+}
+
+/*
+ * largest rectangle in a list
+ */
+PopplerRectangle *rectanglelist_largest(RectangleList *rl) {
+	PopplerRectangle *max;
+	gdouble maxarea, area;
+	int r;
+
+	if (rl->num == 0)
+		return NULL;
+	max = &rl->rect[0];
+	maxarea = rectangle_area(max);
+
+	for (r = 1; r < rl->num; r++) {
+		area = rectangle_area(&rl->rect[r]);
+		if (maxarea < area) {
+			max = &rl->rect[r];
+			maxarea = area;
+		}
+	}
+
+	return max;
+}
+
+/*
+ * sort rectangles by area
+ */
+void rectanglelist_areasort(RectangleList *rl) {
+	qsort(rl->rect, rl->num, sizeof(PopplerRectangle),
+		(int (*)(const void *, const void *)) rectangle_areacompare);
 }
 
 /*
@@ -1126,6 +1255,253 @@ RectangleList *rectanglelist_rows(PopplerPage *page, gdouble distance) {
 }
 
 /*
+ * create an empty rectangle vector of a given size
+ */
+RectangleVector *rectanglevector_create(int size) {
+	RectangleVector *v = NULL;
+	v = malloc(sizeof(RectangleVector) +
+		size * ((void *) &v->rect[1] - (void *) &v->rect[0]));
+	v->num = 0;
+	v->size = size;
+	return v;
+}
+
+/*
+ * print a rectangle vector
+ */
+void rectanglevector_print(FILE *fd, RectangleVector *v) {
+	int r;
+	for (r = 0; r < v->num; r++) {
+		printf("%8d ", v->rect[r].rank);
+		rectangle_print(fd, &v->rect[r].rect);
+		printf("\n");
+	}
+}
+void rectanglevector_printyaml(FILE *fd, char *first, char *indent,
+		RectangleVector *v) {
+	gint r;
+
+	for (r = 0; r < v->num; r++) {
+		fprintf(fd, "%srank: %d\n", first, v->rect[r].rank);
+		rectangle_printyaml(fd, indent, indent, &v->rect[r].rect);
+	}
+}
+
+/*
+ * make a rectangle list out of a rectangle vector
+ */
+RectangleList *rectanglevector_list(RectangleVector *v) {
+	RectangleList *dest;
+	int r;
+
+	dest = rectanglelist_new(v->num);
+	dest->num = v->num;
+	for (r = 0; r < v->num; r++)
+		dest->rect[r] = v->rect[r].rect;
+
+	return dest;
+}
+
+/*
+ * wedge a rectangle at the beginning of a portion of the vector
+ */
+void rectanglevector_wedge(RectangleVector *v, int start, int end,
+		int rank, PopplerRectangle *r) {
+	memmove(v->rect + start + 1, v->rect + start,
+		(void *) (v->rect + end) - (void *) (v->rect + start));
+	v->rect[start].rank = rank;
+	v->rect[start].rect = *r;
+}
+
+/*
+ * insert a rectangle in a vector
+ */
+void rectanglevector_insert(RectangleVector *v, int rank, PopplerRectangle *r) {
+	int i;
+
+	for (i = 0; i < v->num; i++)
+		if (rank >= v->rect[i].rank) {
+			if (v->num < v->size)
+				v->num++;
+			rectanglevector_wedge(v, i, v->num - 1, rank, r);
+			return;
+		}
+
+	if (v->num < v->size) {
+		v->rect[v->num].rank = rank;
+		v->rect[v->num].rect = *r;
+		v->num++;
+	}
+}
+
+/*
+ * add a rectangle to a frequency vector, allowing horizontal containment
+ */
+void rectanglevector_add(RectangleVector *v, PopplerRectangle *r) {
+	int i, j;
+	int rank = 1;
+	PopplerRectangle trect;
+	int trank;
+	gboolean insert;
+	int insertpos;
+
+	insert = TRUE;
+	insertpos = -1;
+	for (i = 0; i < v->num; i++) {
+		if (rectangle_vequal(&v->rect[i].rect, r) &&
+		    (rectangle_hcontain(&v->rect[i].rect, r) ||
+		     rectangle_hcontain(r, &v->rect[i].rect))) {
+			v->rect[i].rank +=
+				rectangle_equal(&v->rect[i].rect, r) ? 4 : 1;
+			trank = v->rect[i].rank;
+			rectangle_intersect(&trect, &v->rect[i].rect, r);
+			for (j = i - 1;
+			     j >= 0 && trank > v->rect[j].rank;
+			     j--) {
+			}
+			if (j + 1 < i)
+				rectanglevector_wedge(v, j + 1, i,
+					trank, &trect);
+			else
+				v->rect[i].rect = trect;
+			insert = FALSE;
+		}
+		if (rank >= v->rect[i].rank && insertpos == -1)
+			insertpos = i;
+	}
+
+	if (! insert)
+		return;
+
+	if (insertpos != -1) {
+		if (v->num < v->size)
+			v->num++;
+		rectanglevector_wedge(v, insertpos, v->num - 1, rank, r);
+	}
+	else if (v->num < v->size) {
+		v->rect[v->num].rank = rank;
+		v->rect[v->num].rect = *r;
+		v->num++;
+	}
+}
+
+/*
+ * rectangles often taken by short blocks of text
+ */
+RectangleList *rectanglevector_frequent(PopplerDocument *doc,
+		gdouble height, gdouble distance) {
+	PopplerPage *page;
+	int npages, n, iterations, samplerate, r;
+	PopplerRectangle *rect;
+	RectangleList *textarea = NULL, *result;
+	RectangleVector *frequent;
+
+	frequent = rectanglevector_create(30);
+
+	npages = poppler_document_get_n_pages(doc);
+	samplerate = npages < 40 ? 100 : npages < 100 ? 50 : 25;
+	srandom(time(NULL));
+	if (height == -1)
+		height = 20;
+
+	if (debugfrequent & (0x01 | 0x02))
+		printf("iterations:\n");
+	iterations = 0;
+	for (n = 0; n < npages; n++) {
+		if (random() % 100 > samplerate)
+			continue;
+		iterations++;
+		page = poppler_document_get_page(doc, n);
+		textarea = rectanglelist_textarea_distance(page, distance);
+		if (debugfrequent) {
+			printf("  - page: %d\n", n);
+			printf("    textarea: %d\n", textarea->num);
+		}
+
+		if (debugfrequent & 0x01) {
+			printf("    textarea:\n");
+			rectanglelist_printyaml(stdout,
+				"      - ", "        ", textarea);
+		}
+
+		for (r = 0; r < textarea->num; r++)
+			if (rectangle_height(&textarea->rect[r]) <= height) {
+				rect = &textarea->rect[r];
+				rectanglevector_add(frequent, rect);
+				if (debugfrequent & 0x02) {
+					printf("      -> ");
+					rectangle_print(stdout, rect);
+					printf("\n");
+					rectanglevector_print(stdout, frequent);
+					printf("\n");
+				}
+			}
+
+		if (debugfrequent & 0x01) {
+			printf("    frequent:\n");
+			rectanglevector_printyaml(stdout,
+				"      - ", "        ", frequent);
+		}
+
+		rectanglelist_free(textarea);
+		g_object_unref(page);
+	}
+
+	for (r = 0;
+	     r < frequent->num && frequent->rect[r].rank > iterations / 6;
+	     r++) {
+	}
+	frequent->num = r;
+
+	if (debugfrequent & (0x01 | 0x02))
+		printf("frequent:\n");
+	if (debugfrequent & 0x01)
+		rectanglevector_printyaml(stdout, "  - ", "    ", frequent);
+	if (debugfrequent & 0x02)
+		rectanglevector_print(stdout, frequent);
+
+	result = rectanglevector_list(frequent);
+	free(frequent);
+
+	return result;
+}
+
+/*
+ * the page minus page numbers, headers and footers
+ */
+PopplerRectangle *rectanglevector_main(PopplerDocument *doc,
+		RectangleList *recur, gdouble height, gdouble distance) {
+	PopplerPage *first;
+	PopplerRectangle page, *maintext;
+	RectangleList *subtract;
+	RectangleBound bound = {0.0, 0.0};
+
+	first = poppler_document_get_page(doc, 0);
+	rectangle_page(first, &page);
+	g_object_unref(first);
+
+	if (recur == NULL)
+		recur = rectanglevector_frequent(doc, height, distance);
+
+	subtract = rectanglelist_subtract1(&page, recur, NULL, &bound);
+	maintext = poppler_rectangle_copy(rectanglelist_largest(subtract));
+	rectanglelist_free(subtract);
+
+	return maintext;
+}
+
+/*
+ * use rectangle in cairo
+ */
+void rectangle_cairo(cairo_t *cr, PopplerRectangle *rect, gdouble enlarge) {
+	cairo_rectangle(cr,
+		rect->x1 - enlarge,
+		rect->y1 - enlarge,
+		rectangle_width(rect) + 2 * enlarge,
+		rectangle_height(rect) + 2 * enlarge);
+}
+
+/*
  * draw a rectangle on a cairo context with a random color
  */
 void rectangle_draw(cairo_t *cr, PopplerRectangle *rect,
@@ -1145,11 +1521,7 @@ void rectangle_draw(cairo_t *cr, PopplerRectangle *rect,
 			0.5);
 	if (enclosing)
 		enlarge = cairo_get_line_width(cr) / 2;
-	cairo_rectangle(cr,
-		rect->x1 - enlarge,
-		rect->y1 - enlarge,
-		rect->x2 - rect->x1 + enlarge * 2,
-		rect->y2 - rect->y1 + enlarge * 2);
+	rectangle_cairo(cr, rect, enlarge);
 	if (fill)
 		cairo_fill(cr);
 	cairo_stroke(cr);
@@ -1243,6 +1615,35 @@ void rectangle_map_to_cairo(cairo_t *cr,
 	cairo_translate(cr, marginx, marginy);
 	cairo_scale(cr, scalex, scaley);
 	cairo_translate(cr, -src->x1, -src->y1);
+}
+
+/*
+ * clip out all textarea rectangles containing any in the remove list
+ */
+void rectanglelist_clip_containing(cairo_t *cr, PopplerPage *page,
+		RectangleList *textarea, RectangleList *rm) {
+	int r, s;
+	gdouble width, height;
+	cairo_fill_rule_t prev;
+
+	prev = cairo_get_fill_rule(cr);
+	cairo_set_fill_rule(cr, CAIRO_FILL_RULE_EVEN_ODD);
+
+	poppler_page_get_size(page, &width, &height);
+
+	for (r = 0; r < textarea->num; r++)
+		for (s = 0; s < rm->num; s++) {
+			if (! rectangle_contain(&textarea->rect[r],
+					&rm->rect[s]))
+				continue;
+			if (debugfrequent & 0x04)
+				printf("    cut_rectangle: %d\n", s);
+			cairo_rectangle(cr, 0, 0, width, height);
+			rectangle_cairo(cr, &textarea->rect[r], 2);
+			cairo_clip(cr);
+		}
+
+	cairo_set_fill_rule(cr, prev);
 }
 
 /*

@@ -17,6 +17,7 @@
 WIDTH=200
 HEIGHT=250
 MARGIN=5
+RECUR=-n
 
 while getopts "?w:h:m:p:" opt;
 do
@@ -24,6 +25,7 @@ do
 	w)	WIDTH=$OPTARG;;
 	h)	HEIGHT=$OPTARG;;
 	m)	MARGIN=$OPTARG;;
+	n)	RECUR="";;
 	p)	CONVOPTS="$OPTARG";;
 	*)	echo -en "usage:\n\tpdftoebook [-w width] [-h height] "
 		echo -e "[-m margin] in.pdf [out.pdf]"
@@ -65,7 +67,7 @@ cat <<!
 .fam H
 !
 
-pdftoroff $CONVOPTS "$IN";
+pdftoroff $RECUR $CONVOPTS "$IN";
 } | \
 groff -Dutf8 -Tpdf - > "$OUT"
 
