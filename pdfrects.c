@@ -1753,7 +1753,7 @@ char *filenameescape(char *filename) {
 
 	res = malloc(strlen(filename) * 3 + 1);
 	for (i = 0, j = 0; filename[i] != '\0'; i++)
-		if (filename[i] >= 32 && filename[i] != '%')
+		if ((unsigned char) filename[i] >= 32 && filename[i] != '%')
 			res[j++] = filename[i];
 		else {
 			sprintf(res + j, "%%%02X", filename[i]);
