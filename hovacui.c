@@ -2806,8 +2806,8 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 			}
 			break;
 		case 'p':
-			output.viewmode = 3;
-			output.fit = 1;
+			output.viewmode = optindex('p', "atbp");
+			output.fit = optindex('b', "nhvb");
 			output.ui = FALSE;
 			output.drawbox = FALSE;
 			output.pagelabel = FALSE;
