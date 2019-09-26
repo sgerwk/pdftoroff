@@ -293,6 +293,7 @@ char *filenametouri(char *filename) {
 int main(int argn, char *argv[]) {
 	char *filename, *uri;
 	PopplerDocument *doc;
+	int first = 0, last = -1;
 	PopplerPage *page;
 	int npages, n;
 	double width, height;
@@ -303,11 +304,15 @@ int main(int argn, char *argv[]) {
 	if (argn - 1 < 1) {
 		printf("error: filename missing\n");
 		printf("print annotations and actions in a pdf file\n");
-		printf("usage:\n\tpdfannot file.pdf\n");
+		printf("usage:\n\tpdfannot file.pdf [page]\n");
 		exit(EXIT_FAILURE);
 	}
 	filename = argv[1];
 	uri = filenametouri(filename);
+	if (argn - 1 > 1) {
+		first = atoi(argv[2]);
+		last = atoi(argv[2]) + 1;
+	}
 
 				/* open document */
 
@@ -320,8 +325,12 @@ int main(int argn, char *argv[]) {
 				/* scan pages */
 
 	npages = poppler_document_get_n_pages(doc);
+	if (first < 0 || last >= npages) {
+		printf("no such page: %d\n", last - 1);
+		return EXIT_FAILURE;
+	}
 
-	for (n = 0; n < npages; n++) {
+	for (n = first; n < (last == -1 ? npages : last); n++) {
 		page = poppler_document_get_page(doc, n);
 		poppler_page_get_size(page, &width, &height);
 		present = present | (printannotations(page) << 0);
