@@ -10,6 +10,25 @@
 #include <poppler.h>
 
 /*
+ * pages to show
+ */
+int first;
+int last;
+
+/*
+ * output format
+ */
+enum format {
+	text,
+	html
+} outformat;
+
+/*
+ * newline
+ */
+#define NEWLINE (outformat == text ? "\n" : "<br />\n")
+
+/*
  * print a string and free it
  */
 void printfree(gchar *prefix, gchar *s, gchar *suffix) {
@@ -20,6 +39,22 @@ void printfree(gchar *prefix, gchar *s, gchar *suffix) {
 		*p = '\n';
 	printf("%s%s%s", prefix, s, suffix);
 	g_free(s);
+}
+
+/*
+ * print the header for a page
+ */
+void printheader(gchar *title, PopplerPage *page) {
+	if (last == first + 1)
+		return;
+	if (outformat == text)
+		printf("================== ");
+	else
+		printf("<h2>");
+	printf("%s ON PAGE %d", title, poppler_page_get_index(page) + 1);
+	if (outformat == html)
+		printf("</h2>");
+	printf("\n");
 }
 
 /*
@@ -65,13 +100,13 @@ void printannotationname(PopplerAnnot *annot) {
 			printf("file attachment:");
 			break;
 		case POPPLER_ANNOT_STAMP:
-			printf("stamp:\n");
+			printf("stamp:%s", NEWLINE);
 			break;
 		case POPPLER_ANNOT_CARET:
-			printf("caret:\n");
+			printf("caret:%s", NEWLINE);
 			break;
 		case POPPLER_ANNOT_WIDGET:
-			printf("widget (unsupported)\n");
+			printf("widget (unsupported)%s", NEWLINE);
 			break;
 		default:
 			printf("annotation (%d):", type);
@@ -99,12 +134,12 @@ int printannotationmarkup(PopplerAnnotMarkup *markup) {
 	}
 
 	if (! poppler_annot_markup_has_popup(markup)) {
-		printf("\n");
+		printf("%s", NEWLINE);
 		return 0;
 	}
 	poppler_annot_markup_get_popup_rectangle(markup, &rect);
 	printf(" %g,%g-%g,%g", rect.x1, rect.y1, rect.x2, rect.y2);
-	printf("\n");
+	printf("%s", NEWLINE);
 	return 0;
 }
 
@@ -123,14 +158,14 @@ int printannotations(PopplerPage *page) {
 	annots = poppler_page_get_annot_mapping(page);
 
 	for (s = annots; s != NULL; s = s->next) {
-		if (! present) {
-			printf("================== ANNOTATIONS ON PAGE ");
-			printf("%d\n", poppler_page_get_index(page) + 1);
+		m = (PopplerAnnotMapping *) s->data;
+		type = poppler_annot_get_annot_type(m->annot);
+
+		if (! present && type != POPPLER_ANNOT_LINK) {
+			printheader("ANNOTATIONS", page);
 			present = TRUE;
 		}
-		m = (PopplerAnnotMapping *) s->data;
 
-		type = poppler_annot_get_annot_type(m->annot);
 		switch (type) {
 		case POPPLER_ANNOT_LINK:
 			continue;	// links are actions, print there
@@ -187,8 +222,7 @@ int printlinks(PopplerPage *page) {
 
 	for (l = links; l != NULL; l = l->next) {
 		if (! present) {
-			printf("================== ACTIONS ON PAGE ");
-			printf("%d\n", poppler_page_get_index(page) + 1);
+			printheader("ACTIONS", page);
 			present = TRUE;
 		}
 		m = (PopplerLinkMapping *) l->data;
@@ -198,31 +232,38 @@ int printlinks(PopplerPage *page) {
 		r.y1 = height - m->area.y1 - 20;
 		r.y2 = height - m->area.y2 + 20;
 		t = poppler_page_get_text_for_area(page, &r);
-		printf("%s\n", t);
-		free(t);
+		if (outformat != html)
+			printf("%s\n", t);
 
 		a = m->action;
 		switch (a->type) {
 		case POPPLER_ACTION_NONE:
 			any = (PopplerActionAny *) a;
-			printf("none: %s\n", any->title);
+			printf("none: %s", any->title);
 			break;
 		case POPPLER_ACTION_GOTO_DEST:
 			linkdest = (PopplerActionGotoDest *) a;
-			printf("link to page %d\n", linkdest->dest->page_num);
+			printf("link to page %d", linkdest->dest->page_num);
 			break;
 		case POPPLER_ACTION_GOTO_REMOTE:
 			remote = (PopplerActionGotoRemote *) a;
-			printf("link to document %s\n", remote->file_name);
+			printf("link to document %s", remote->file_name);
 			break;
 		/* POPPLER_ACTION_LAUNCH does not make sense */
 		case POPPLER_ACTION_URI:
 			uri = (PopplerActionUri *) a;
-			printf("uri: %s\n", uri->uri);
+			if (outformat == text)
+				printf("uri: %s", uri->uri);
+			else
+				printf("<p><a href=\"%s\">%s</a></p>",
+					uri->uri,
+					uri->title != NULL ? uri->title :
+					t != NULL && t[0] != '\0' ? t :
+						uri->uri);
 			break;
 		case POPPLER_ACTION_NAMED:
 			named = (PopplerActionNamed *) a;
-			printf("predefined action: %s\n", named->named_dest);
+			printf("predefined action: %s", named->named_dest);
 			break;
 		/* newer actions:
 		case POPPLER_ACTION_MOVIE:
@@ -230,8 +271,11 @@ int printlinks(PopplerPage *page) {
 		case POPPLER_ACTION_OCG_STATE: */
 		/* do not support POPPLER_ACTION_JAVASCRIPT */
 		default:
-			printf("action (%d)\n", a->type);
+			printf("action (%d)", a->type);
 		}
+		printf("%s", NEWLINE);
+
+		free(t);
 	}
 
 	poppler_page_free_link_mapping(links);
@@ -306,17 +350,25 @@ char *filenametouri(char *filename) {
 int main(int argn, char *argv[]) {
 	char *filename, *uri;
 	PopplerDocument *doc;
-	int first = 0, last = -1;
 	PopplerPage *page;
 	int npages, n;
 	int present = 0;
 
 				/* arguments */
 
+	outformat = text;
+	first = 0;
+	last = -1;
+
+	if (argn - 1 >= 1 && ! strcmp(argv[1], "-w")) {
+		outformat = html;
+		argn--;
+		argv++;
+	}
 	if (argn - 1 < 1) {
 		printf("error: filename missing\n");
 		printf("print annotations and actions in a pdf file\n");
-		printf("usage:\n\tpdfannot file.pdf [page]\n");
+		printf("usage:\n\tpdfannot [-w] file.pdf [page]\n");
 		exit(EXIT_FAILURE);
 	}
 	filename = argv[1];
