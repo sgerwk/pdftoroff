@@ -296,7 +296,6 @@ int main(int argn, char *argv[]) {
 	int first = 0, last = -1;
 	PopplerPage *page;
 	int npages, n;
-	double width, height;
 	int present = 0;
 
 				/* arguments */
@@ -332,7 +331,6 @@ int main(int argn, char *argv[]) {
 
 	for (n = first; n < (last == -1 ? npages : last); n++) {
 		page = poppler_document_get_page(doc, n);
-		poppler_page_get_size(page, &width, &height);
 		present = present | (printannotations(page) << 0);
 		present = present | (printlinks(page) << 1);
 		g_object_unref(page);
