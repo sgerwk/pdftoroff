@@ -236,7 +236,8 @@ int printlinks(PopplerPage *page) {
 		r.y1 = height - m->area.y2 - 0;
 		r.y2 = height - m->area.y1 + 0;
 		// printf("%g,%g - %g,%g\n", r.x1, r.y1, r.x2, r.y2);
-		t = poppler_page_get_text_for_area(page, &r);
+		t = poppler_page_get_selected_text(page,
+			POPPLER_SELECTION_LINE, &r);
 		if (outformat != html || a->type != POPPLER_ACTION_URI)
 			printf("%s%s", t, NEWLINE);
 
