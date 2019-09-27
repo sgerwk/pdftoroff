@@ -220,22 +220,26 @@ int printlinks(PopplerPage *page) {
 	poppler_page_get_size(page, &width, &height);
 	links = poppler_page_get_link_mapping(page);
 
-	for (l = links; l != NULL; l = l->next) {
+	for (; links != NULL && links->next != NULL; links = links->next) {
+	}
+
+	for (l = links; l != NULL; l = l->prev) {
 		if (! present) {
 			printheader("ACTIONS", page);
 			present = TRUE;
 		}
 		m = (PopplerLinkMapping *) l->data;
-
-		r.x1 = m->area.x1 - 10;
-		r.x2 = m->area.x2 + 10;
-		r.y1 = height - m->area.y1 - 20;
-		r.y2 = height - m->area.y2 + 20;
-		t = poppler_page_get_text_for_area(page, &r);
-		if (outformat != html)
-			printf("%s\n", t);
-
 		a = m->action;
+
+		r.x1 = m->area.x1 - 0;
+		r.x2 = m->area.x2 + 0;
+		r.y1 = height - m->area.y2 - 0;
+		r.y2 = height - m->area.y1 + 0;
+		// printf("%g,%g - %g,%g\n", r.x1, r.y1, r.x2, r.y2);
+		t = poppler_page_get_text_for_area(page, &r);
+		if (outformat != html || a->type != POPPLER_ACTION_URI)
+			printf("%s%s", t, NEWLINE);
+
 		switch (a->type) {
 		case POPPLER_ACTION_NONE:
 			any = (PopplerActionAny *) a;
