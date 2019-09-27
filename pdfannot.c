@@ -10,10 +10,9 @@
 #include <poppler.h>
 
 /*
- * pages to show
+ * separate pages or not
  */
-int first;
-int last;
+gboolean headers;
 
 /*
  * output format
@@ -45,7 +44,7 @@ void printfree(gchar *prefix, gchar *s, gchar *suffix) {
  * print the header for a page
  */
 void printheader(gchar *title, PopplerPage *page) {
-	if (last == first + 1)
+	if (! headers)
 		return;
 	if (outformat == text)
 		printf("================== ");
@@ -353,7 +352,9 @@ char *filenametouri(char *filename) {
  * main
  */
 int main(int argn, char *argv[]) {
+	int opt, usage;
 	char *filename, *uri;
+	int first, last;
 	PopplerDocument *doc;
 	PopplerPage *page;
 	int npages, n;
@@ -361,26 +362,42 @@ int main(int argn, char *argv[]) {
 
 				/* arguments */
 
+	usage = 0;
+	headers = TRUE;
 	outformat = text;
 	first = 0;
 	last = -1;
 
-	if (argn - 1 >= 1 && ! strcmp(argv[1], "-w")) {
-		outformat = html;
-		argn--;
-		argv++;
-	}
-	if (argn - 1 < 1) {
+	while (-1 != (opt = getopt(argn, argv, "wth")))
+		switch (opt) {
+		case 't':
+			outformat = text;
+			break;
+		case 'w':
+			outformat = html;
+			break;
+		case 'h':
+			usage = 1;
+			break;
+		default:
+			printf("unknown option: -%c\n", opt);
+			usage = 2;
+			break;
+		}
+	if (argn - optind < 1)
+		usage = 2;
+	if (usage > 0) {
 		printf("error: filename missing\n");
 		printf("print annotations and actions in a pdf file\n");
 		printf("usage:\n\tpdfannot [-w] file.pdf [page]\n");
-		exit(EXIT_FAILURE);
+		exit(usage == 1 ? EXIT_SUCCESS : EXIT_FAILURE);
 	}
-	filename = argv[1];
+	filename = argv[optind];
 	uri = filenametouri(filename);
-	if (argn - 1 > 1) {
-		first = atoi(argv[2]);
-		last = atoi(argv[2]) + 1;
+	if (argn - optind > 1) {
+		first = atoi(argv[optind + 1]);
+		last = atoi(argv[optind + 1]) + 1;
+		headers = FALSE;
 	}
 
 				/* open document */
