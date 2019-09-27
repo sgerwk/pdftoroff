@@ -279,7 +279,7 @@ int printlinks(PopplerPage *page) {
 		}
 		printf("%s", NEWLINE);
 
-		free(t);
+		g_free(t);
 	}
 
 	poppler_page_free_link_mapping(links);
