@@ -169,16 +169,20 @@ int printannotations(PopplerPage *page) {
  * print the links in a page
  */
 int printlinks(PopplerPage *page) {
+	gdouble width, height;
 	GList *links, *l;
 	int present = FALSE;
 	PopplerLinkMapping *m;
+	PopplerRectangle r;
 	PopplerAction *a;
 	PopplerActionAny *any;
 	PopplerActionGotoDest *linkdest;
 	PopplerActionGotoRemote *remote;
 	PopplerActionUri *uri;
 	PopplerActionNamed *named;
+	char *t;
 
+	poppler_page_get_size(page, &width, &height);
 	links = poppler_page_get_link_mapping(page);
 
 	for (l = links; l != NULL; l = l->next) {
@@ -188,6 +192,15 @@ int printlinks(PopplerPage *page) {
 			present = TRUE;
 		}
 		m = (PopplerLinkMapping *) l->data;
+
+		r.x1 = m->area.x1 - 10;
+		r.x2 = m->area.x2 + 10;
+		r.y1 = height - m->area.y1 - 20;
+		r.y2 = height - m->area.y2 + 20;
+		t = poppler_page_get_text_for_area(page, &r);
+		printf("%s\n", t);
+		free(t);
+
 		a = m->action;
 		switch (a->type) {
 		case POPPLER_ACTION_NONE:
