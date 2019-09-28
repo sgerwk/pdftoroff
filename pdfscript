@@ -1,0 +1,24 @@
+#!/bin/sh
+#
+# external script for hovacui
+#
+# show annotation and actions in the current page in a browser
+
+[ "$1" != 'l' ] && exit 1
+
+pdfannot -w $2 $3 > hovacui-out.html
+[ $? = 0 ] && rm hovacui-out.html && exit
+
+if [ "$DISPLAY" = "" ];
+then
+	elinks -remote 'openUrl(hovacui-out.html,new-tab)'
+	elinks -remote 'reload()'
+	exit
+fi
+
+if [ "$BROWSER" != "" ];
+then
+	$BROWSER hovacui-out.html
+	exit
+fi
+
