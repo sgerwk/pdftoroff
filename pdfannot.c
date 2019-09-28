@@ -202,7 +202,8 @@ int printannotations(PopplerPage *page) {
 /*
  * print the links in a page
  */
-int printlinks(PopplerPage *page) {
+#define DESTCONTENT 0x01
+int printlinks(PopplerDocument *doc, PopplerPage *page, int flags) {
 	gdouble width, height;
 	GList *links, *l;
 	int present = FALSE;
@@ -214,7 +215,9 @@ int printlinks(PopplerPage *page) {
 	PopplerActionGotoRemote *remote;
 	PopplerActionUri *uri;
 	PopplerActionNamed *named;
-	char *t;
+	PopplerDest *dest, *inter;
+	PopplerPage *dpage;
+	char *t, *d;
 
 	poppler_page_get_size(page, &width, &height);
 	links = poppler_page_get_link_mapping(page);
@@ -247,7 +250,50 @@ int printlinks(PopplerPage *page) {
 			break;
 		case POPPLER_ACTION_GOTO_DEST:
 			linkdest = (PopplerActionGotoDest *) a;
-			printf("link to page %d", linkdest->dest->page_num);
+			dest = linkdest->dest;
+			printf("link ");
+			while (dest->type == POPPLER_DEST_NAMED) {
+				printf("to %s: ", dest->named_dest);
+				inter = poppler_document_find_dest(doc,
+					dest->named_dest);
+				if (dest != linkdest->dest)
+					poppler_dest_free(dest);
+				dest = inter;
+			}
+			printf("to page %d, ", dest->page_num);
+			switch (dest->type) {
+			case POPPLER_DEST_XYZ:
+				printf("point %g,%g", dest->left, dest->top);
+				r.x1 = dest->left - 20;
+				r.y1 = dest->top - 20;
+				r.x2 = dest->left + 20;
+				r.y2 = dest->top + 20;
+				break;
+			case POPPLER_DEST_FIT:
+				// whole page
+				// todo: other fit modes
+				break;
+			default:
+				printf("rectangle ");
+				printf("%g,%g - ", dest->left, dest->top);
+				printf("%g,%g", dest->right, dest->bottom);
+				r.x1 = dest->left;
+				r.y1 = dest->top;
+				r.x2 = dest->right;
+				r.y2 = dest->bottom;
+				break;
+			}
+			if (flags & DESTCONTENT) {
+				dpage = poppler_document_get_page(doc,
+					dest->page_num - 1);
+				d = poppler_page_get_selected_text(dpage,
+					POPPLER_SELECTION_LINE, &r);
+				printf("\ndestination: %s%s", d, NEWLINE);
+				free(d);
+				g_object_unref(dpage);
+			}
+			if (dest != linkdest->dest)
+				poppler_dest_free(dest);
 			break;
 		case POPPLER_ACTION_GOTO_REMOTE:
 			remote = (PopplerActionGotoRemote *) a;
@@ -355,6 +401,7 @@ int main(int argn, char *argv[]) {
 	int opt, usage;
 	char *filename, *uri;
 	int first, last;
+	int flags;
 	PopplerDocument *doc;
 	PopplerPage *page;
 	int npages, n;
@@ -367,8 +414,9 @@ int main(int argn, char *argv[]) {
 	outformat = text;
 	first = 0;
 	last = -1;
+	flags = 0;
 
-	while (-1 != (opt = getopt(argn, argv, "wth")))
+	while (-1 != (opt = getopt(argn, argv, "wtdh")))
 		switch (opt) {
 		case 't':
 			outformat = text;
@@ -376,20 +424,28 @@ int main(int argn, char *argv[]) {
 		case 'w':
 			outformat = html;
 			break;
+		case 'd':
+			flags |= DESTCONTENT;
+			break;
 		case 'h':
 			usage = 1;
 			break;
 		default:
-			printf("unknown option: -%c\n", opt);
 			usage = 2;
 			break;
 		}
-	if (argn - optind < 1)
-		usage = 2;
-	if (usage > 0) {
+	if (usage == 0 && argn - optind < 1) {
 		printf("error: filename missing\n");
+		usage = 2;
+	}
+	if (usage > 0) {
 		printf("print annotations and actions in a pdf file\n");
-		printf("usage:\n\tpdfannot [-w] file.pdf [page]\n");
+		printf("usage:\n\tpdfannot [-t] [-w] [-d] [-h] ");
+		printf("file.pdf [page]\n");
+		printf("\t\t-t\toutput is text-only\n");
+		printf("\t\t-w\toutput is html\n");
+		printf("\t\t-d\tprint text at destination of inner links\n");
+		printf("\t\t-h\tthis help\n");
 		exit(usage == 1 ? EXIT_SUCCESS : EXIT_FAILURE);
 	}
 	filename = argv[optind];
@@ -419,7 +475,7 @@ int main(int argn, char *argv[]) {
 	for (n = first; n < (last == -1 ? npages : last); n++) {
 		page = poppler_document_get_page(doc, n);
 		present = present | (printannotations(page) << 0);
-		present = present | (printlinks(page) << 1);
+		present = present | (printlinks(doc, page, flags) << 1);
 		g_object_unref(page);
 	}
 
