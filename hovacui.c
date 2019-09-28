@@ -339,6 +339,10 @@ struct output {
 	char *pdfout;
 	int first, last;
 	char *postsave;
+
+	/* external script */
+	char *keys;
+	char *script;
 };
 
 /*
@@ -1298,6 +1302,29 @@ int savebox(struct cairoui *cairoui, int visible) {
 }
 
 /*
+ * call the external script
+ */
+int keyscript(struct cairoui *cairoui, char c) {
+	struct position *position = POSITION(cairoui);
+	struct output *output = OUTPUT(cairoui);
+	char *line;
+	int len, res;
+
+	if (output->script == NULL ||
+	    output->keys == NULL || strchr(output->keys, c) == NULL)
+		return -1;
+
+	len = strlen(output->script) + strlen(position->filename) + 20;
+	line = malloc(len);
+	sprintf(line, output->script, c, position->filename, position->npage);
+	res = system(line);
+	cairoui_printlabel(cairoui, output->help, 2000, "executed: %s", line);
+	free(line);
+
+	return res;
+}
+
+/*
  * the windows
  */
 enum window {
@@ -1437,7 +1464,7 @@ int document(int c, struct cairoui *cairoui) {
 		movetonameddestination(cairoui, "abcd");
 		break;
 	default:
-		;
+		keyscript(cairoui, c);
 	}
 
 	cairoui->redraw = TRUE;
@@ -2599,7 +2626,7 @@ void usage() {
  */
 int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	char *mainopts = "m:f:w:t:o:d:s:pe:z:l:c:C:h", *allopts;
-	char configfile[4096], configline[1000], s[1000];
+	char configfile[4096], configline[1000], s[1000], r[1000];
 	FILE *config;
 	int i;
 	double d;
@@ -2649,6 +2676,8 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	output.pagelabel = TRUE;
 	output.pdfout = "selection-%d.pdf";
 	output.postsave = NULL;
+	output.keys = NULL;
+	output.script = NULL;
 	output.first = -1;
 	output.last = -1;
 	output.screenaspect = -1;
@@ -2717,8 +2746,13 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 				exit(EXIT_FAILURE);
 		if (sscanf(configline, "outfile %s", s) == 1)
 			cairoui.outname = strdup(s);
-		if (sscanf(configline, "postsave %900c", s) == 1)
+		if (sscanf(configline, "postsave %900[^\n\r]", s) == 1)
 			output.postsave = strdup(s);
+		if (sscanf(configline, "script %900s %900[^\n\r]", r, s)
+		    == 2) {
+			output.keys = strdup(r);
+			output.script = strdup(s);
+		}
 		if (sscanf(configline, "log %d", &i) == 1)
 			cairoui.log = i;
 
