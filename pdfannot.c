@@ -252,13 +252,18 @@ int printlinks(PopplerDocument *doc, PopplerPage *page, int flags) {
 			linkdest = (PopplerActionGotoDest *) a;
 			dest = linkdest->dest;
 			printf("link ");
-			while (dest->type == POPPLER_DEST_NAMED) {
+			while (dest != NULL &&
+			       dest->type == POPPLER_DEST_NAMED) {
 				printf("to %s: ", dest->named_dest);
 				inter = poppler_document_find_dest(doc,
 					dest->named_dest);
 				if (dest != linkdest->dest)
 					poppler_dest_free(dest);
 				dest = inter;
+			}
+			if (dest == NULL) {
+				printf("to nowhere");
+				break;
 			}
 			printf("to page %d, ", dest->page_num);
 			switch (dest->type) {
@@ -286,11 +291,20 @@ int printlinks(PopplerDocument *doc, PopplerPage *page, int flags) {
 			if (flags & DESTCONTENT) {
 				dpage = poppler_document_get_page(doc,
 					dest->page_num - 1);
-				d = poppler_page_get_selected_text(dpage,
-					POPPLER_SELECTION_LINE, &r);
-				printf("\ndestination: %s%s", d, NEWLINE);
-				free(d);
-				g_object_unref(dpage);
+				if (dpage != NULL) {
+					d = poppler_page_get_selected_text(
+						dpage,
+						POPPLER_SELECTION_LINE, &r);
+					if (outformat == text)
+						printf("\ndestination: ");
+					else if (outformat == html)
+						printf("\n<blockquote>\n");
+					printf("%s", d);
+					if (outformat == html)
+						printf("</blockquote>\n");
+					free(d);
+					g_object_unref(dpage);
+				}
 			}
 			if (dest != linkdest->dest)
 				poppler_dest_free(dest);
