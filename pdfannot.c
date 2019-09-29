@@ -274,9 +274,9 @@ int printlinks(PopplerDocument *doc, PopplerPage *page, int flags) {
 			case POPPLER_DEST_XYZ:
 				printf("point %g,%g", dest->left, dest->top);
 				r.x1 = dest->left - 20;
-				r.y1 = dest->top - 20;
+				r.y1 = height - dest->top - 20;
 				r.x2 = dest->left + 20;
-				r.y2 = dest->top + 20;
+				r.y2 = height - dest->top + 20;
 				break;
 			case POPPLER_DEST_FIT:
 				// whole page
@@ -287,9 +287,9 @@ int printlinks(PopplerDocument *doc, PopplerPage *page, int flags) {
 				printf("%g,%g - ", dest->left, dest->top);
 				printf("%g,%g", dest->right, dest->bottom);
 				r.x1 = dest->left;
-				r.y1 = dest->top;
+				r.y1 = height - dest->top;
 				r.x2 = dest->right;
-				r.y2 = dest->bottom;
+				r.y2 = height - dest->bottom;
 				break;
 			}
 			if (flags & DESTCONTENT) {
