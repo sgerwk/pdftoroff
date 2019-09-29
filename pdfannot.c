@@ -23,9 +23,11 @@ enum format {
 } outformat;
 
 /*
- * newline
+ * formatting elements
  */
 #define NEWLINE (outformat == text ? "\n" : "<br />\n")
+#define STARTPAR (outformat == text ? "" : "<p>\n")
+#define ENDPAR (outformat == text ? "\n-------\n" : "</p>\n")
 
 /*
  * print a string and free it
@@ -240,6 +242,8 @@ int printlinks(PopplerDocument *doc, PopplerPage *page, int flags) {
 		// printf("%g,%g - %g,%g\n", r.x1, r.y1, r.x2, r.y2);
 		t = poppler_page_get_selected_text(page,
 			POPPLER_SELECTION_LINE, &r);
+
+		fputs(STARTPAR, stdout);
 		if (outformat != html || a->type != POPPLER_ACTION_URI)
 			printf("%s%s", t, NEWLINE);
 
@@ -337,8 +341,8 @@ int printlinks(PopplerDocument *doc, PopplerPage *page, int flags) {
 		default:
 			printf("action (%d)", a->type);
 		}
-		printf("%s", NEWLINE);
 
+		fputs(ENDPAR, stdout);
 		g_free(t);
 	}
 
