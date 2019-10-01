@@ -372,8 +372,12 @@ int cairoinput_x11(struct cairodevice *cairodevice, int timeout,
 			case XK_slash:
 				return '/';
 			default:
-				if (isalnum(key))
-					return key;
+				if (isalnum(key)) {
+					if (evt.xkey.state & ShiftMask)
+						return toupper(key);
+					else
+						return key;
+				}
 			/* finish: translate X keys to curses */
 			}
 			break;
