@@ -6,7 +6,7 @@
 
 [ "$1" != 'l' ] && exit 1
 
-pdfannot -w -d $2 $3 > hovacui-out.html
+pdfannot -w -d "$2" $3 > hovacui-out.html
 [ $? = 0 ] && rm hovacui-out.html && exit
 
 if [ "$DISPLAY" = "" ];
