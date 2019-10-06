@@ -234,7 +234,7 @@
  *
  * the cairodevice structure allows the cairoui interface to be run whenever a
  * cairo context can be obtained and input is available; two such devices are
- * available: framebuffer and stdio; x11
+ * available: framebuffer+stdio and x11
  *
  * a cairoui program needs one such structure to:
  * - store its pointer in cairoui->cairodevice
@@ -723,7 +723,7 @@ int ensureoutputfile(struct cairoui *cairoui) {
 }
 
 /*
- * return values of windows, other than windows
+ * return values of windows, other than the next window
  */
 struct cairoui_names
 {	int win;		char *name;	}
