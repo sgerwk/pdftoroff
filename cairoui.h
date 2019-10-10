@@ -92,6 +92,12 @@ struct cairoui {
 int sig_reload;
 
 /*
+ * a changeable rectangle
+ */
+int cairoui_rectangle(int c, struct cairoui *cairoui, int corner,
+		cairo_rectangle_t *rect);
+
+/*
  * a list of strings, possibly with a selected one
  */
 int cairoui_list(int c, struct cairoui *cairoui, char *viewtext[],

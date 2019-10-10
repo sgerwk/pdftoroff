@@ -256,6 +256,77 @@
 #undef clear
 
 /*
+ * a changeable rectangle
+ */
+int cairoui_rectangle(int c, struct cairoui *cairoui, int corner,
+		cairo_rectangle_t *rect) {
+	double x1, y1, x2, y2;
+	double *x, *y;
+
+	x1 = rect->x;
+	y1 = rect->y;
+	x2 = rect->x + rect->width;
+	y2 = rect->y + rect->height;
+
+	x = corner == 0 ? &x1 : &x2;
+	y = corner == 0 ? &y1 : &y2;
+
+	if (c == KEY_INIT || c == KEY_REFRESH) {
+		cairo_identity_matrix(cairoui->cr);
+		cairo_set_source_rgb(cairoui->cr, 1.0, 0.0, 0.0);
+		cairo_rectangle(cairoui->cr, *x - 5, *y - 5, 10, 10);
+		cairo_fill(cairoui->cr);
+		cairo_rectangle(cairoui->cr,
+			rect->x, rect->y, rect->width, rect->height);
+		cairo_stroke(cairoui->cr);
+		cairoui->flush = TRUE;
+		return CAIROUI_CHANGED;
+	}
+
+	switch (c) {
+	case KEY_RIGHT:
+		*x += 10;
+		break;
+	case KEY_LEFT:
+		*x -= 10;
+		break;
+	case KEY_UP:
+		*y -= 10;
+		break;
+	case KEY_DOWN:
+		*y += 10;
+		break;
+	case 'c':
+		break;
+	case '\033':
+	case KEY_EXIT:
+		return CAIROUI_LEAVE;
+	case KEY_ENTER:
+	case '\n':
+		return CAIROUI_DONE;
+	default:
+		return CAIROUI_UNCHANGED;
+	}
+
+	if (*x < cairoui->dest.x)
+		*x = cairoui->dest.x;
+	if (*x > cairoui->dest.x + cairoui->dest.width)
+		*x = cairoui->dest.x + cairoui->dest.width;
+	if (*y < cairoui->dest.y)
+		*y = cairoui->dest.y;
+	if (*y > cairoui->dest.y + cairoui->dest.height)
+		*y = cairoui->dest.y + cairoui->dest.height;
+
+	rect->x = x1;
+	rect->y = y1;
+	rect->width = x2 - x1;
+	rect->height = y2 - y1;
+
+	cairoui->redraw = TRUE;
+	return CAIROUI_REFRESH;
+}
+
+/*
  * a list of strings, possibly with a selected one
  */
 int cairoui_list(int c, struct cairoui *cairoui, char *viewtext[],

@@ -1230,23 +1230,16 @@ int savepdf(PopplerDocument *doc, char *pattern,
 }
 
 /*
- * save current textbox to file
+ * save the content of a box to file
  */
-int savecurrenttextbox(struct cairoui *cairoui) {
+int saveboxcontent(struct cairoui *cairoui, PopplerRectangle *save) {
 	struct position *position = POSITION(cairoui);
 	struct output *output = OUTPUT(cairoui);
 	int o;
 	char *fmt, *command;
-	PopplerRectangle screen, sdoc, save;
-
-	screen = output->dest;
-	rectangle_expand(&screen, 10, 10);
-	rscreentodoc(output, &sdoc, &screen);
-	rectangle_intersect(&save,
-		&sdoc, &position->textarea->rect[position->box]);
 
 	o = savepdf(position->doc, output->pdfout,
-			position->npage, position->npage, &save);
+			position->npage, position->npage, save);
 	if (o < 0) {
 		cairoui_printlabel(cairoui, output->help,
 			3000, "error saving pdf");
@@ -1269,28 +1262,36 @@ int savecurrenttextbox(struct cairoui *cairoui) {
 }
 
 /*
- * print the current box and append it to file
+ * save the current textbox to file
  */
-int savebox(struct cairoui *cairoui, int visible) {
+int savecurrenttextbox(struct cairoui *cairoui) {
 	struct position *position = POSITION(cairoui);
 	struct output *output = OUTPUT(cairoui);
-	PopplerRectangle r, sdoc;
+	PopplerRectangle screen, sdoc, save;
+
+	screen = output->dest;
+	rectangle_expand(&screen, 10, 10);
+	rscreentodoc(output, &sdoc, &screen);
+	rectangle_intersect(&save,
+		&sdoc, &position->textarea->rect[position->box]);
+
+	return saveboxcontent(cairoui, &save);
+}
+
+/*
+ * append a box to a file
+ */
+int savebox(struct cairoui *cairoui, PopplerRectangle *r) {
+	struct output *output = OUTPUT(cairoui);
 	char line[70];
 	char *result;
 
-	if (! visible)
-		r = position->textarea->rect[position->box];
-	else {
-		rscreentodoc(output, &sdoc, &output->dest);
-		rectangle_intersect(&r, &sdoc,
-			&position->textarea->rect[position->box]);
-	}
-	snprintf(line, 70, "%g %g %g %g", r.x1, r.y1, r.x2, r.y2);
+	snprintf(line, 70, "%g %g %g %g", r->x1, r->y1, r->x2, r->y2);
 
 	if (ensureoutputfile(cairoui))
 		result = "- error opening output file";
 	else {
-		rectangle_print(cairoui->outfile, &r);
+		rectangle_print(cairoui->outfile, r);
 		fputs("\n", cairoui->outfile);
 		fflush(cairoui->outfile);
 		result = "- saved to";
@@ -1299,6 +1300,26 @@ int savebox(struct cairoui *cairoui, int visible) {
 	cairoui_printlabel(cairoui, output->help,
 		2000, "%s %s %s", line, result, cairoui->outname);
 	return 0;
+}
+
+
+/*
+ * append the current textbox to a file
+ */
+int savecurrentbox(struct cairoui *cairoui, int visible) {
+	struct position *position = POSITION(cairoui);
+	struct output *output = OUTPUT(cairoui);
+	PopplerRectangle r, sdoc;
+
+	if (! visible)
+		r = position->textarea->rect[position->box];
+	else {
+		rscreentodoc(output, &sdoc, &output->dest);
+		rectangle_intersect(&r, &sdoc,
+			&position->textarea->rect[position->box]);
+	}
+
+	return savebox(cairoui, &r);
 }
 
 /*
@@ -1338,6 +1359,7 @@ enum window {
 	WINDOW_VIEWMODE,
 	WINDOW_FITDIRECTION,
 	WINDOW_ORDER,
+	WINDOW_RECTANGLE,
 	WINDOW_MENU,
 	WINDOW_WIDTH,
 	WINDOW_DISTANCE
@@ -1384,6 +1406,8 @@ int document(int c, struct cairoui *cairoui) {
 		return WINDOW_DISTANCE;
 	case 'o':
 		return WINDOW_ORDER;
+	case 'd':
+		return WINDOW_RECTANGLE;
 	case KEY_FIND:
 	case '/':
 	case '?':
@@ -1458,7 +1482,7 @@ int document(int c, struct cairoui *cairoui) {
 		break;
 	case 'b':
 	case 'B':
-		savebox(cairoui, c == 'B');
+		savecurrentbox(cairoui, c == 'B');
 		break;
 	case '\\':	/* for testing */
 		movetonameddestination(cairoui, "abcd");
@@ -1792,6 +1816,47 @@ int order(int c, struct cairoui *cairoui) {
 }
 
 /*
+ * rectangle drawing pseudowindow
+ */
+int rectangle(int c, struct cairoui *cairoui) {
+	struct position *position = POSITION(cairoui);
+	struct output *output = OUTPUT(cairoui);
+	static cairo_rectangle_t r;
+	static gboolean corner;
+	PopplerRectangle s, d;
+	int res;
+
+	if (c == KEY_INIT) {
+		r = cairoui->dest;
+		corner = false;
+	}
+	if (c == 'c')
+		corner = ! corner;
+
+	res = cairoui_rectangle(c, cairoui, corner, &r);
+	if (res == CAIROUI_LEAVE)
+		return WINDOW_DOCUMENT;
+	if (res == CAIROUI_DONE || c == 's') {
+		s.x1 = r.x;
+		s.y1 = r.y;
+		s.x2 = r.x + r.width;
+		s.y2 = r.y + r.height;
+		moveto(position, output);
+		rscreentodoc(output, &d, &s);
+		savebox(cairoui, &d);
+		if (c == 's')
+			saveboxcontent(cairoui, &d);
+		return WINDOW_DOCUMENT;
+	}
+	if (res == CAIROUI_REFRESH)
+		return CAIROUI_REFRESH;
+
+	cairoui_printlabel(cairoui, output->help,
+		NO_TIMEOUT, "c=opposite corner, enter=save, s=save content");
+	return WINDOW_RECTANGLE;
+}
+
+/*
  * main menu
  */
 int menu(int c, struct cairoui *cairoui) {
@@ -1802,6 +1867,7 @@ int menu(int c, struct cairoui *cairoui) {
 		"(g) go to page",
 		"(/) search",
 		"(c) save document or page selection",
+		"(d) draw a rectangle",
 		"(v) view mode",
 		"(f) fit direction",
 		"(w) minimal width",
@@ -1811,12 +1877,13 @@ int menu(int c, struct cairoui *cairoui) {
 		"(q) quit",
 		NULL
 	};
-	static char *shortcuts = "g/cvfwtohq", *s;
+	static char *shortcuts = "g/cdvfwtohq", *s;
 	static int menunext[] = {
 		WINDOW_MENU,
 		WINDOW_GOTOPAGE,
 		WINDOW_SEARCH,
 		WINDOW_CHOP,
+		WINDOW_RECTANGLE,
 		WINDOW_VIEWMODE,
 		WINDOW_FITDIRECTION,
 		WINDOW_WIDTH,
@@ -2120,6 +2187,7 @@ struct windowlist windowlist[] = {
 {	WINDOW_VIEWMODE,	"VIEWMODE",	viewmode	},
 {	WINDOW_FITDIRECTION,	"FITDIRECTION",	fitdirection	},
 {	WINDOW_ORDER,		"ORDER",	order		},
+{	WINDOW_RECTANGLE,	"RECTANGLE",	rectangle	},
 {	WINDOW_MENU,		"MENU",		menu		},
 {	WINDOW_WIDTH,		"WIDTH",	minwidth	},
 {	WINDOW_DISTANCE,	"DISTANCE",	textdistance	},

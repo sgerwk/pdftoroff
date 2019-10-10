@@ -358,6 +358,11 @@ B
 same as \fIb\fP, but with the visible part of the current box
 .TP
 .B
+d
+draw a box that can be changed size and position; pressing 'enter' saves the
+box to the output file; pressing 's' also saves the box content
+.TP
+.B
 q
 quit the program
 
@@ -539,11 +544,10 @@ name of the output file name, used to save the current box with key 'b' and
 the logs if enabled by \fI-l\fP
 .TP
 .BI postsave " command
-the command is executed after the visible part of the current textbox is saved
-by key 'C' or by the entry in the page range menu; it must contain two
-occurrences of \fI%d\fP, which are replaced by the number of the saved pdf
-file; the default is to not do anything; \fIpdftoroff -t selection-%d.pdf >
-selection-%d.txt\fP converts the current textbox to text
+the command is executed after the content of a box is saved;
+it must contain two occurrences of \fI%d\fP, which are replaced by the number
+of the saved pdf file; the default is to not do anything; \fIpdftoroff -t
+selection-%d.pdf > selection-%d.txt\fP converts the current textbox to text
 .TP
 .BI script " keys command
 \fIcommand\fP is executed when any of the keys in \fIkeys\fP is pressed; the
