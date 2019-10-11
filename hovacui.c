@@ -1178,14 +1178,14 @@ FILE *firstfree(char *pattern, int *number) {
 }
 
 /*
- * save a selection of pages to file
+ * save a range of pages or a rectangle within to file
  */
 cairo_status_t writetofile(void *c, const unsigned char *d, unsigned int l) {
 	return 1 == fwrite(d, l, 1, (FILE *) c) ?
 		CAIRO_STATUS_SUCCESS : CAIRO_STATUS_WRITE_ERROR;
 }
 int savepdf(PopplerDocument *doc, char *pattern,
-		int first, int last, PopplerRectangle *r) {
+		int first, int last, PopplerRectangle *r, gboolean samepage) {
 	FILE *out;
 	PopplerPage *page;
 	cairo_surface_t *surface;
@@ -1209,12 +1209,14 @@ int savepdf(PopplerDocument *doc, char *pattern,
 		if (page == NULL)
 			break;
 		poppler_page_get_size(page, &width, &height);
-		if (r == NULL)
+		if (r == NULL || samepage)
 			cairo_pdf_surface_set_size(surface, width, height);
 		else {
 			cairo_pdf_surface_set_size(surface,
 				r->x2 - r->x1 + 10, r->y2 - r->y1 + 10);
 			cairo_translate(cr, -r->x1 + 5, -r->y1 + 5);
+		}
+		if (r != NULL) {
 			cairo_rectangle(cr, r->x1, r->y1,
 				r->x2 - r->x1, r->y2 - r->y1);
 			cairo_clip(cr);
@@ -1230,16 +1232,18 @@ int savepdf(PopplerDocument *doc, char *pattern,
 }
 
 /*
- * save the content of a box to file
+ * save the content of a box in a range of pages to file
  */
-int saveboxcontent(struct cairoui *cairoui, PopplerRectangle *save) {
+int saveboxcontent(struct cairoui *cairoui,
+		int first, int last,
+		PopplerRectangle *save, gboolean samepage) {
 	struct position *position = POSITION(cairoui);
 	struct output *output = OUTPUT(cairoui);
 	int o;
 	char *fmt, *command;
 
 	o = savepdf(position->doc, output->pdfout,
-			position->npage, position->npage, save);
+		first, last, save, samepage);
 	if (o < 0) {
 		cairoui_printlabel(cairoui, output->help,
 			3000, "error saving pdf");
@@ -1275,11 +1279,12 @@ int savecurrenttextbox(struct cairoui *cairoui) {
 	rectangle_intersect(&save,
 		&sdoc, &position->textarea->rect[position->box]);
 
-	return saveboxcontent(cairoui, &save);
+	return saveboxcontent(cairoui,
+		position->npage, position->npage, &save, false);
 }
 
 /*
- * append a box to a file
+ * append the coordindates of a box to a file
  */
 int savebox(struct cairoui *cairoui, PopplerRectangle *r) {
 	struct output *output = OUTPUT(cairoui);
@@ -1302,9 +1307,8 @@ int savebox(struct cairoui *cairoui, PopplerRectangle *r) {
 	return 0;
 }
 
-
 /*
- * append the current textbox to a file
+ * append the coordinates of the current textbox to a file
  */
 int savecurrentbox(struct cairoui *cairoui, int visible) {
 	struct position *position = POSITION(cairoui);
@@ -1632,7 +1636,8 @@ int chop(int c, struct cairoui *cairoui) {
 					position->npage :
 					position->totpages - 1 :
 				output->last;
-		o = savepdf(position->doc, output->pdfout, first, last, NULL);
+		o = savepdf(position->doc, output->pdfout,
+			first, last, NULL, true);
 		if (o < 0) {
 			cairoui_printlabel(cairoui, output->help,
 				3000, "error saving pdf");
@@ -1654,7 +1659,8 @@ int chop(int c, struct cairoui *cairoui) {
 	case 5:
 		first = 0;
 		last = position->totpages - 1;
-		o = savepdf(position->doc, output->pdfout, first, last, NULL);
+		o = savepdf(position->doc, output->pdfout,
+			first, last, NULL, true);
 		if (o < 0) {
 			cairoui_printlabel(cairoui, output->help,
 				3000, "error saving pdf");
@@ -1667,7 +1673,7 @@ int chop(int c, struct cairoui *cairoui) {
 		break;
 	case 6:
 		o = savepdf(position->doc, output->pdfout,
-			position->npage, position->npage, NULL);
+			position->npage, position->npage, NULL, true);
 		if (o < 0) {
 			cairoui_printlabel(cairoui, output->help,
 				3000, "error saving pdf");
@@ -1836,7 +1842,7 @@ int rectangle(int c, struct cairoui *cairoui) {
 	res = cairoui_rectangle(c, cairoui, corner, &r);
 	if (res == CAIROUI_LEAVE)
 		return WINDOW_DOCUMENT;
-	if (res == CAIROUI_DONE || c == 's') {
+	if (res == CAIROUI_DONE || c == 's' || c == 'S') {
 		s.x1 = r.x;
 		s.y1 = r.y;
 		s.x2 = r.x + r.width;
@@ -1845,14 +1851,18 @@ int rectangle(int c, struct cairoui *cairoui) {
 		rscreentodoc(output, &d, &s);
 		savebox(cairoui, &d);
 		if (c == 's')
-			saveboxcontent(cairoui, &d);
+			saveboxcontent(cairoui,
+				position->npage, position->npage, &d, false);
+		if (c == 'S')
+			saveboxcontent(cairoui,
+				0, position->totpages - 1, &d, true);
 		return WINDOW_DOCUMENT;
 	}
 	if (res == CAIROUI_REFRESH)
 		return CAIROUI_REFRESH;
 
 	cairoui_printlabel(cairoui, output->help,
-		NO_TIMEOUT, "c=opposite corner, enter=save, s=save content");
+		NO_TIMEOUT, "c=opposite corner, enter=save, s/S=save content");
 	return WINDOW_RECTANGLE;
 }
 
