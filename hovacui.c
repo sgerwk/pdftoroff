@@ -1779,8 +1779,10 @@ int chop(int c, struct cairoui *cairoui) {
 		if (! CAIROUI_OUT(o))
 			return WINDOW_CHOP;
 		iterating = FALSE;
-		output->first = -1;
-		output->last = -1;
+		if (o == CAIROUI_DONE) {
+			output->first = -1;
+			output->last = -1;
+		}
 		break;
 	case 4:
 		output->first = -1;
