@@ -16,8 +16,8 @@
 #define CAIROUI_CHANGED   -5
 #define CAIROUI_REFRESH   -6
 #define CAIROUI_EXIT      -7
-#define CAIROUI_OUT(res) \
-	((res) == CAIROUI_DONE || (res) == CAIROUI_LEAVE)
+#define CAIROUI_OUT(res)  (_cairoui_out(res))
+int _cairoui_out(int res);
 
 /*
  * the cairoui structure, passed to all functions
@@ -141,6 +141,15 @@ void cairoui_default(struct cairoui *cairoui);
  * ensure the output file is open
  */
 int ensureoutputfile(struct cairoui *cairoui);
+
+/*
+ * states of step-by-step operations
+ */
+enum iteration {
+	ITERATION_BEGIN,
+	ITERATION_STEP,
+	ITERATION_END
+};
 
 /*
  * logging function

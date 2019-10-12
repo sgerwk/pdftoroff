@@ -256,6 +256,13 @@
 #undef clear
 
 /*
+ * return value of windows when they finish
+ */
+int _cairoui_out(int res) {
+	return res == CAIROUI_DONE || res == CAIROUI_LEAVE;
+}
+
+/*
  * a changeable rectangle
  */
 int cairoui_rectangle(int c, struct cairoui *cairoui, int corner,
