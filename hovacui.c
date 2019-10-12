@@ -1948,7 +1948,7 @@ int order(int c, struct cairoui *cairoui) {
 }
 
 /*
- * rectangle drawing pseudowindow
+ * rectangle drawing by cursor keys
  */
 int rectangle(int c, struct cairoui *cairoui) {
 	static cairo_rectangle_t r;
