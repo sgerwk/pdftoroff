@@ -264,10 +264,11 @@
  *		...
  *		init;
  *
- *		res = abstract_window(c, cairoui, ...);
+ *		res = template(c, cairoui, ...);
+ *		...
  *		if (res == ... || c == ...) {
  *			pre;
- *			function(...);
+ *			o = function(...);
  *			post;
  *			return WINDOW_DOCUMENT;
  *		}
@@ -276,7 +277,7 @@
  *
  * its step-by-step version turns function() into a sort of window, called
  * repeatedly until the operation completes; it is not called from the main
- * loop, but from this window, which acts as a passthrough to function() until
+ * loop but from this window, which acts as a passthrough to function() until
  * finished; since function() is called from this window and not from the main
  * loop, the data it needs is just passed to it rather than being stored in the
  * output structure
@@ -289,8 +290,8 @@
  *		if (! iterating)
  *			init;
  *
- *		res = iterating ? saveres : abstract_window(c, cairoui, ...);
- *
+ *		res = iterating ? saveres : template(c, cairoui, ...);
+ *		...
  *		if (res == ... || c == ... || iterating) {
  *			if (! iterating) {
  *				iterating = true;
