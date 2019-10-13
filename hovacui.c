@@ -331,13 +331,14 @@
  *		if (iteration == ITERATION_END || c = '\033') {
  *			deallocate surface and cairo context
  *			close file
- *			iteration = ITERATION_BEGIN;
  *			if (c == '\033') {
  *				delete file
+ *				iteration = ITERATION_BEGIN;
  *				return CAIROUI_LEAVE;
  *			}
  *			else {
  *				postsave
+ *				iteration = ITERATION_BEGIN;
  *				return CAIROUI_DONE;
  *			}
  *		}
@@ -355,6 +356,9 @@
  * previous label; cairoui->timeout=0 is necessary when returning to the main
  * loop between steps (that is, not at the end); it makes function() to be
  * called again immediately after checking input and redrawing the labels
+ *
+ * the fourth iteration value is ITERATION_ERROR; it is set in the
+ * ITERATION_STEP when some operation failed, and checked along ITERATION_END
  */
 
 #include <stdlib.h>
@@ -1288,8 +1292,9 @@ FILE *firstfree(char *pattern, int *number) {
  * save a range of pages or a rectangle within to file
  */
 cairo_status_t writetofile(void *c, const unsigned char *d, unsigned int l) {
-	return 1 == fwrite(d, l, 1, (FILE *) c) ?
-		CAIRO_STATUS_SUCCESS : CAIRO_STATUS_WRITE_ERROR;
+	int res;
+	res = fwrite(d, l, 1, (FILE *) c);
+	return res == 1 ? CAIRO_STATUS_SUCCESS : CAIRO_STATUS_WRITE_ERROR;
 }
 int savepdf(int c, struct cairoui *cairoui,
 		int first, int last, PopplerRectangle *r, gboolean samepage,
@@ -1308,6 +1313,8 @@ int savepdf(int c, struct cairoui *cairoui,
 	gdouble width, height;
 	char path[PATH_MAX];
 	char *command;
+	cairo_status_t status;
+	int f;
 
 	tot = poppler_document_get_n_pages(position->doc);
 	if (first < 0 || last > tot - 1 || last < first) {
@@ -1323,7 +1330,7 @@ int savepdf(int c, struct cairoui *cairoui,
 		if (out == NULL) {
 			cairoui_printlabel(cairoui, output->help, NO_TIMEOUT,
 				"failed opening output file");
-			return CAIROUI_DONE;
+			return CAIROUI_FAIL;
 		}
 
 		surface = cairo_pdf_surface_create_for_stream(writetofile,
@@ -1336,16 +1343,30 @@ int savepdf(int c, struct cairoui *cairoui,
 		return CAIROUI_CHANGED;
 	}
 
-	if (iteration == ITERATION_END || c == '\033') {
+	if (iteration == ITERATION_END ||
+	    iteration == ITERATION_ERROR || c == '\033') {
 		cairo_destroy(cr);
+		cairo_surface_finish(surface);
+		status = cairo_surface_status(surface);
 		cairo_surface_destroy(surface);
-		fclose(out);
+		f = fclose(out);
 		sprintf(path, output->pdfout, fileno);
-		iteration = ITERATION_BEGIN;
-		if (c == '\033') {
+		if (status != CAIRO_STATUS_SUCCESS || f != 0 ||
+		    iteration == ITERATION_ERROR) {
 			unlink(path);
-			cairoui_printlabel(cairoui, output->help, 0,
+			cairoui_printlabel(cairoui, output->help, NO_TIMEOUT,
+				"error saving file");
+			// do not print npage in the help label, error may have
+			// occurred much earlier but only detected on finishing
+			// the surface
+			iteration = ITERATION_BEGIN;
+			return CAIROUI_FAIL;
+		}
+		else if (c == '\033') {
+			unlink(path);
+			cairoui_printlabel(cairoui, output->help, NO_TIMEOUT,
 				"save canceled");
+			iteration = ITERATION_BEGIN;
 			return CAIROUI_LEAVE;
 		}
 		else {
@@ -1359,6 +1380,7 @@ int savepdf(int c, struct cairoui *cairoui,
 				system(command);
 				free(command);
 			}
+			iteration = ITERATION_BEGIN;
 			return CAIROUI_DONE;
 		}
 	}
@@ -1383,12 +1405,18 @@ int savepdf(int c, struct cairoui *cairoui,
 	}
 	poppler_page_render_for_printing(page, cr);
 	cairo_surface_show_page(surface);
+	status = cairo_surface_status(surface);
 	g_object_unref(page);
-	cairoui_printlabel(cairoui, output->help, 0, "saved page %d", npage);
+	cairoui->timeout = 0;
+	if (status != CAIRO_STATUS_SUCCESS) {
+		iteration = ITERATION_ERROR;
+		return CAIROUI_CHANGED;
+	}
+	cairoui_printlabel(cairoui, output->help, 0,
+		"saved page %d", npage + 1);
 	npage++;
 	if (npage > last)
 		iteration = ITERATION_END;
-	cairoui->timeout = 0;
 	return CAIROUI_CHANGED;
 }
 

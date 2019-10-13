@@ -149,7 +149,8 @@ int ensureoutputfile(struct cairoui *cairoui);
 enum iteration {
 	ITERATION_BEGIN,
 	ITERATION_STEP,
-	ITERATION_END
+	ITERATION_END,
+	ITERATION_ERROR
 };
 
 /*
