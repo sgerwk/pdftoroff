@@ -259,7 +259,9 @@
  * return value of windows when they finish
  */
 int _cairoui_out(int res) {
-	return res == CAIROUI_DONE || res == CAIROUI_LEAVE;
+	return res == CAIROUI_DONE ||
+	       res == CAIROUI_LEAVE ||
+	       res == CAIROUI_FAIL;
 }
 
 /*

@@ -11,11 +11,12 @@
  */
 #define CAIROUI_DONE      -1
 #define CAIROUI_LEAVE     -2
-#define CAIROUI_INVALID   -3
-#define CAIROUI_UNCHANGED -4
-#define CAIROUI_CHANGED   -5
-#define CAIROUI_REFRESH   -6
-#define CAIROUI_EXIT      -7
+#define CAIROUI_FAIL      -3
+#define CAIROUI_INVALID   -4
+#define CAIROUI_UNCHANGED -5
+#define CAIROUI_CHANGED   -6
+#define CAIROUI_REFRESH   -7
+#define CAIROUI_EXIT      -8
 #define CAIROUI_OUT(res)  (_cairoui_out(res))
 int _cairoui_out(int res);
 
