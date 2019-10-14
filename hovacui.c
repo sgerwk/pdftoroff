@@ -2699,7 +2699,8 @@ struct position *openpdf(char *filename) {
 
 	uri = filenametouri(position->filename);
 	if (uri == NULL)
-		exit(EXIT_FAILURE);
+		return NULL;
+	err = NULL;
 	position->doc = poppler_document_new_from_file(uri, NULL, &err);
 	free(uri);
 	if (position->doc == NULL) {
