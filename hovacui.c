@@ -318,8 +318,6 @@
  *		static int iteration = ITERATION_BEGIN;
  *		static int page;
  *
- *		cairui->redraw = TRUE;
- *
  *		if (iteration == ITERATION_BEGIN) {
  *			open file
  *			create surface and cairo context
@@ -354,9 +352,11 @@
  *	}
  *
  * if something is printed in the help label, cairoui->redraw=TRUE removes the
- * previous label; cairoui->timeout=0 is necessary when returning to the main
- * loop between steps (that is, not at the end); it makes function() to be
- * called again immediately after checking input and redrawing the labels
+ * previous label; this requires redrawing the page, so a better choice is to
+ * do that only for the first iteration and to use labels that covers the
+ * previous during the steps; cairoui->timeout=0 is necessary when returning to
+ * the main loop between steps (that is, not at the end); it makes function()
+ * to be called again immediately after checking input and redrawing the labels
  *
  * the fourth iteration value is ITERATION_ERROR; it is set in the
  * ITERATION_STEP when some operation failed, and checked along ITERATION_END
@@ -1324,8 +1324,6 @@ int savepdf(int c, struct cairoui *cairoui,
 		return CAIROUI_LEAVE;
 	}
 
-	cairoui->redraw = TRUE;
-
 	if (iteration == ITERATION_BEGIN) {
 		out = firstfree(output->pdfout, &fileno);
 		if (out == NULL) {
@@ -1333,11 +1331,13 @@ int savepdf(int c, struct cairoui *cairoui,
 				"failed opening output file");
 			return CAIROUI_FAIL;
 		}
-
 		surface = cairo_pdf_surface_create_for_stream(writetofile,
 				out, 1, 1);
 		cr = cairo_create(surface);
+
 		cairoui_printlabel(cairoui, output->help, 0, "saving...");
+		cairoui->redraw = TRUE;
+
 		npage = first;
 		iteration = ITERATION_STEP;
 		cairoui->timeout = 0;
@@ -1414,7 +1414,7 @@ int savepdf(int c, struct cairoui *cairoui,
 		return CAIROUI_CHANGED;
 	}
 	cairoui_printlabel(cairoui, output->help, 0,
-		"saved page %d", npage + 1);
+		"    saved page %-5d ", npage + 1);
 	npage++;
 	if (npage > last)
 		iteration = ITERATION_END;
