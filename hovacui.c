@@ -1438,7 +1438,7 @@ int savecurrenttextbox(struct cairoui *cairoui) {
 		&sdoc, &position->textarea->rect[position->box]);
 
 	do {
-		o = savepdf(' ', cairoui,
+		o = savepdf(KEY_NONE, cairoui,
 			position->npage, position->npage, &save, false, true);
 	} while (! CAIROUI_OUT(o));
 	return o;
