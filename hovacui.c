@@ -352,11 +352,12 @@
  *	}
  *
  * if something is printed in the help label, cairoui->redraw=TRUE removes the
- * previous label; this requires redrawing the page, so a better choice is to
- * do that only for the first iteration and to use labels that covers the
- * previous during the steps; cairoui->timeout=0 is necessary when returning to
- * the main loop between steps (that is, not at the end); it makes function()
- * to be called again immediately after checking input and redrawing the labels
+ * previous label; this requires redrawing the page, so it is best to avoid
+ * doing it at each step; a better choice is to do it only for the first
+ * iteration and to use labels that covers the previous during the steps;
+ * cairoui->timeout=0 is necessary when returning to the main loop between
+ * steps (that is, not at the end); it makes function() to be called again
+ * immediately after checking input and redrawing the labels
  *
  * the fourth iteration value is ITERATION_ERROR; it is set in the
  * ITERATION_STEP when some operation failed, and checked along ITERATION_END
