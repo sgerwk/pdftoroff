@@ -33,7 +33,8 @@
  * - printf format string for page number label, with total pages
  * - make minwidth depend on the size of the letters
  * - list() yes/no to confirm exit; disabled by config option
- * - allow reloading during search
+ * - allow reloading during search and save
+ * - fail search and save if the document change during them
  * - man page: compare with fbpdf and jfbview
  * - field() for executing a shell command
  * - info(), based on list(): filename, number of pages, page size, etc.
