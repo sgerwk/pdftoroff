@@ -144,16 +144,6 @@ void cairoui_default(struct cairoui *cairoui);
 int ensureoutputfile(struct cairoui *cairoui);
 
 /*
- * states of step-by-step operations
- */
-enum iteration {
-	ITERATION_BEGIN,
-	ITERATION_STEP,
-	ITERATION_END,
-	ITERATION_ERROR
-};
-
-/*
  * logging function
  */
 #define LEVEL_MAIN  0x0001

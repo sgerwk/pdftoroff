@@ -295,61 +295,63 @@
  *		...
  *		if (res == ... || c == ... || iterating) {
  *			if (! iterating) {
+ *				pre;
  *				iterating = true;
  *				saveres = res;
  *				savec = c;
- *				pre;
+ *				c = KEY_INIT;
  *			}
  *			o = function(c, cairoui, ...);
  *			if (! CAIROUI_OUT(o))
  *				return WINDOW_THIS;
- *			iterating = false;
+ *			if (c == KEY_FINISH)
+ *				iterating = false;
  *			post;
  *			return WINDOW_DOCUMENT;
  *		}
  *		...
  *	}
  *
- * function() is no longer a simple function but a window; it is stateful,
- * because it needs to store its data between calls; it is a state machine; for
- * example, savepdf() is (simplified):
+ * function() is no longer a simple function but a window; it stores its data
+ * between calls; for example, savepdf() is (simplified):
  *
  *	int savepdf(int c, struct cairoui *cairoui, ...) {
- *		static int iteration = ITERATION_BEGIN;
  *		static int page;
  *
- *		if (iteration == ITERATION_BEGIN) {
+ *		if (c == KEY_INIT) {
  *			open file
  *			create surface and cairo context
  *			page = first;
- *			iteration = ITERATION_STEP;
  *			cairoui->timeout = 0;
  *			return CAIROUI_CHANGED;
  *		}
  *
- *		if (iteration == ITERATION_END || c = '\033') {
- *			deallocate surface and cairo context
- *			close file
- *			if (c == '\033') {
- *				delete file
- *				iteration = ITERATION_BEGIN;
- *				return CAIROUI_LEAVE;
- *			}
- *			else {
- *				postsave
- *				iteration = ITERATION_BEGIN;
- *				return CAIROUI_DONE;
- *			}
+ *		if (c == '\033')
+ *			return CAIROUI_LEAVE;
+ *
+ *		if (c != KEY_FINISH) {
+ *			save page
+ *			page++
+ *			cairoui->timeout = 0;
+ *			return page <= last ? CAIROUI_CHANGED : CAIROUI_DONE;
  *		}
  *
- *		// iteration == ITERATION_STEP
- *		save page
- *		increase page
- *		if (page > last)
- *			iteration = ITERATION_END;
- *		cairoui->timeout = 0;
- *		return CAIROUI_CHANGED;
+ *		deallocate surface and cairo context
+ *		close file
+ *		if (page <= last) {
+ *			delete file
+ *			return CAIROUI_LEAVE;
+ *		}
+ *		else {
+ *			postsave
+ *			return CAIROUI_DONE;
+ *		}
  *	}
+ *
+ * always perform a single operation at time; in case of error do not jump to
+ * the final part, but return CAIROUI_FAIL and wait for the final call with
+ * KEY_FINISH to finalize (close the file, etc) and report the error; use a
+ * static variable to remember this condition and possibly the cause of error
  *
  * if something is printed in the help label, cairoui->redraw=TRUE removes the
  * previous label; this requires redrawing the page, so it is best to avoid
@@ -358,9 +360,6 @@
  * cairoui->timeout=0 is necessary when returning to the main loop between
  * steps (that is, not at the end); it makes function() to be called again
  * immediately after checking input and redrawing the labels
- *
- * the fourth iteration value is ITERATION_ERROR; it is set in the
- * ITERATION_STEP when some operation failed, and checked along ITERATION_END
  */
 
 #include <stdlib.h>
@@ -1306,7 +1305,7 @@ int savepdf(int c, struct cairoui *cairoui,
 	static cairo_t *cr;
 	static int fileno;
 	static int npage;
-	static int iteration = ITERATION_BEGIN;
+	static cairo_status_t status;
 
 	struct position *position = POSITION(cairoui);
 	struct output *output = OUTPUT(cairoui);
@@ -1315,7 +1314,6 @@ int savepdf(int c, struct cairoui *cairoui,
 	gdouble width, height;
 	char path[PATH_MAX];
 	char *command;
-	cairo_status_t status;
 	int f;
 
 	tot = poppler_document_get_n_pages(position->doc);
@@ -1325,7 +1323,7 @@ int savepdf(int c, struct cairoui *cairoui,
 		return CAIROUI_LEAVE;
 	}
 
-	if (iteration == ITERATION_BEGIN) {
+	if (c == KEY_INIT) {
 		out = firstfree(output->pdfout, &fileno);
 		if (out == NULL) {
 			cairoui_printlabel(cairoui, output->help, NO_TIMEOUT,
@@ -1340,86 +1338,82 @@ int savepdf(int c, struct cairoui *cairoui,
 		cairoui->redraw = TRUE;
 
 		npage = first;
-		iteration = ITERATION_STEP;
 		cairoui->timeout = 0;
 		return CAIROUI_CHANGED;
 	}
 
-	if (iteration == ITERATION_END ||
-	    iteration == ITERATION_ERROR || c == '\033') {
-		cairo_destroy(cr);
-		cairo_surface_finish(surface);
-		status = cairo_surface_status(surface);
-		cairo_surface_destroy(surface);
-		f = fclose(out);
-		sprintf(path, output->pdfout, fileno);
-		if (status != CAIRO_STATUS_SUCCESS || f != 0 ||
-		    iteration == ITERATION_ERROR) {
-			unlink(path);
-			cairoui_printlabel(cairoui, output->help, NO_TIMEOUT,
-				"error saving file");
-			// do not print npage in the help label, error may have
-			// occurred much earlier but only detected on finishing
-			// the surface
-			iteration = ITERATION_BEGIN;
+	if (c == '\033')
+		return CAIROUI_LEAVE;
+
+	if (c != KEY_FINISH) {
+		page = poppler_document_get_page(position->doc, npage);
+		if (page == NULL) {
+			status = CAIRO_STATUS_READ_ERROR;
 			return CAIROUI_FAIL;
 		}
-		else if (c == '\033') {
-			unlink(path);
-			cairoui_printlabel(cairoui, output->help, NO_TIMEOUT,
-				"save canceled");
-			iteration = ITERATION_BEGIN;
-			return CAIROUI_LEAVE;
-		}
+		poppler_page_get_size(page, &width, &height);
+		cairo_identity_matrix(cr);
+		if (r == NULL || samepage)
+			cairo_pdf_surface_set_size(surface, width, height);
 		else {
-			cairoui_printlabel(cairoui, output->help, NO_TIMEOUT,
-				"saved to %s", path);
-			if (post && output->postsave != NULL) {
-				command =
-					malloc(strlen(output->postsave) + 100);
-				sprintf(command, output->postsave,
-						fileno, fileno);
-				system(command);
-				free(command);
-			}
-			iteration = ITERATION_BEGIN;
-			return CAIROUI_DONE;
+			cairo_pdf_surface_set_size(surface,
+				r->x2 - r->x1 + 10, r->y2 - r->y1 + 10);
+			cairo_translate(cr, -r->x1 + 5, -r->y1 + 5);
 		}
+		if (r != NULL) {
+			cairo_rectangle(cr, r->x1, r->y1,
+				r->x2 - r->x1, r->y2 - r->y1);
+			cairo_clip(cr);
+		}
+		poppler_page_render_for_printing(page, cr);
+		cairo_surface_show_page(surface);
+		status = cairo_surface_status(surface);
+		g_object_unref(page);
+		cairoui->timeout = 0;
+		if (status != CAIRO_STATUS_SUCCESS)
+			return CAIROUI_FAIL;
+		cairoui_printlabel(cairoui, output->help, 0,
+			"    saved page %-5d ", npage + 1);
+		npage++;
+		return npage > last ? CAIROUI_DONE : CAIROUI_CHANGED;
 	}
 
-	// state == ITERATION_STEP
-	page = poppler_document_get_page(position->doc, npage);
-	if (page == NULL)
-		return -1;
-	poppler_page_get_size(page, &width, &height);
-	cairo_identity_matrix(cr);
-	if (r == NULL || samepage)
-		cairo_pdf_surface_set_size(surface, width, height);
+	if (out == NULL)
+		return CAIROUI_FAIL;
+	cairo_destroy(cr);
+	cairo_surface_finish(surface);
+	if (status == CAIRO_STATUS_SUCCESS)
+		status = cairo_surface_status(surface);
+	cairo_surface_destroy(surface);
+	f = fclose(out);
+	sprintf(path, output->pdfout, fileno);
+	if (status != CAIRO_STATUS_SUCCESS || f != 0) {
+		unlink(path);
+		cairoui_printlabel(cairoui, output->help, NO_TIMEOUT,
+			"error saving file");
+		// do not print npage in the help label, error may have
+		// occurred much earlier
+		return CAIROUI_FAIL;
+	}
+	else if (npage <= last) {
+		unlink(path);
+		cairoui_printlabel(cairoui, output->help, NO_TIMEOUT,
+			"save canceled");
+		return CAIROUI_LEAVE;
+	}
 	else {
-		cairo_pdf_surface_set_size(surface,
-			r->x2 - r->x1 + 10, r->y2 - r->y1 + 10);
-		cairo_translate(cr, -r->x1 + 5, -r->y1 + 5);
+		cairoui_printlabel(cairoui, output->help, NO_TIMEOUT,
+			"saved to %s", path);
+		if (post && output->postsave != NULL) {
+			command =
+				malloc(strlen(output->postsave) + 100);
+			sprintf(command, output->postsave,
+					fileno, fileno);
+			system(command);
+			free(command);
+		}
+		return CAIROUI_DONE;
 	}
-	if (r != NULL) {
-		cairo_rectangle(cr, r->x1, r->y1,
-			r->x2 - r->x1, r->y2 - r->y1);
-		cairo_clip(cr);
-	}
-	poppler_page_render_for_printing(page, cr);
-	cairo_surface_show_page(surface);
-	status = cairo_surface_status(surface);
-	g_object_unref(page);
-	cairoui->timeout = 0;
-	if (status != CAIRO_STATUS_SUCCESS) {
-		iteration = ITERATION_ERROR;
-		return CAIROUI_CHANGED;
-	}
-	cairoui_printlabel(cairoui, output->help, 0,
-		"    saved page %-5d ", npage + 1);
-	npage++;
-	if (npage > last)
-		iteration = ITERATION_END;
-	return CAIROUI_CHANGED;
 }
 
 /*
@@ -1438,11 +1432,13 @@ int savecurrenttextbox(struct cairoui *cairoui) {
 	rectangle_intersect(&save,
 		&sdoc, &position->textarea->rect[position->box]);
 
-	do {
+	o = savepdf(KEY_INIT, cairoui,
+			position->npage, position->npage, &save, false, true);
+	while (! CAIROUI_OUT(o))
 		o = savepdf(KEY_NONE, cairoui,
 			position->npage, position->npage, &save, false, true);
-	} while (! CAIROUI_OUT(o));
-	return o;
+	return savepdf(KEY_FINISH, cairoui,
+			position->npage, position->npage, &save, false, true);
 }
 
 /*
@@ -1546,6 +1542,7 @@ int document(int c, struct cairoui *cairoui) {
 	case KEY_TIMEOUT:
 	case KEY_REDRAW:
 	case KEY_RESIZE:
+	case KEY_FINISH:
 		return WINDOW_DOCUMENT;
 	case KEY_REFRESH:
 		cairoui->flush = TRUE;
@@ -1760,9 +1757,9 @@ int chop(int c, struct cairoui *cairoui) {
 	int res, o;
 	int first, last;
 
-	if (iterating) {
+	if (c == KEY_FINISH || iterating) {
 	}
-	if (output->first != -1 && output->last != -1)
+	else if (output->first != -1 && output->last != -1)
 		cairoui_printlabel(cairoui, output->help,
 			NO_TIMEOUT, "range: %d-%d",
 			output->first + 1, output->last + 1);
@@ -1777,6 +1774,9 @@ int chop(int c, struct cairoui *cairoui) {
 
 	if (c == KEY_INIT)
 		selected = output->first == -1 ? 1 : output->last == -1 ? 2 : 3;
+
+	if (c == KEY_FINISH && ! iterating)
+		return WINDOW_DOCUMENT;
 
 	res = iterating ? saveres :
 		cairoui_list(c, cairoui, choptext, &line, &selected);
@@ -1805,11 +1805,11 @@ int chop(int c, struct cairoui *cairoui) {
 		if (! iterating) {
 			iterating = TRUE;
 			saveres = res;
+			c = KEY_INIT;
 		}
 		o = savepdf(c, cairoui, first, last, NULL, true, false);
 		if (! CAIROUI_OUT(o))
 			return WINDOW_CHOP;
-		iterating = FALSE;
 		if (o == CAIROUI_DONE) {
 			output->first = -1;
 			output->last = -1;
@@ -1826,11 +1826,11 @@ int chop(int c, struct cairoui *cairoui) {
 		if (! iterating) {
 			iterating = TRUE;
 			saveres = res;
+			c = KEY_INIT;
 		}
 		o = savepdf(c, cairoui, first, last, NULL, true, false);
 		if (! CAIROUI_OUT(o))
 			return WINDOW_CHOP;
-		iterating = FALSE;
 		break;
 	case 6:
 		first = position->npage;
@@ -1838,17 +1838,19 @@ int chop(int c, struct cairoui *cairoui) {
 		if (! iterating) {
 			iterating = TRUE;
 			saveres = res;
+			c = KEY_INIT;
 		}
 		o = savepdf(c, cairoui, first, last, NULL, true, true);
 		if (! CAIROUI_OUT(o))
 			return WINDOW_CHOP;
-		iterating = FALSE;
 		break;
 	case 7:
 		savecurrenttextbox(cairoui);
 		break;
 	}
 
+	if (c == KEY_FINISH)
+		iterating = FALSE;
 	return WINDOW_DOCUMENT;
 }
 
@@ -2008,9 +2010,6 @@ int rectangle(int c, struct cairoui *cairoui) {
 		return WINDOW_DOCUMENT;
 	if (res == CAIROUI_DONE || c == 's' || c == 'S' || iterating) {
 		if (! iterating) {
-			iterating = true;
-			saveres = res;
-			savec = c;
 			s.x1 = r.x;
 			s.y1 = r.y;
 			s.x2 = r.x + r.width;
@@ -2021,12 +2020,17 @@ int rectangle(int c, struct cairoui *cairoui) {
 			first = c == 'S' ? 0 : position->npage;
 			last = c == 'S' ?
 				position->totpages - 1 : position->npage;
+			iterating = true;
+			saveres = res;
+			savec = c;
+			c = KEY_INIT;
 		}
 		o = savepdf(c, cairoui, first, last, &d,
 				savec == 'S', savec != 'S');
 		if (! CAIROUI_OUT(o))
 			return WINDOW_RECTANGLE;
-		iterating = false;
+		if (c == KEY_FINISH)
+			iterating = false;
 		return WINDOW_DOCUMENT;
 	}
 	if (res == CAIROUI_REFRESH || c == 'd')
@@ -2122,6 +2126,9 @@ int search(int c, struct cairoui *cairoui) {
 	if (c == KEY_INIT)
 		nsearched = 0;
 
+	if (c == KEY_FINISH)
+		return WINDOW_DOCUMENT;
+
 	if (nsearched == -1 || nsearched > position->totpages) {
 		if (c == KEY_TIMEOUT || c == KEY_REFRESH) {
 			cairoui_field(KEY_REDRAW, cairoui,
@@ -2206,6 +2213,9 @@ int next(int c, struct cairoui *cairoui) {
 
 	if (c == KEY_INIT)
 		nsearched = 0;
+
+	if (c == KEY_FINISH)
+		return WINDOW_DOCUMENT;
 
 	if (nsearched == -1 || nsearched > position->totpages) {
 		gotomatch(position, output, -1, FALSE);

@@ -52,25 +52,26 @@
 /*
  * imaginary keys
  */
-#define KEY_NONE	((KEY_MAX) + 1)
-#define KEY_INIT	((KEY_MAX) + 2)
+#define KEY_NONE	((KEY_MAX) +  1)
+#define KEY_INIT	((KEY_MAX) +  2)
+#define KEY_FINISH      ((KEY_MAX) +  3)
 #ifdef KEY_REFRESH
 #else
-#define KEY_REFRESH	((KEY_MAX) + 3)
+#define KEY_REFRESH	((KEY_MAX) +  4)
 #endif
-#define KEY_REDRAW	((KEY_MAX) + 4)
+#define KEY_REDRAW	((KEY_MAX) +  5)
 #ifdef KEY_RESIZE
 #else
-#define KEY_RESIZE	((KEY_MAX) + 5)
+#define KEY_RESIZE	((KEY_MAX) +  6)
 #endif
-#define KEY_TIMEOUT	((KEY_MAX) + 6)
+#define KEY_TIMEOUT	((KEY_MAX) +  7)
 #ifdef KEY_SUSPEND
 #else
-#define KEY_SUSPEND	((KEY_MAX) + 7)
+#define KEY_SUSPEND	((KEY_MAX) +  8)
 #endif
-#define KEY_SIGNAL	((KEY_MAX) + 8)
-#define KEY_EXTERNAL	((KEY_MAX) + 9)
-#define KEY_PASTE       ((KEY_MAX) + 10)
+#define KEY_SIGNAL	((KEY_MAX) +  9)
+#define KEY_EXTERNAL	((KEY_MAX) + 10)
+#define KEY_PASTE       ((KEY_MAX) + 11)
 
 #define ISIMAGINARYKEY(c) (				   \
 	((c) == KEY_NONE)				|| \

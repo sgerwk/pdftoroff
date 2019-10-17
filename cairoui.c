@@ -179,6 +179,12 @@
  *	every input different than KEY_INIT indicate that the window has not
  *	been closed in the meantime
  *
+ * KEY_FINISH
+ *	just before moving to a new window, the current window receives this;
+ *	it is useful when moving is requested by an external command and not by
+ *	the window itself, and the window has to take some final action such as
+ *	closing a file; the return value of the window is ignored
+ *
  * KEY_REDRAW
  *	received when the window has to redraw itself because of an external
  *	reason (the terminal has been switched in)
@@ -309,6 +315,7 @@ int cairoui_rectangle(int c, struct cairoui *cairoui, int corner,
 		break;
 	case '\033':
 	case KEY_EXIT:
+	case KEY_FINISH:
 		return CAIROUI_LEAVE;
 	case KEY_ENTER:
 	case '\n':
@@ -399,6 +406,7 @@ int cairoui_list(int c, struct cairoui *cairoui, char *viewtext[],
 		break;
 	case '\033':
 	case KEY_EXIT:
+	case KEY_FINISH:
 		return CAIROUI_LEAVE;
 	case KEY_ENTER:
 	case '\n':
@@ -494,7 +502,7 @@ int cairoui_field(int c, struct cairoui *cairoui,
 	char cursor;
 	int len, plen, i;
 
-	if (c == '\033' || c == KEY_EXIT)
+	if (c == '\033' || c == KEY_EXIT || c == KEY_FINISH)
 		return CAIROUI_LEAVE;
 	if (c == '\n' || c == KEY_ENTER)
 		return CAIROUI_DONE;
@@ -1031,6 +1039,7 @@ void cairoui_main(struct cairoui *cairoui, int firstwindow) {
 			c = window == doc ? KEY_NONE : KEY_REFRESH;
 			continue;
 		}
+		cairoui_selectwindow(cairoui, window, KEY_FINISH);
 		if (next == doc) {
 			cairoui->redraw = TRUE;
 			cairoui->flush = TRUE;
