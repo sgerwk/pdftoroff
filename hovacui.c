@@ -2168,47 +2168,46 @@ int search(int c, struct cairoui *cairoui) {
 		return WINDOW_DOCUMENT;
 	}
 
-	if (res == CAIROUI_DONE) {
-		if (nsearched == 0) {
-			strcpy(output->search, searchstring);
-			if (searchstring[0] == '\0') {
-				pagematch(position, output);
-				return WINDOW_DOCUMENT;
-			}
-			cairoui_field(KEY_REDRAW, cairoui,
-				prompt, searchstring, &pos, "searching");
-		}
+	if (res != CAIROUI_DONE)
+		return WINDOW_SEARCH;
 
-		page = gotomatch(position, output, nsearched, nsearched == 0);
-		if (page == -1) {
-			cairoui_printlabel(cairoui, output->help,
-				2000, "n=next matches p=previous matches");
-			strcpy(prevstring, searchstring);
-			searchstring[0] = '\0';
-			pos = 0;
+	if (nsearched == 0) {
+		strcpy(output->search, searchstring);
+		if (searchstring[0] == '\0') {
+			pagematch(position, output);
 			return WINDOW_DOCUMENT;
 		}
+		cairoui_field(KEY_REDRAW, cairoui,
+			prompt, searchstring, &pos, "searching");
+	}
 
-		cairoui->timeout = 0;
+	page = gotomatch(position, output, nsearched, nsearched == 0);
+	if (page == -1) {
+		cairoui_printlabel(cairoui, output->help,
+			2000, "n=next matches p=previous matches");
+		strcpy(prevstring, searchstring);
+		searchstring[0] = '\0';
+		pos = 0;
+		return WINDOW_DOCUMENT;
+	}
 
-		if (c == KEY_EXIT || c == '\033' || c == 's' || c == 'q') {
-			readpage(position, output);
-			cairoui->redraw = 1;
-			nsearched = -1;
-			return WINDOW_SEARCH;
-		}
+	cairoui->timeout = 0;
 
-		nsearched++;
-		if (nsearched > position->totpages) {
-			cairoui->redraw = 1;
-			cairoui_printlabel(cairoui, output->help, 0, "");
-		}
-		else
-			cairoui_printlabel(cairoui, output->help,
-				0, "    searching page %-5d ", page + 1);
+	if (c == KEY_EXIT || c == '\033' || c == 's' || c == 'q') {
+		readpage(position, output);
+		cairoui->redraw = 1;
+		nsearched = -1;
 		return WINDOW_SEARCH;
 	}
 
+	nsearched++;
+	if (nsearched > position->totpages) {
+		cairoui->redraw = 1;
+		cairoui_printlabel(cairoui, output->help, 0, "");
+	}
+	else
+		cairoui_printlabel(cairoui, output->help,
+			0, "    searching page %-5d ", page + 1);
 	return WINDOW_SEARCH;
 }
 
