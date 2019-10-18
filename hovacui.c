@@ -263,6 +263,7 @@
  *
  *	int window(int c, struct cairoui *cairoui) {
  *		...
+ *
  *		init;
  *
  *		res = template(c, cairoui, ...);
@@ -285,27 +286,33 @@
  *
  *	int window(int c, struct cairoui *cairoui) {
  *		...
- *		static gboolean iterating = false;
- *		static int saveres, savec;
+ *		static gboolean iterating = FALSE;
+ *		static int res, savec;
  *
- *		if (! iterating)
+ *		if (iterating) {
+ *			// only if the window is to be shown during iteration
+ *			// and function() redraws the document, for example to
+ *			// show or update a label
+ *			// template(KEY_REFRESH, cairoui, ...)
+ *		}
+ *		else {
  *			init;
- *
- *		res = iterating ? saveres : template(c, cairoui, ...);
+ *			res = template(c, cairoui, ...);
+ *			savec = c;
+ *		}
+ *		// use savec where c was previously used
  *		...
- *		if (res == ... || c == ... || iterating) {
+ *		if (res == ... || savec == ...) {
  *			if (! iterating) {
  *				pre;
- *				iterating = true;
- *				saveres = res;
- *				savec = c;
+ *				iterating = TRUE;
  *				c = KEY_INIT;
  *			}
  *			o = function(c, cairoui, ...);
  *			if (! CAIROUI_OUT(o))
  *				return WINDOW_THIS;
  *			if (c == KEY_FINISH)
- *				iterating = false;
+ *				iterating = FALSE;
  *			post;
  *			return WINDOW_DOCUMENT;
  *		}
@@ -1753,33 +1760,35 @@ int chop(int c, struct cairoui *cairoui) {
 	static int line = 0;
 	static int selected = 1;
 	static gboolean iterating = FALSE;
-	static int saveres;
-	int res, o;
+	static int res;
+	int o;
 	int first, last;
 
-	if (c == KEY_FINISH || iterating) {
+	if (iterating) {
 	}
-	else if (output->first != -1 && output->last != -1)
-		cairoui_printlabel(cairoui, output->help,
-			NO_TIMEOUT, "range: %d-%d",
-			output->first + 1, output->last + 1);
-	else if (output->first != -1)
-		cairoui_printlabel(cairoui, output->help,
-			NO_TIMEOUT, "range: %d-", output->first + 1);
-	else if (output->last != -1)
-		cairoui_printlabel(cairoui, output->help,
-			NO_TIMEOUT, "range: -%d", output->last + 1);
-	else
-		output->help[0] = '\0';
+	else {
+		if (c == KEY_FINISH)
+			return WINDOW_DOCUMENT;
+		else if (output->first != -1 && output->last != -1)
+			cairoui_printlabel(cairoui, output->help,
+				NO_TIMEOUT, "range: %d-%d",
+				output->first + 1, output->last + 1);
+		else if (output->first != -1)
+			cairoui_printlabel(cairoui, output->help,
+				NO_TIMEOUT, "range: %d-", output->first + 1);
+		else if (output->last != -1)
+			cairoui_printlabel(cairoui, output->help,
+				NO_TIMEOUT, "range: -%d", output->last + 1);
+		else
+			output->help[0] = '\0';
 
-	if (c == KEY_INIT)
-		selected = output->first == -1 ? 1 : output->last == -1 ? 2 : 3;
+		if (c == KEY_INIT)
+			selected = output->first == -1 ? 1 :
+			           output->last == -1 ? 2 : 3;
 
-	if (c == KEY_FINISH && ! iterating)
-		return WINDOW_DOCUMENT;
+		res = cairoui_list(c, cairoui, choptext, &line, &selected);
+	}
 
-	res = iterating ? saveres :
-		cairoui_list(c, cairoui, choptext, &line, &selected);
 	if (res == CAIROUI_LEAVE)
 		return WINDOW_DOCUMENT;
 	if (res != CAIROUI_DONE)
@@ -1804,7 +1813,6 @@ int chop(int c, struct cairoui *cairoui) {
 				output->last;
 		if (! iterating) {
 			iterating = TRUE;
-			saveres = res;
 			c = KEY_INIT;
 		}
 		o = savepdf(c, cairoui, first, last, NULL, true, false);
@@ -1825,7 +1833,6 @@ int chop(int c, struct cairoui *cairoui) {
 		last = position->totpages - 1;
 		if (! iterating) {
 			iterating = TRUE;
-			saveres = res;
 			c = KEY_INIT;
 		}
 		o = savepdf(c, cairoui, first, last, NULL, true, false);
@@ -1837,7 +1844,6 @@ int chop(int c, struct cairoui *cairoui) {
 		last = position->npage;
 		if (! iterating) {
 			iterating = TRUE;
-			saveres = res;
 			c = KEY_INIT;
 		}
 		o = savepdf(c, cairoui, first, last, NULL, true, true);
@@ -1988,27 +1994,33 @@ int order(int c, struct cairoui *cairoui) {
 int rectangle(int c, struct cairoui *cairoui) {
 	static cairo_rectangle_t r;
 	static gboolean corner;
-	static gboolean iterating = false;
-	static int saveres, savec;
+	static gboolean iterating = FALSE;
+	static int res, savec;
 	static PopplerRectangle d;
 	static int first, last;
 
 	struct position *position = POSITION(cairoui);
 	struct output *output = OUTPUT(cairoui);
 	PopplerRectangle s;
-	int res, o;
+	int o;
 
-	if (c == KEY_INIT) {
-		r = cairoui->dest;
-		corner = false;
+	if (iterating) {
 	}
-	if (! iterating && (c == 'c' || c == 'd'))
-		corner = ! corner;
+	else {
+		if (c == KEY_INIT) {
+			r = cairoui->dest;
+			corner = FALSE;
+		}
+		if (c == 'c' || c == 'd')
+			corner = ! corner;
 
-	res = iterating ? saveres : cairoui_rectangle(c, cairoui, corner, &r);
+		res = cairoui_rectangle(c, cairoui, corner, &r);
+		savec = c;
+	}
+
 	if (res == CAIROUI_LEAVE)
 		return WINDOW_DOCUMENT;
-	if (res == CAIROUI_DONE || c == 's' || c == 'S' || iterating) {
+	if (res == CAIROUI_DONE || savec == 's' || savec == 'S') {
 		if (! iterating) {
 			s.x1 = r.x;
 			s.y1 = r.y;
@@ -2020,9 +2032,7 @@ int rectangle(int c, struct cairoui *cairoui) {
 			first = c == 'S' ? 0 : position->npage;
 			last = c == 'S' ?
 				position->totpages - 1 : position->npage;
-			iterating = true;
-			saveres = res;
-			savec = c;
+			iterating = TRUE;
 			c = KEY_INIT;
 		}
 		o = savepdf(c, cairoui, first, last, &d,
@@ -2030,10 +2040,10 @@ int rectangle(int c, struct cairoui *cairoui) {
 		if (! CAIROUI_OUT(o))
 			return WINDOW_RECTANGLE;
 		if (c == KEY_FINISH)
-			iterating = false;
+			iterating = FALSE;
 		return WINDOW_DOCUMENT;
 	}
-	if (res == CAIROUI_REFRESH || c == 'd')
+	if (res == CAIROUI_REFRESH || savec == 'd')
 		return CAIROUI_REFRESH;
 
 	cairoui_printlabel(cairoui, output->help, NO_TIMEOUT,
