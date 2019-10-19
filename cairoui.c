@@ -183,7 +183,8 @@
  *	just before moving to a new window, the current window receives this;
  *	it is useful when moving is requested by an external command and not by
  *	the window itself, and the window has to take some final action such as
- *	closing a file; the return value of the window is ignored
+ *	freeing memory or closing files; the return value of the window is
+ *	ignored
  *
  * KEY_REDRAW
  *	received when the window has to redraw itself because of an external
