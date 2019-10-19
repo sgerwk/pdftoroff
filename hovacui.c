@@ -229,35 +229,13 @@
  */
 
 /*
- * note: page by page search
- *
- * search() only searches in one page, then probes the input before searching
- * in the next; probing requires returning to the main loop, which calls it
- * back with the result; this means that search() is called in two cases:
- *
- * - to receive the keystrokes that make the sequence to search for
- * - during search, to receive the result of probing
- *
- * when initialized, search() sets the nsearched static variable to -1 to
- * memorize that search has not begun yet; when search begins, it sets
- * nsearched to 0, and increases it at each page searched; search stops when
- * the pattern is found or this number reaches the number of pages in the
- * document
- *
- * next() is similar, but nsearched cannot be -1 because this function does not
- * receive input keystrokes: it is called on 'n' or 'p' to find the next or
- * previous match
- */
-
-/*
  * note: step-by-step operations
  *
- * some operations like searching and saving a range of pages may take time,
- * during which the interface looks dead; this is avoided by turning the loop
+ * some operations like searching and saving a range of pages may take long,
+ * and the interface looks dead meanwhile; this is avoided by turning the loop
  * on pages into a page-by-page sequence of calls, returning to the main loop
  * at each iteration to display progress and to check input for a request to
- * abort (escape key); this is currently implemented this way for saving, while
- * searching has its own old solution (above)
+ * abort (escape key)
  *
  * if the operation is done by a function, the window looks like this:
  *
@@ -373,6 +351,12 @@
  * cairoui->timeout=0 is necessary when returning to the main loop between
  * steps (that is, not at the end); it makes function() to be called again
  * immediately after checking input and redrawing the labels
+ *
+ * the search() and next() windows use gotopagematch() as function(), with its
+ * nsearched parameter as the key (0=init, -1=finish, otherwise>0); their
+ * nsearched static variable stores the number of pages searched so far; since
+ * the next() window is always iterating it does not need a boolean variabile
+ * to tell whether it is
  */
 
 #include <stdlib.h>
@@ -1154,10 +1138,13 @@ int nextpagematch(struct position *position, struct output *output,
 int gotomatch(struct position *position, struct output *output,
 		int nsearched, int inscreen) {
 	static struct position scan;
+	RectangleList *rl;
+	PopplerRectangle *bb, *v;
 
-	if (nsearched == 0) {
-		if (output->search[0] == '\0')
-			return -2;
+	if (output->search[0] == '\0')
+		return -2;
+
+	if (nsearched == 0) {		// init
 		scan = *position;
 		g_object_ref(scan.page);
 		scan.textarea = rectanglelist_copy(position->textarea);
@@ -1165,7 +1152,8 @@ int gotomatch(struct position *position, struct output *output,
 		scan.viewbox = NULL; // do not free, is also in *position
 		moveto(&scan, output);
 	}
-	else if (nsearched == -1) {
+
+	if (nsearched == -1) {		// finish
 		rectanglelist_free(scan.textarea);
 		poppler_rectangle_free(scan.boundingbox);
 		poppler_rectangle_free(scan.viewbox);
@@ -1182,18 +1170,20 @@ int gotomatch(struct position *position, struct output *output,
 		scan.npage = (scan.npage + (output->forward ? 1 : -1)
 			+ scan.totpages) % scan.totpages;
 		readpageraw(&scan, output);
-		nsearched++;
 		return scan.npage;
 	}
 
-	rectanglelist_free(position->textarea);
-	poppler_rectangle_free(position->boundingbox);
-	poppler_rectangle_free(position->viewbox);
+	rl = position->textarea;
+	bb = position->boundingbox;
+	v = position->viewbox;
 	scan.permanent_id = position->permanent_id;
 	scan.update_id = position->update_id;
 	g_set_object(&position->page, scan.page);
 	g_object_unref(scan.page);
 	*position = scan;
+	scan.textarea = rl;
+	scan.boundingbox = bb;
+	scan.viewbox = v;
 	return -1;
 }
 
@@ -2137,37 +2127,37 @@ int menu(int c, struct cairoui *cairoui) {
 int search(int c, struct cairoui *cairoui) {
 	struct position *position = POSITION(cairoui);
 	struct output *output = OUTPUT(cairoui);
+
 	static char searchstring[100] = "", prevstring[100] = "";
+	static char *outcome = NULL;
+	static gboolean iterating = FALSE;
+	static int res;
 	static int pos = 0;
-	static int nsearched = 0;
+	static int nsearched;
+
 	char *prompt = "find: ";
-	int res, page;
+	int page;
 
-	if (c == KEY_INIT)
-		nsearched = 0;
+	if (iterating) {
+	}
+	else {
+		if (c == KEY_INIT)
+			nsearched = 0;
 
-	if (c == KEY_FINISH)
-		return WINDOW_DOCUMENT;
-
-	if (nsearched == -1 || nsearched > position->totpages) {
-		if (c == KEY_TIMEOUT || c == KEY_REFRESH) {
-			cairoui_field(KEY_REDRAW, cairoui,
-				prompt, searchstring, &pos,
-				nsearched == -1 ? "stopped" : "no match");
-			return WINDOW_SEARCH;
+		if (c == KEY_UP) {
+			strcpy(searchstring, prevstring);
+			pos = strlen(searchstring);
+			c = KEY_NONE;
 		}
-		gotomatch(position, output, -1, FALSE);
-		nsearched = 0;
+
+		if (c == KEY_FINISH)
+			return WINDOW_DOCUMENT;
+
+		res = cairoui_field(c, cairoui, prompt, searchstring, &pos,
+			outcome);
 	}
 
-	if (nsearched == 0 && c == KEY_UP) {
-		strcpy(searchstring, prevstring);
-		c = KEY_NONE;
-	}
-
-	res = nsearched == 0 ?
-		cairoui_field(c, cairoui, prompt, searchstring, &pos, NULL) :
-		CAIROUI_DONE;
+	outcome = NULL;
 
 	if (res == CAIROUI_LEAVE) {
 		strcpy(output->search, "");
@@ -2181,43 +2171,54 @@ int search(int c, struct cairoui *cairoui) {
 	if (res != CAIROUI_DONE)
 		return WINDOW_SEARCH;
 
-	if (nsearched == 0) {
+	if (! iterating) {
 		strcpy(output->search, searchstring);
 		if (searchstring[0] == '\0') {
 			pagematch(position, output);
 			return WINDOW_DOCUMENT;
 		}
-		cairoui_field(KEY_REDRAW, cairoui,
-			prompt, searchstring, &pos, "searching");
+		outcome = "searching";
+		cairoui_field(KEY_REFRESH, cairoui, prompt, searchstring, &pos,
+			outcome);
+		nsearched = 0;
+		iterating = TRUE;
+	}
+
+	if (c == KEY_FINISH) {
+		gotomatch(position, output, -1, FALSE);
+		strcpy(prevstring, searchstring);
+		searchstring[0] = '\0';
+		pos = 0;
+		iterating = FALSE;
+		return WINDOW_DOCUMENT;
+	}
+
+	if (c == KEY_EXIT || c == '\033' || c == 's' || c == 'q') {
+		gotomatch(position, output, -1, FALSE);
+		outcome = "stopped";
+		iterating = FALSE;
+		return CAIROUI_REFRESH;
 	}
 
 	page = gotomatch(position, output, nsearched, nsearched == 0);
 	if (page == -1) {
 		cairoui_printlabel(cairoui, output->help,
 			2000, "n=next matches p=previous matches");
-		strcpy(prevstring, searchstring);
-		searchstring[0] = '\0';
-		pos = 0;
 		return WINDOW_DOCUMENT;
 	}
 
-	cairoui->timeout = 0;
-
-	if (c == KEY_EXIT || c == '\033' || c == 's' || c == 'q') {
-		readpage(position, output);
-		cairoui->redraw = 1;
-		nsearched = -1;
+	nsearched++;
+	if (nsearched <= position->totpages) {
+		cairoui_printlabel(cairoui, output->help,
+			0, "    searching page %-5d ", page + 1);
 		return WINDOW_SEARCH;
 	}
 
-	nsearched++;
-	if (nsearched > position->totpages) {
-		cairoui->redraw = 1;
-		cairoui_printlabel(cairoui, output->help, 0, "");
-	}
-	else
-		cairoui_printlabel(cairoui, output->help,
-			0, "    searching page %-5d ", page + 1);
+	cairoui->redraw = 1;
+	cairoui_printlabel(cairoui, output->help, 0, "");
+	gotomatch(position, output, -1, FALSE);
+	outcome = "no match";
+	iterating = FALSE;
 	return WINDOW_SEARCH;
 }
 
@@ -2233,16 +2234,14 @@ int next(int c, struct cairoui *cairoui) {
 	if (c == KEY_INIT)
 		nsearched = 0;
 
-	if (c == KEY_FINISH)
-		return WINDOW_DOCUMENT;
-
-	if (nsearched == -1 || nsearched > position->totpages) {
+	if (c == KEY_FINISH) {
 		gotomatch(position, output, -1, FALSE);
-		nsearched = 0;
-		cairoui_printlabel(cairoui, output->help,
-			2000, "not found: %s\n", output->search);
+		pagematch(position, output);
 		return WINDOW_DOCUMENT;
 	}
+
+	if (c == KEY_EXIT || c == '\033' || c == 's' || c == 'q')
+		return WINDOW_DOCUMENT;
 
 	page = gotomatch(position, output, nsearched, FALSE);
 	if (page == -1) {
@@ -2256,25 +2255,16 @@ int next(int c, struct cairoui *cairoui) {
 		return WINDOW_DOCUMENT;
 	}
 
-	cairoui->timeout = 0;
-
-	if (c == KEY_EXIT || c == '\033' || c == 's' || c == 'q') {
-		readpage(position, output);
-		cairoui->redraw = 1;
-		nsearched = -1;
-		return WINDOW_DOCUMENT;
-	}
-
 	nsearched++;
-	if (nsearched > position->totpages) {
-		cairoui->redraw = 1;
-		cairoui_printlabel(cairoui, output->help, 0, "");
-	}
-	else
+	if (nsearched <= position->totpages) {
 		cairoui_printlabel(cairoui, output->help,
 			0, "    searching \"%s\" on page %-5d ",
 			output->search, page + 1);
-	return WINDOW_NEXT;
+		return WINDOW_NEXT;
+	}
+	cairoui_printlabel(cairoui, output->help,
+		2000, "not found: %s\n", output->search);
+	return WINDOW_DOCUMENT;
 }
 
 /*
