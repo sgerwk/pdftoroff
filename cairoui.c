@@ -255,6 +255,7 @@
  */
 
 #include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
 #include <signal.h>
 #include <ctype.h>
@@ -828,7 +829,7 @@ cairoui_names[] = {
 };
 
 /*
- * log the state of the main loop
+ * logging function
  */
 void cairoui_logstatus(int level, char *prefix, int window,
 		struct cairoui *cairoui, int c) {
@@ -844,6 +845,10 @@ void cairoui_logstatus(int level, char *prefix, int window,
 	case LEVEL_MAIN:
 		levname = "MAIN";
 		break;
+	case LEVEL_DRAW:
+		printf("draw\r\n");
+		sleep(1);
+		return;
 	default:
 		snprintf(levname = levnum, 8, "LEVEL%d", level);
 	}

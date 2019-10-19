@@ -2672,6 +2672,7 @@ void draw(struct cairoui *cairoui) {
 		cairoui->redraw = TRUE;
 		return;
 	}
+	cairoui_logstatus(LEVEL_DRAW, NULL, 0, cairoui, KEY_NONE);
 	poppler_page_render(position->page, output->cr);
 	if (changedpdf(position)) {
 		cairoui->reload = TRUE;

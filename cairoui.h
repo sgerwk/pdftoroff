@@ -147,6 +147,7 @@ int ensureoutputfile(struct cairoui *cairoui);
  * logging function
  */
 #define LEVEL_MAIN  0x0001
+#define LEVEL_DRAW  0x0002
 void cairoui_logstatus(int level, char *prefix, int window,
 		struct cairoui *cairoui, int c);
 
