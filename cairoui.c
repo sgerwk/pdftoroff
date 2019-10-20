@@ -860,6 +860,9 @@ void cairoui_logstatus(int level, char *prefix, int window,
 	case KEY_INIT:
 		keyname = "KEY_INIT";
 		break;
+	case KEY_FINISH:
+		keyname = "KEY_FINISH";
+		break;
 	case KEY_REFRESH:
 		keyname = "KEY_REFRESH";
 		break;
