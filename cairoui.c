@@ -1015,6 +1015,13 @@ void cairoui_main(struct cairoui *cairoui, int firstwindow) {
 			c = KEY_NONE;
 			continue;
 		}
+		if (c == KEY_REDRAW &&
+		    cairodevice->doublebuffering(cairodevice) &&
+		    ! cairoui->redraw) {
+			cairoui->flush = TRUE;
+			c = KEY_NONE;
+			continue;
+		}
 		if (c == KEY_RESIZE || c == KEY_REDRAW || pending) {
 			if (c == KEY_RESIZE)
 				cairoui_resize(cairoui);
