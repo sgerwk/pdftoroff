@@ -137,14 +137,13 @@ int cairoinput_fb(struct cairodevice *cairodevice, int timeout,
 	if (vt_suspend && timeout != 0)
 		return KEY_SUSPEND;
 
-	if (ret == -1) {
-		if (vt_redraw) {
-			vt_redraw = FALSE;
-			return KEY_REDRAW;
-		}
-		else
-			return KEY_SIGNAL;
+	if (vt_redraw) {
+		vt_redraw = FALSE;
+		return KEY_REDRAW;
 	}
+
+	if (ret == -1)
+		return KEY_SIGNAL;
 
 	if (FD_ISSET(STDIN_FILENO, &fds)) {
 		for (l = getch(), r = 0;

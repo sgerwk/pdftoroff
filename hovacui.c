@@ -271,10 +271,8 @@
  *		if (iterating) {
  *			currc = c;
  *			c = savec;
- *			// call the template only if the window is to be shown
- *			// during iteration and function() redraws the
- *			// document, for example to show or update a label
- *			// template(KEY_REFRESH, cairoui, ...)
+ *			if (currc == KEY_REFRESH)
+ *				template(KEY_REFRESH, cairoui, ...)
  *		}
  *		else {
  *			init;
@@ -299,9 +297,12 @@
  *		...
  *	}
  *
- * if c is not used in the original window after calling the template, the
- * variables savec and currc and their assigments can be omitted, and c used in
- * place of currc
+ * if c is not used in the original window after calling template(c, ...), the
+ * variables savec and currc and their assigments can be omitted and c used in
+ * place of currc; the call template(KEY_REFRESH, ...) is only present if the
+ * window is to be shown during iteration, and requires the window to return
+ * CAIROUI_REFRESH instead of WINDOW_THIS when redrawing is necessary; this may
+ * be the case for the first iteration to remove the existing labels
  *
  * function() is no longer a simple function but a window; it stores its data
  * between calls; for example, savepdf() is (simplified):
@@ -352,11 +353,11 @@
  * steps (that is, not at the end); it makes function() to be called again
  * immediately after checking input and redrawing the labels
  *
- * the search() and next() windows use gotopagematch() as function(), with its
- * nsearched parameter as the key (0=init, -1=finish, otherwise>0); their
- * nsearched static variable stores the number of pages searched so far; since
- * the next() window is always iterating it does not need a boolean variabile
- * to tell whether it is
+ * the search() and next() windows use gotopagematch() as their step function,
+ * with its nsearched parameter as the key (0=init, -1=finish, otherwise>0);
+ * their nsearched static variable stores the number of pages searched so far;
+ * since the next() window is always iterating it does not need a boolean
+ * variabile to tell whether it is
  */
 
 #include <stdlib.h>
@@ -1761,7 +1762,6 @@ int chop(int c, struct cairoui *cairoui) {
 	int first, last;
 
 	if (iterating) {
-		/* c not used after calling cairoui_list() */
 	}
 	else {
 		if (c == KEY_FINISH)
@@ -2139,10 +2139,26 @@ int search(int c, struct cairoui *cairoui) {
 	int page;
 
 	if (iterating) {
+		if (c == KEY_REFRESH)
+			cairoui_field(KEY_REFRESH, cairoui, prompt,
+				searchstring, &pos, outcome);
 	}
 	else {
 		if (c == KEY_INIT)
 			nsearched = 0;
+
+		if (c == KEY_FINISH) {
+			strcpy(output->search, "");
+			pagematch(position, output);
+			strcpy(prevstring, searchstring);
+			searchstring[0] = '\0';
+			pos = 0;
+			outcome = NULL;
+			return WINDOW_DOCUMENT;
+		}
+
+		if (ISREALKEY(c))
+			outcome = NULL;
 
 		if (c == KEY_UP) {
 			strcpy(searchstring, prevstring);
@@ -2150,23 +2166,12 @@ int search(int c, struct cairoui *cairoui) {
 			c = KEY_NONE;
 		}
 
-		if (c == KEY_FINISH)
-			return WINDOW_DOCUMENT;
-
 		res = cairoui_field(c, cairoui, prompt, searchstring, &pos,
 			outcome);
 	}
 
-	outcome = NULL;
-
-	if (res == CAIROUI_LEAVE) {
-		strcpy(output->search, "");
-		pagematch(position, output);
-		strcpy(prevstring, searchstring);
-		searchstring[0] = '\0';
-		pos = 0;
+	if (res == CAIROUI_LEAVE)
 		return WINDOW_DOCUMENT;
-	}
 
 	if (res != CAIROUI_DONE)
 		return WINDOW_SEARCH;
@@ -2178,8 +2183,6 @@ int search(int c, struct cairoui *cairoui) {
 			return WINDOW_DOCUMENT;
 		}
 		outcome = "searching";
-		cairoui_field(KEY_REFRESH, cairoui, prompt, searchstring, &pos,
-			outcome);
 		nsearched = 0;
 		iterating = TRUE;
 	}
@@ -2190,6 +2193,7 @@ int search(int c, struct cairoui *cairoui) {
 		searchstring[0] = '\0';
 		pos = 0;
 		iterating = FALSE;
+		outcome = NULL;
 		return WINDOW_DOCUMENT;
 	}
 
@@ -2211,7 +2215,7 @@ int search(int c, struct cairoui *cairoui) {
 	if (nsearched <= position->totpages) {
 		cairoui_printlabel(cairoui, output->help,
 			0, "    searching page %-5d ", page + 1);
-		return WINDOW_SEARCH;
+		return nsearched == 1 ? CAIROUI_REFRESH : WINDOW_SEARCH;
 	}
 
 	cairoui->redraw = 1;
