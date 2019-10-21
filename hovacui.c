@@ -3021,8 +3021,12 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 			cairoui.outname = strdup(s);
 		if (sscanf(configline, "postsave %900[^\n\r]", s) == 1)
 			output.postsave = strdup(s);
-		if (sscanf(configline, "script %900s %900[^\n\r]", r, s)
-		    == 2) {
+		if (sscanf(configline, "script \"%900[^\"]\" %900[^\n\r]",
+		           r, s) == 2 ||
+		    sscanf(configline, "script '%900[^']' %900[^\n\r]",
+		           r, s) == 2 ||
+		    sscanf(configline, "script %900s %900[^\n\r]",
+		           r, s) == 2) {
 			output.keys = strdup(r);
 			output.script = strdup(s);
 		}
