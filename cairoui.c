@@ -187,12 +187,14 @@
  *	ignored
  *
  * KEY_REDRAW
- *	received when the window has to redraw itself because of an external
- *	reason (the terminal has been switched in)
+ *	used internally when the window has to redraw itself because of an
+ *	external reason (the vt has been switched in, the x11 window has
+ *	received an expose event); the window receives KEY_REFRESH
  *
  * KEY_REFRESH
- *	the window has requested a redraw of the document or the labels by
- *	returning CAIROUI_REFRESH, and now is its turn to redraw itself
+ *	the window has to redraw itself; this may happen for external reasons
+ *	(see KEY_REDRAW), but also when the window has requested a redraw of
+ *	the document or the labels by returning CAIROUI_REFRESH
  *
  * KEY_RESIZE
  *	the space where the pdf is drawn has been resized
@@ -644,7 +646,7 @@ int cairoui_number(int c, struct cairoui *cairoui,
 				return CAIROUI_UNCHANGED;
 		}
 		sprintf(current, "%lg", n);
-		c = KEY_REDRAW;
+		c = KEY_REFRESH;
 		break;
 
 	default:

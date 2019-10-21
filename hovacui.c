@@ -1544,7 +1544,6 @@ int document(int c, struct cairoui *cairoui) {
 		break;
 	case KEY_INIT:
 	case KEY_TIMEOUT:
-	case KEY_REDRAW:
 	case KEY_RESIZE:
 	case KEY_FINISH:
 		return WINDOW_DOCUMENT;
@@ -2284,7 +2283,7 @@ int gotopage(int c, struct cairoui *cairoui) {
 
 	switch (c) {
 	case KEY_INIT:
-		c = KEY_REDRAW;
+		c = KEY_REFRESH;
 		break;
 	case KEY_PPAGE:
 	case KEY_NPAGE:
@@ -2292,11 +2291,11 @@ int gotopage(int c, struct cairoui *cairoui) {
 		break;
 	case 'c':
 		sprintf(gotopagestring, "%d", position->npage + 1);
-		c = KEY_REDRAW;
+		c = KEY_REFRESH;
 		break;
 	case 'l':
 		sprintf(gotopagestring, "%d", position->totpages);
-		c = KEY_REDRAW;
+		c = KEY_REFRESH;
 		break;
 	}
 
@@ -2319,7 +2318,7 @@ int gotopage(int c, struct cairoui *cairoui) {
 		pos = 0;
 		return WINDOW_DOCUMENT;
 	case CAIROUI_INVALID:
-		cairoui_number(KEY_REDRAW, cairoui,
+		cairoui_number(KEY_REFRESH, cairoui,
 			"go to page: ", gotopagestring, &pos, "no such page",
 			&n, 1, position->totpages);
 		/* fallthrough */
