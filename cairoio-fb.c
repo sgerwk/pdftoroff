@@ -83,6 +83,13 @@ double cairoheight_fb(struct cairodevice *cairodevice) {
 }
 
 /*
+ * return whether double buffering is used
+ */
+int cairodoublebuffering_fb(struct cairodevice *cairodevice) {
+	return cairofb_doublebuffering((struct cairofb *) cairodevice->cairoio);
+}
+
+/*
  * clear a cairo envelope
  */
 void cairoclear_fb(struct cairodevice *cairodevice) {
@@ -169,6 +176,7 @@ struct cairodevice cairodevicefb = {
 	cairocontext_fb,
 	cairowidth_fb, cairoheight_fb,
 	cairowidth_fb, cairoheight_fb,
+	cairodoublebuffering_fb,
 	cairoclear_fb, cairoflush_fb,
 	cairoisactive_fb, cairoinput_fb
 };

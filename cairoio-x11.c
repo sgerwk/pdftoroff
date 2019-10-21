@@ -196,6 +196,13 @@ double cairoscreenheight_x11(struct cairodevice *cairodevice) {
 }
 
 /*
+ * return whether double buffering is used
+ */
+int cairodoublebuffering_x11(struct cairodevice *cairodevice) {
+	return cairodevice->cairoio->doublebuffering;
+}
+
+/*
  * clear
  */
 void cairoclear_x11(struct cairodevice *cairodevice) {
@@ -442,6 +449,7 @@ struct cairodevice cairodevicex11 = {
 	cairocontext_x11,
 	cairowidth_x11, cairoheight_x11,
 	cairoscreenwidth_x11, cairoscreenheight_x11,
+	cairodoublebuffering_x11,
 	cairoclear_x11, cairoflush_x11,
 	cairoisactive_x11, cairoinput_x11
 };

@@ -110,10 +110,17 @@ void cairofb_clear(struct cairofb *cairofb,
 }
 
 /*
+ * return whether double buffering is used
+ */
+int cairofb_doublebuffering(struct cairofb *cairofb) {
+	return cairofb->img != cairofb->dbuf;
+}
+
+/*
  * flush output, if double buffering
  */
 void cairofb_flush(struct cairofb *cairofb) {
-	if (cairofb->img != cairofb->dbuf)
+	if (cairofb_doublebuffering(cairofb))
 		memcpy(cairofb->img, cairofb->dbuf, cairofb->length);
 }
 

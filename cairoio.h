@@ -23,6 +23,9 @@
  * double screenheight(struct cairodevice *cairodevice);
  *	return the cairo context and its size
  *
+ * int doublebuffering(struct cairodevice *cairodevice);
+ *	return whether double buffering is used
+ *
  * void clear(struct cairodevice *cairodevice);
  * void flush(struct cairodevice *cairodevice);
  *	clear and flush
@@ -117,6 +120,7 @@ struct cairodevice {
 	double (*height)(struct cairodevice *cairodevice);
 	double (*screenwidth)(struct cairodevice *cairodevice);
 	double (*screenheight)(struct cairodevice *cairodevice);
+	int (*doublebuffering)(struct cairodevice *cairodevice);
 	void (*clear)(struct cairodevice *cairodevice);
 	void (*flush)(struct cairodevice *cairodevice);
 	int (*isactive)(struct cairodevice *cairodevice);

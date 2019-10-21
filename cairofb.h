@@ -27,6 +27,7 @@ struct cairofb {
 struct cairofb *cairofb_init(char *devname, int doublebuffering);
 void cairofb_clear(struct cairofb *cairofb,
 	double red, double green, double blue);
+int cairofb_doublebuffering(struct cairofb *cairofb);
 void cairofb_flush(struct cairofb *cairofb);
 void cairofb_finish(struct cairofb *cairo);
 
