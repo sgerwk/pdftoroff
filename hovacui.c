@@ -1536,8 +1536,9 @@ int keyscript(struct cairoui *cairoui, char c, gboolean unescaped) {
 	struct position *position = POSITION(cairoui);
 	struct output *output = OUTPUT(cairoui);
 	char key;
-	char *line;
+	char *line, out[100];
 	int len, res;
+	FILE *pipe;
 
 	if (output->script == NULL || output->keys == NULL)
 		return -1;
@@ -1549,10 +1550,19 @@ int keyscript(struct cairoui *cairoui, char c, gboolean unescaped) {
 	len = strlen(output->script) + strlen(position->filename) + 20;
 	line = malloc(len);
 	sprintf(line, output->script, c, position->filename, position->npage);
-	res = system(line);
-	cairoui_printlabel(cairoui, output->help, 2000, "executed: %s", line);
+	pipe = popen(line, "r");
+	if (pipe == NULL)
+		return -1;
+	res = fread(out, 1, 80, pipe);
+	fclose(pipe);
+	if (res < 0)
+		cairoui_printlabel(cairoui, output->help, 2000,
+			"executed: %s", line);
+	else {
+		out[res] = '\0';
+		cairoui_printlabel(cairoui, output->help, 2000, out);
+	}
 	free(line);
-
 	return res;
 }
 

@@ -8,20 +8,25 @@
 if [ "$1" = 'l' ];
 then
 	pdfannot -w -d "$2" $3 > hovacui-out.html
-	[ $? = 0 ] && rm hovacui-out.html && exit
+	[ $? = 0 ] && rm hovacui-out.html && echo -n "no links in page" && exit
 
 	if [ "$DISPLAY" = "" ];
 	then
-		elinks -remote 'openUrl(hovacui-out.html,new-tab)'
+		elinks -remote 'openUrl(hovacui-out.html,new-tab)' >& /dev/null
+		[ $? != 0 ] && echo -n "elinks not running" && exit
 		elinks -remote 'reload()'
+		echo -n "passed links to elinks"
 		exit
 	fi
 
 	if [ "$BROWSER" != "" ];
 	then
 		$BROWSER hovacui-out.html
+		echo -n "passed links to $BROWSER"
 		exit
 	fi
+
+	echo -n "no browser available"
 fi
 
 if [ "$1" = 's' ];
@@ -33,5 +38,6 @@ then
 	done
 
 	cp "$2" selection-$I.pdf
+	echo -n "saved as selection-$I.pdf"
 fi
 
