@@ -364,6 +364,10 @@ coordinates to the output file; 's' also saves the box content; 'S' saves the
 box content in all pages
 .TP
 .B
+e
+execute the external script; see \fIEXTERNAL SCRIPT\fP, below
+.TP
+.B
 q
 quit the program
 
@@ -552,19 +556,8 @@ of the saved pdf file; the default is to not do anything; \fIpdftoroff -t
 selection-%d.pdf > selection-%d.txt\fP converts the current textbox to text
 .TP
 .BI script " keys command
-\fIcommand\fP is executed when any of the keys in \fIkeys\fP is pressed; the
-format for the command is \fIprogram %c %s %d\fP, where the three parameters
-are replaced by the key, the file name and the page number; the script is
-executed in foreground, and \fIhovacui\fP is blocked until it ends; the command
-is not executed on predefined keys; the included script \fIpdfhscript\fP shows
-the actions and annotations in the current page in a browser when the hovacui
-config file contains the line
-
-.nf
-.I
-script l pdfhscript %c "%s" %d
-.fi
-
+the external script and the keys and menu entry to execute it;
+see \fIEXTERNAL SCRIPT\fP, below
 .TP
 .BI log " level
 verbose logging to output file;
@@ -659,6 +652,50 @@ if a menu or window is open close it and show the document
 .TP
 .I nop
 do nothing; lines starting with \fI#\fP have the same effect
+
+.
+.
+.
+.SH EXTERNAL SCRIPT
+
+If the \fIscript\fP configuration string is given, a script is executed by
+keystrokes or from a menu. An example string is:
+
+.nf
+.I
+script 'l[links]_s[save document]' pdfhscript %c "%s" %d
+.fi
+
+The first part gives the keystrokes and the menu entries, the rest is the
+script and its arguments:
+
+.IP "  * " 4
+pressing key 'l' at
+page 9 of \fIfile.pdf\fP causes the execution of \fIpdfhscript l "file.pdf"
+9\fP;
+
+.IP "  * "
+the script can also be executed from a menu reachable from the main menu or by
+keystroke 'e'; it contains two entries: \fIlinks\fP and \fIsave document\fP;
+the first is equivalent to keystroke 'l'; the second fires the execution of
+\fIpdfhscript s "file.pdf" 9\fP
+
+.P
+
+The underscore in \fI_s\fP means that the second entry has no key shortcut:
+pressing 's' does not execute the script. The same happens for predefined keys.
+
+If no \fIscript\fP is in the configuration file, the menu is not shown.
+
+The script is executed in foreground, and \fIhovacui\fP is blocked until it
+ends.
+
+Only one script can be specified. It is supposed to perform different actions
+depending on its first argument. The included script \fIpdfhscript\fP shows the
+links in page 9 of the document in a browser if the first argument is 'l', and
+saves the document if it is 's'. The result of 's' is different than the 'save
+document' entry in the 'page range' menu because the former saves an identical
+copy of the file, the latter renders it to a new PDF file.
 
 .
 .

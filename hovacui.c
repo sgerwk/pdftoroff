@@ -1489,16 +1489,61 @@ int savecurrentbox(struct cairoui *cairoui, int visible) {
 }
 
 /*
+ * find or scan the external script key string
+ */
+int findentry(char *config, char f, char *key, char **entry) {
+	char *s;
+	int menu, underline, found, next;
+
+	menu = 0;
+	underline = 0;
+	next = 0;
+	found = 0;
+	*key = ' ';
+	if (entry != NULL)
+		*entry = NULL;
+	for(s = config; *s != '\0'; s++) {
+		if (menu && next && entry != NULL && *entry == NULL)
+			*entry = s;
+		if (*s == '[')
+			menu = 1;
+		if (menu) {
+			if (*s == ']')
+				menu = 0;
+			continue;
+		}
+		if (*s == f || f == ' ') {
+			if (*key == ' ' || (f == ' ' && *entry == NULL))
+				*key = *s;
+			next = 1;
+		}
+		if (! underline) {
+			if (*s == f || f == ' ')
+				found = 1;
+			else
+				next = 0;
+		}
+		underline = *s == '_';
+	}
+
+	return found;
+}
+
+/*
  * call the external script
  */
-int keyscript(struct cairoui *cairoui, char c) {
+int keyscript(struct cairoui *cairoui, char c, gboolean unescaped) {
 	struct position *position = POSITION(cairoui);
 	struct output *output = OUTPUT(cairoui);
+	char key;
 	char *line;
 	int len, res;
 
-	if (output->script == NULL ||
-	    output->keys == NULL || strchr(output->keys, c) == NULL)
+	if (output->script == NULL || output->keys == NULL)
+		return -1;
+
+	res = findentry(output->keys, c, &key, NULL);
+	if ((! res && unescaped) || key == ' ')
 		return -1;
 
 	len = strlen(output->script) + strlen(position->filename) + 20;
@@ -1525,6 +1570,7 @@ enum window {
 	WINDOW_VIEWMODE,
 	WINDOW_FITDIRECTION,
 	WINDOW_ORDER,
+	WINDOW_SCRIPT,
 	WINDOW_RECTANGLE,
 	WINDOW_MENU,
 	WINDOW_WIDTH,
@@ -1572,6 +1618,8 @@ int document(int c, struct cairoui *cairoui) {
 		return WINDOW_DISTANCE;
 	case 'o':
 		return WINDOW_ORDER;
+	case 'e':
+		return WINDOW_SCRIPT;
 	case 'd':
 		return WINDOW_RECTANGLE;
 	case KEY_FIND:
@@ -1654,7 +1702,7 @@ int document(int c, struct cairoui *cairoui) {
 		movetonameddestination(cairoui, "abcd");
 		break;
 	default:
-		keyscript(cairoui, c);
+		keyscript(cairoui, c, TRUE);
 	}
 
 	cairoui->redraw = TRUE;
@@ -1985,6 +2033,83 @@ int order(int c, struct cairoui *cairoui) {
 }
 
 /*
+ * build a menu out of a config string (max 99 entries)
+ */
+char **entrymenu(char *config, char **keys) {
+	char **menu;
+	int max = 100;
+	char *s, *end;
+	int i;
+	char key;
+	char *entry;
+
+	menu = malloc(max * sizeof(char *));
+	if (keys != NULL)
+		*keys = malloc(max * sizeof(char));
+
+	for (s = config, i = 1;
+             s != NULL && i < max;
+             s = strchr(s, ']'), i++) {
+		if (s != config)
+			s++;
+		printf("s: %s<-\r\n", s);
+		findentry(s, ' ', &key, &entry);
+		if (entry == NULL) {
+			printf("end: %d\r\n", i);
+			menu[i] = NULL;
+			break;
+		}
+		if (keys != NULL)
+			(*keys)[i] = key;
+		end = strchr(entry, ']');
+		menu[i] = malloc((end - entry + 1) * sizeof(char));
+		memcpy(menu[i], entry, end - entry);
+		menu[i][end - entry] = '\0';
+	}
+
+	return menu;
+}
+
+/*
+ * menu for the external script
+ */
+int script(int c, struct cairoui *cairoui) {
+	struct output *output = OUTPUT(cairoui);
+
+	static char **menu;
+	static char *keys;
+	static int line = 0;
+	static int selected = 1;
+	int i;
+	int res;
+
+	if (c == KEY_INIT) {
+		menu = entrymenu(output->keys, &keys);
+		if (menu[1] == NULL)
+			return WINDOW_DOCUMENT;
+		menu[0] = "external script";
+	}
+
+	if (c == KEY_FINISH) {
+		for (i = 1; menu[i] != NULL; i++)
+			free(menu[i]);
+		free(menu);
+		free(keys);
+		return WINDOW_DOCUMENT;
+	}
+
+	res = cairoui_list(c, cairoui, menu, &line, &selected);
+	if (! CAIROUI_OUT(res))
+		return WINDOW_SCRIPT;
+
+	if (res == CAIROUI_DONE)
+		keyscript(cairoui, keys[selected], FALSE);
+
+	return WINDOW_DOCUMENT;
+
+}
+
+/*
  * main menu
  */
 int menu(int c, struct cairoui *cairoui) {
@@ -1996,6 +2121,7 @@ int menu(int c, struct cairoui *cairoui) {
 		"(/) search",
 		"(c) save document or page selection",
 		"(d) draw a rectangle",
+		"(e) external script",
 		"(v) view mode",
 		"(f) fit direction",
 		"(w) minimal width",
@@ -2012,6 +2138,7 @@ int menu(int c, struct cairoui *cairoui) {
 		WINDOW_SEARCH,
 		WINDOW_CHOP,
 		WINDOW_RECTANGLE,
+		WINDOW_SCRIPT,
 		WINDOW_VIEWMODE,
 		WINDOW_FITDIRECTION,
 		WINDOW_WIDTH,
@@ -2390,6 +2517,7 @@ struct windowlist windowlist[] = {
 {	WINDOW_VIEWMODE,	"VIEWMODE",	viewmode	},
 {	WINDOW_FITDIRECTION,	"FITDIRECTION",	fitdirection	},
 {	WINDOW_ORDER,		"ORDER",	order		},
+{	WINDOW_SCRIPT,		"SCRIPT",	script		},
 {	WINDOW_RECTANGLE,	"RECTANGLE",	rectangle	},
 {	WINDOW_MENU,		"MENU",		menu		},
 {	WINDOW_WIDTH,		"WIDTH",	minwidth	},

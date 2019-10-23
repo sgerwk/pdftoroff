@@ -2,23 +2,36 @@
 #
 # external script for hovacui
 #
-# show annotation and actions in the current page in a browser
+# l: show annotation and actions in the current page in a browser
+# s: save the document
 
-[ "$1" != 'l' ] && exit 1
-
-pdfannot -w -d "$2" $3 > hovacui-out.html
-[ $? = 0 ] && rm hovacui-out.html && exit
-
-if [ "$DISPLAY" = "" ];
+if [ "$1" = 'l' ];
 then
-	elinks -remote 'openUrl(hovacui-out.html,new-tab)'
-	elinks -remote 'reload()'
-	exit
+	pdfannot -w -d "$2" $3 > hovacui-out.html
+	[ $? = 0 ] && rm hovacui-out.html && exit
+
+	if [ "$DISPLAY" = "" ];
+	then
+		elinks -remote 'openUrl(hovacui-out.html,new-tab)'
+		elinks -remote 'reload()'
+		exit
+	fi
+
+	if [ "$BROWSER" != "" ];
+	then
+		$BROWSER hovacui-out.html
+		exit
+	fi
 fi
 
-if [ "$BROWSER" != "" ];
+if [ "$1" = 's' ];
 then
-	$BROWSER hovacui-out.html
-	exit
+	I=1
+	while [ -e selection-$I.pdf ];
+	do
+		I=$((I+1))
+	done
+
+	cp "$2" selection-$I.pdf
 fi
 
