@@ -2142,7 +2142,7 @@ int menu(int c, struct cairoui *cairoui) {
 		"(q) quit",
 		NULL
 	};
-	static char *shortcuts = "g/cdvfwtohq", *s;
+	static char *shortcuts = "g/cdevfwtohq", *s;
 	static int menunext[] = {
 		WINDOW_MENU,
 		WINDOW_GOTOPAGE,
