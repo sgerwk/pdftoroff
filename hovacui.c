@@ -2063,12 +2063,9 @@ char **entrymenu(char *config, char **keys) {
              s = strchr(s, ']'), i++) {
 		if (s != config)
 			s++;
-		printf("s: %s<-\r\n", s);
 		findentry(s, ' ', &key, &entry);
-		if (entry == NULL) {
-			printf("end: %d\r\n", i);
+		if (entry == NULL)
 			break;
-		}
 		if (keys != NULL)
 			(*keys)[i] = key;
 		end = strchr(entry, ']');
