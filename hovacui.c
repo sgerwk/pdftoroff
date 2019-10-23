@@ -2096,8 +2096,12 @@ int script(int c, struct cairoui *cairoui) {
 
 	if (c == KEY_INIT) {
 		menu = entrymenu(output->keys, &keys);
-		if (menu[1] == NULL)
+		if (menu[1] == NULL) {
+			cairoui_printlabel(cairoui, output->help, 2000,
+				"no external script; "
+				"see man page for details");
 			return WINDOW_DOCUMENT;
+		}
 		menu[0] = "external script";
 	}
 
