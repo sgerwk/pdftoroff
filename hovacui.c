@@ -2067,7 +2067,6 @@ char **entrymenu(char *config, char **keys) {
 		findentry(s, ' ', &key, &entry);
 		if (entry == NULL) {
 			printf("end: %d\r\n", i);
-			menu[i] = NULL;
 			break;
 		}
 		if (keys != NULL)
@@ -2077,6 +2076,7 @@ char **entrymenu(char *config, char **keys) {
 		memcpy(menu[i], entry, end - entry);
 		menu[i][end - entry] = '\0';
 	}
+	menu[i] = NULL;
 
 	return menu;
 }
