@@ -1985,72 +1985,6 @@ int order(int c, struct cairoui *cairoui) {
 }
 
 /*
- * rectangle drawing by cursor keys
- */
-int rectangle(int c, struct cairoui *cairoui) {
-	static cairo_rectangle_t r;
-	static gboolean corner;
-	static gboolean iterating = FALSE;
-	static int res, savec;
-	static PopplerRectangle d;
-	static int first, last;
-
-	struct position *position = POSITION(cairoui);
-	struct output *output = OUTPUT(cairoui);
-	PopplerRectangle s;
-	int currc;
-	int o;
-
-	if (iterating) {
-		currc = c;
-		c = savec;
-	}
-	else {
-		if (c == KEY_INIT) {
-			r = cairoui->dest;
-			corner = FALSE;
-		}
-		if (c == 'c' || c == 'd')
-			corner = ! corner;
-
-		res = cairoui_rectangle(c, cairoui, corner, &r);
-	}
-
-	if (res == CAIROUI_LEAVE)
-		return WINDOW_DOCUMENT;
-	if (res == CAIROUI_DONE || c == 's' || c == 'S') {
-		if (! iterating) {
-			s.x1 = r.x;
-			s.y1 = r.y;
-			s.x2 = r.x + r.width;
-			s.y2 = r.y + r.height;
-			moveto(position, output);
-			rscreentodoc(output, &d, &s);
-			savebox(cairoui, &d);
-			first = c == 'S' ? 0 : position->npage;
-			last = c == 'S' ?
-				position->totpages - 1 : position->npage;
-			iterating = TRUE;
-			savec = c;
-			currc = KEY_INIT;
-		}
-		o = savepdf(currc, cairoui, first, last, &d,
-			c == 'S', c != 'S');
-		if (! CAIROUI_OUT(o))
-			return WINDOW_RECTANGLE;
-		if (currc == KEY_FINISH)
-			iterating = FALSE;
-		return WINDOW_DOCUMENT;
-	}
-	if (res == CAIROUI_REFRESH || c == 'd')
-		return CAIROUI_REFRESH;
-
-	cairoui_printlabel(cairoui, output->help, NO_TIMEOUT,
-		"c/d=opposite corner, enter=save, s/S=save content");
-	return WINDOW_RECTANGLE;
-}
-
-/*
  * main menu
  */
 int menu(int c, struct cairoui *cairoui) {
@@ -2377,6 +2311,72 @@ int textdistance(int c, struct cairoui *cairoui) {
 	cairoui_printlabel(cairoui, output->help,
 		NO_TIMEOUT, "down=increase up=decrease");
 	return WINDOW_DISTANCE;
+}
+
+/*
+ * rectangle drawing by cursor keys
+ */
+int rectangle(int c, struct cairoui *cairoui) {
+	static cairo_rectangle_t r;
+	static gboolean corner;
+	static gboolean iterating = FALSE;
+	static int res, savec;
+	static PopplerRectangle d;
+	static int first, last;
+
+	struct position *position = POSITION(cairoui);
+	struct output *output = OUTPUT(cairoui);
+	PopplerRectangle s;
+	int currc;
+	int o;
+
+	if (iterating) {
+		currc = c;
+		c = savec;
+	}
+	else {
+		if (c == KEY_INIT) {
+			r = cairoui->dest;
+			corner = FALSE;
+		}
+		if (c == 'c' || c == 'd')
+			corner = ! corner;
+
+		res = cairoui_rectangle(c, cairoui, corner, &r);
+	}
+
+	if (res == CAIROUI_LEAVE)
+		return WINDOW_DOCUMENT;
+	if (res == CAIROUI_DONE || c == 's' || c == 'S') {
+		if (! iterating) {
+			s.x1 = r.x;
+			s.y1 = r.y;
+			s.x2 = r.x + r.width;
+			s.y2 = r.y + r.height;
+			moveto(position, output);
+			rscreentodoc(output, &d, &s);
+			savebox(cairoui, &d);
+			first = c == 'S' ? 0 : position->npage;
+			last = c == 'S' ?
+				position->totpages - 1 : position->npage;
+			iterating = TRUE;
+			savec = c;
+			currc = KEY_INIT;
+		}
+		o = savepdf(currc, cairoui, first, last, &d,
+			c == 'S', c != 'S');
+		if (! CAIROUI_OUT(o))
+			return WINDOW_RECTANGLE;
+		if (currc == KEY_FINISH)
+			iterating = FALSE;
+		return WINDOW_DOCUMENT;
+	}
+	if (res == CAIROUI_REFRESH || c == 'd')
+		return CAIROUI_REFRESH;
+
+	cairoui_printlabel(cairoui, output->help, NO_TIMEOUT,
+		"c/d=opposite corner, enter=save, s/S=save content");
+	return WINDOW_RECTANGLE;
 }
 
 struct windowlist windowlist[] = {
