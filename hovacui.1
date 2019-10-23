@@ -555,7 +555,7 @@ it must contain two occurrences of \fI%d\fP, which are replaced by the number
 of the saved pdf file; the default is to not do anything; \fIpdftoroff -t
 selection-%d.pdf > selection-%d.txt\fP converts the current textbox to text
 .TP
-.BI script " keys command
+.BI script " command keys
 the external script and the keys and menu entry to execute it;
 see \fIEXTERNAL SCRIPT\fP, below
 .TP
@@ -658,16 +658,16 @@ do nothing; lines starting with \fI#\fP have the same effect
 .
 .SH EXTERNAL SCRIPT
 
-If the \fIscript\fP configuration string is given, a script is executed by
+If the \fIscript\fP configuration line is given, a script is executed by
 keystrokes or from a menu. An example string is:
 
 .nf
 .I
-script 'l[links]_s[save document]' pdfhscript %c "%s" %d
+script pdfhscript 'l[links]_s[save document]'
 .fi
 
-The first part gives the keystrokes and the menu entries, the rest is the
-script and its arguments:
+The first option \fIpdfhscript\fP is the name of the script. The second option
+\fI'l[links]_s[save document]'\fP comprises the keystrokes and the menu entries:
 
 .IP "  * " 4
 pressing key 'l' at
@@ -683,12 +683,12 @@ the first is equivalent to keystroke 'l'; the second fires the execution of
 .P
 
 The underscore in \fI_s\fP means that the second entry has no key shortcut:
-pressing 's' does not execute the script. The same happens for predefined keys.
+pressing 's' does not execute the script. The same happens for the predefined
+keys.
 
 If no \fIscript\fP is in the configuration file, the menu is not shown.
 
-The script is executed in foreground, and \fIhovacui\fP is blocked until it
-ends.
+The script is executed in foreground; \fIhovacui\fP is blocks until it ends.
 
 Only one script can be specified. It is supposed to perform different actions
 depending on its first argument. The included script \fIpdfhscript\fP shows the
