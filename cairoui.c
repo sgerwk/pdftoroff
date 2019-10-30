@@ -364,7 +364,7 @@ int cairoui_list(int c, struct cairoui *cairoui, char *viewtext[],
 	double startx = cairoui->dest.x + marginx;
 	double starty = cairoui->dest.y + marginy;
 	double startlist = starty + titleheight + bordery;
-	int n, l, lines;
+	int n, l, lines, next;
 
 	for (n = 1; viewtext[n] != NULL; n++) {
 	}
@@ -378,30 +378,38 @@ int cairoui_list(int c, struct cairoui *cairoui, char *viewtext[],
 
 	switch (c) {
 	case KEY_DOWN:
-		if (selected != NULL && *selected >= n - 1)
-			return CAIROUI_UNCHANGED;
-		else if (selected != NULL && *selected < *line + lines)
-			(*selected)++;
+		if (selected != NULL) {
+			next = *selected;
+			do {
+				next++;
+			} while (next < n && viewtext[next][0] == '\0');
+			if (next >= n)
+				return CAIROUI_UNCHANGED;
+			*selected = next;
+			if (*selected >= *line + lines)
+				*line = *selected - lines;
+		}
 		else if (*line >= n - lines - 1)
 			return CAIROUI_UNCHANGED;
-		else {
-			if (selected != NULL)
-				(*selected)++;
+		else
 			(*line)++;
-		}
 		break;
 	case KEY_UP:
-		if (selected != NULL && *selected <= 1)
-			return CAIROUI_UNCHANGED;
-		else if(selected != NULL && *selected > *line + 1)
-			(*selected)--;
+		if (selected != NULL) {
+			next = *selected;
+			do {
+				next--;
+			} while (next >= 1 && viewtext[next][0] == '\0');
+			if (next < 1)
+				return CAIROUI_UNCHANGED;
+			*selected = next;
+			if (*selected <= *line)
+				*line = *selected - 1;
+		}
 		else if (*line <= 0)
 			return CAIROUI_UNCHANGED;
-		else {
-			if (selected != NULL)
-				(*selected)--;
+		else
 			(*line)--;
-		}
 		break;
 	case KEY_INIT:
 	case KEY_REDRAW:
