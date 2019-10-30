@@ -1802,11 +1802,12 @@ int chop(int c, struct cairoui *cairoui) {
 	struct position *position = POSITION(cairoui);
 	struct output *output = OUTPUT(cairoui);
 	static char *choptext[] = {
-		"page range",
-		"first page",
-		"last page",
-		"save range",
+		"save",
+		"first page of range",
+		"last page of range",
+		"save pages in range",
 		"clear range",
+		"",
 		"save document",
 		"save current page",
 		"save current box",
@@ -1883,7 +1884,7 @@ int chop(int c, struct cairoui *cairoui) {
 		output->last = -1;
 		output->help[0] = '\0';
 		break;
-	case 5:
+	case 6:
 		first = 0;
 		last = position->totpages - 1;
 		if (! iterating) {
@@ -1894,7 +1895,7 @@ int chop(int c, struct cairoui *cairoui) {
 		if (! CAIROUI_OUT(o))
 			return WINDOW_CHOP;
 		break;
-	case 6:
+	case 7:
 		first = position->npage;
 		last = position->npage;
 		if (! iterating) {
@@ -1905,7 +1906,7 @@ int chop(int c, struct cairoui *cairoui) {
 		if (! CAIROUI_OUT(o))
 			return WINDOW_CHOP;
 		break;
-	case 7:
+	case 8:
 		savecurrenttextbox(cairoui);
 		break;
 	}
