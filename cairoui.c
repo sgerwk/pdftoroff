@@ -13,7 +13,6 @@
  *   use in help() to separate keys from functions,
  *   in menu() to show the current values for viewmode, fit, etc.
  * - support 8bpp framebuffers (via a fixed colormap)
- * - in list(): separator, skip it when using a selected line
  * - add an optional help to the bottom of list()
  * - numbermode: 2 is a, 22 is b, 222 is c, etc.
  * - function to be possibly called before list() to wrap lines too long
