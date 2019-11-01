@@ -404,7 +404,7 @@ struct output {
 	/* zoom to: 0=text, 1=boundingbox, 2=page */
 	int viewmode;
 
-	/* fit horizontally (1), vertically (2) or both (0) */
+	/* fit horizontally (1), vertically (2) or both (3) */
 	int fit;
 
 	/* sorting algorithm */
@@ -795,14 +795,14 @@ void adjustviewbox(struct position *position, struct output *output) {
 		(output->dest.y2 - output->dest.y1) / output->screenheight);
 
 	if (fitmode == 0 ||
-	    (fitmode == 1 && viewbox->x2 - viewbox->x1 < minwidth)) {
+	    (fitmode & 0x1 && viewbox->x2 - viewbox->x1 < minwidth)) {
 		d = minwidth - viewbox->x2 + viewbox->x1;
 		viewbox->x1 -= d / 2;
 		viewbox->x2 += d / 2;
 	}
 
 	if (fitmode == 0 ||
-	    (fitmode == 2 && viewbox->y2 - viewbox->y1 < minheight)) {
+	    (fitmode & 0x2 && viewbox->y2 - viewbox->y1 < minheight)) {
 		d = minheight - viewbox->y2 + viewbox->y1;
 		viewbox->y1 -= d / 2;
 		viewbox->y2 += d / 2;
