@@ -1685,7 +1685,7 @@ int document(int c, struct cairoui *cairoui) {
 		output->minwidth -= output->minwidth - 10 < 10 ? 1 : 10;
 		if (output->fit & 0x1)
 			position->scrollx = 0;
-		else if (output->fit & 0x2)
+		if (output->fit & 0x2)
 			position->scrolly = 0;
 		break;
 	case 'Z':
