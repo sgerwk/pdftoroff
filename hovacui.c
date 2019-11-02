@@ -2738,20 +2738,24 @@ void (*labellist[])(struct cairoui *) = {
 /*
  * draw a list of rectangles in pdf points
  */
-void selection(struct cairoui *cairoui, GList *s) {
+void selection(struct cairoui *cairoui, GList *s, int current) {
 	struct position *position = POSITION(cairoui);
 	struct output *output = OUTPUT(cairoui);
 	double width, height;
 	GList *l;
 	PopplerRectangle *r;
+	int i;
 
 	cairo_save(output->cr);
 	cairo_scale(output->cr, 1, -1);
 	poppler_page_get_size(position->page, &width, &height);
 	cairo_translate(output->cr, 0, -height);
-	cairo_set_source_rgb(output->cr, 0.3, 0.0, 0.3);
 	cairo_set_operator(output->cr, CAIRO_OPERATOR_DIFFERENCE);
-	for (l = s; l != NULL; l = l->next) {
+	for (l = s, i = 0; l != NULL; l = l->next, i++) {
+		if (current == i)
+			cairo_set_source_rgb(output->cr, 0.0, 0.3, 0.3);
+		else
+			cairo_set_source_rgb(output->cr, 0.3, 0.0, 0.3);
 		r = (PopplerRectangle *) l->data;
 		cairo_rectangle(output->cr,
 			r->x1, r->y1, r->x2 - r->x1, r->y2 - r->y1);
@@ -2819,8 +2823,8 @@ void draw(struct cairoui *cairoui) {
 			FALSE, FALSE, TRUE);
 		pageborder(position, output);
 	}
-	selection(cairoui, output->found);
-	selection(cairoui, output->selection);
+	selection(cairoui, output->found, -1);
+	selection(cairoui, output->selection, -1);
 }
 
 /*
