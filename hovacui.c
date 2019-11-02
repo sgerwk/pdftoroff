@@ -1076,28 +1076,27 @@ int scrolltorectangle(struct position *position, struct output *output,
 }
 
 /*
- * go to the first or next match in the page, if any
+ * go to the first or next selected rectangle in the page, if any
  */
-int nextpagematch(struct position *position, struct output *output,
+int nextpageselected(struct position *position, struct output *output,
+		GList *selection, int forward,
 		gboolean inscreen, gboolean first) {
-	gboolean forward;
 	int b;
 	int end, step;
 	double width, height, prev;
 	PopplerRectangle *t, r;
 	GList *o, *l;
 
-	if (output->found == NULL)
+	if (selection == NULL)
 		return -1;
 
-	forward = output->forward;
 	end = forward ? position->textarea->num : -1;
 	step = forward ? +1 : -1;
 
 	if (forward)
-		o = output->found;
+		o = selection;
 	else {
-		o = g_list_copy(output->found);
+		o = g_list_copy(selection);
 		o = g_list_reverse(o);
 	}
 
@@ -1167,7 +1166,8 @@ int gotomatch(struct position *position, struct output *output,
 		scan.box = output->forward ? 0 : (scan.textarea->num - 1);
 	}
 
-	if (! ! nextpagematch(&scan, output, inscreen, nsearched == 0)) {
+	if (! ! nextpageselected(&scan, output, output->found, output->forward,
+			inscreen, nsearched == 0)) {
 		scan.npage = (scan.npage + (output->forward ? 1 : -1)
 			+ scan.totpages) % scan.totpages;
 		readpageraw(&scan, output);
