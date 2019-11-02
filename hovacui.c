@@ -1133,59 +1133,82 @@ int nextpageselected(struct position *position, struct output *output,
 }
 
 /*
+ * scan the document using a temporary position
+ */
+void positionscan(struct position *position, struct position *scan, int step) {
+	RectangleList *rl;
+	PopplerRectangle *bb, *v;
+
+	if (step == 0) {		// init
+		*scan = *position;
+		g_object_ref(scan->page);
+		scan->textarea = rectanglelist_copy(position->textarea);
+		scan->boundingbox = poppler_rectangle_copy(scan->boundingbox);
+		scan->viewbox = NULL; // do not free, is also in *position
+		return;
+	}
+
+	if (step == -1) {		// finish
+		rectanglelist_free(scan->textarea);
+		poppler_rectangle_free(scan->boundingbox);
+		poppler_rectangle_free(scan->viewbox);
+		return;
+	}
+
+					// move to
+	rl = position->textarea;
+	bb = position->boundingbox;
+	v = position->viewbox;
+	scan->permanent_id = position->permanent_id;
+	scan->update_id = position->update_id;
+	g_set_object(&position->page, scan->page);
+	g_object_unref(scan->page);
+	*position = *scan;
+	scan->textarea = rl;
+	scan->boundingbox = bb;
+	scan->viewbox = v;
+}
+
+/*
  * go to the first/next match in the document
  */
 int gotomatch(struct position *position, struct output *output,
 		int nsearched, int inscreen) {
 	static struct position scan;
-	RectangleList *rl;
-	PopplerRectangle *bb, *v;
 
 	if (output->search[0] == '\0')
 		return -2;
 
 	if (nsearched == 0) {		// init
-		scan = *position;
-		g_object_ref(scan.page);
-		scan.textarea = rectanglelist_copy(position->textarea);
-		scan.boundingbox = poppler_rectangle_copy(scan.boundingbox);
-		scan.viewbox = NULL; // do not free, is also in *position
+		positionscan(position, &scan, 0);
 		moveto(&scan, output);
+		pagematch(&scan, output);
 	}
 
 	if (nsearched == -1) {		// finish
-		rectanglelist_free(scan.textarea);
-		poppler_rectangle_free(scan.boundingbox);
-		poppler_rectangle_free(scan.viewbox);
+		positionscan(position, &scan, -1);
 		return -1;
 	}
 
-	pagematch(&scan, output);
-	if (output->found != NULL && nsearched > 0) {
-		textarea(&scan, output);
-		scan.box = output->forward ? 0 : (scan.textarea->num - 1);
-	}
-
-	if (! ! nextpageselected(&scan, output, output->found, output->forward,
-			inscreen, nsearched == 0)) {
-		scan.npage = (scan.npage + (output->forward ? 1 : -1)
-			+ scan.totpages) % scan.totpages;
+	if (scan.page == NULL) {
 		readpageraw(&scan, output);
-		return scan.npage;
+		if (output->found != NULL) {
+			textarea(&scan, output);
+			scan.box = output->forward ?
+				0 : (scan.textarea->num - 1);
+		}
 	}
 
-	rl = position->textarea;
-	bb = position->boundingbox;
-	v = position->viewbox;
-	scan.permanent_id = position->permanent_id;
-	scan.update_id = position->update_id;
-	g_set_object(&position->page, scan.page);
-	g_object_unref(scan.page);
-	*position = scan;
-	scan.textarea = rl;
-	scan.boundingbox = bb;
-	scan.viewbox = v;
-	return -1;
+	if (! nextpageselected(&scan, output, output->found, output->forward,
+			inscreen, nsearched == 0)) {
+		positionscan(position, &scan, 1);
+		return -1;
+	}
+			
+	g_set_object(&scan.page, NULL);
+	scan.npage = (scan.npage + (output->forward ? 1 : -1) + scan.totpages)
+		% scan.totpages;
+	return scan.npage;
 }
 
 /*
