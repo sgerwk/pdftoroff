@@ -192,9 +192,9 @@ selecting the boundingbox or page mode (previous section).
 
 Also possible is the fitting direction "none", which allows arbitrary zooming
 and moving in the page. This is mostly a hack to allow zooming more than
-normally possible, and some things do not work (like moving to the next or
-previous search match). With this fit direction, only PageUp and PageDown
-switch page.
+normally possible, and some things do not work: moving to the next or previous
+search match may skip some matches unless \fInavigatematches\fP is in the
+configuration file; only PageUp and PageDown switch page.
 
 .SS Minimal width
 
@@ -540,6 +540,11 @@ option
 disable double buffering;
 the \fIDOUBLEBUFFERING\fP environment variable takes precedence over this
 option
+.TP
+.B navigatematches
+use the traditional method for moving among matches after a successful search:
+a match is highlighted, 'n' and 'p' respectively move to the next and previous
+match
 .TP
 .BI fifo " name
 receive commands from the given existing fifo;

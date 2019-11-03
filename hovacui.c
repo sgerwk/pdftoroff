@@ -53,7 +53,6 @@
  * - non-expert mode: every unassigned key calls WINDOW_MENU
  * - clip window title in list()
  * - history of searches
- * - split pdf viewing functions to pdfview.c and gui stuff to cairogui.c
  * - include images (in pdfrects.c)
  * - key to reset viewmode and fit direction to initial values
  * - history of positions
@@ -65,17 +64,14 @@
  *   the next anchor (annotation or link) in displayed part of the current
  *   textbox (if any, otherwise they scroll as usual); this requires storing
  *   the current anchor both for its attribute (the text or the target) and for
- *   moving to the next; it was not needed for search, where the next match is
- *   just the first outside the area of the current textbox that is currently
- *   displayed
+ *   moving to the next; this way of navigation among matches is implemented
+ *   for searching as navigatematches mode (output->current != CURRENT_UNUSED)
  * - detect file changes via inotify; this requires the file descriptor to be
  *   passed to cairodevice->input(); return KEY_FILECHANGE; the pdf file may
  *   not being fully written at that point, which results in a sequence of
  *   opening failures before being able to read it again; the current method
  *   using SIGHUP is better, if there is some way to send a signal when the
  *   file change is completed
- * - selection by cursor: requires cursor navigation, to be activated by some
- *   key; then mark start and end of selection
  * - make the margins (what determine the destination rectangle) customizable
  *   by field() or configuration file
  * - alternative to fit=none: wrap the lines that are longer than the minwidth
@@ -144,20 +140,37 @@
  * output->found
  *	the list of rectangles of the search matches in the current page
  *
- * the first match is located by scanning the document from the current textbox
- * to the last of the page, then in the following pages, counting the number of
- * pages until the number of pages in the document is reached
+ * a match is located by scanning the document from the current textbox to the
+ * last of the page, then in the following pages, counting the number of pages
+ * until reaching the number of pages in the document
  *
- * matches that are in the current textbox but fall before the part of it that
- * is currently displayed on the screen are ignored
+ * positionscan()
+ *	the document is scanned by a temporary struct position; it is
+ *	initialized as a copy of the current position, is copied back as the
+ *	current position if a match is found and is deallocated when done;
+ *	these operations are done by positionscan()
  *
- * the next match is the same but also excludes matches that are inside the
- * displayed part of the current textbox
+ * inscreen
+ * beforescreen
+ *	whether to consider matches that are before or in the visible part of
+ *	the current textbox; beforescreen implies inscreen
+ *
+ *	the visible part of the current textbox is considered when looking for
+ *	the first match ('/') but ignored when looking for the next ('n'); what
+ *	over the visible part of the current textbox is initially ignored, but
+ *	is considered after switching to the following boxes or pages
+ *
+ * output->current
+ *	if not CURRENT_UNUSED, matches are navigated one by one instead of a
+ *	screenful at time; when the current match is in the visible part of the
+ *	current textbox, the next match is the one following it (no matter
+ *	where it is); otherwise, the next match is the first starting from the
+ *	top of the visible part of the current textbox; the box that is
+ *	searched in is the current textbox if beforescreen==FALSE
  */
 
 /*
  * note: fit=none
- * --------------
  *
  * fit=none is mostly an hack to allow for arbitrary zooming and moving in the
  * page like regular pdf viewers
@@ -440,6 +453,7 @@ struct output {
 	char search[100];
 	gboolean forward;
 	GList *found;
+	int current;
 
 	/* selection */
 	GList *selection;
@@ -488,6 +502,16 @@ struct callback {
 };
 #define POSITION(cairoui) (((struct callback *) (cairoui)->cb)->position)
 #define OUTPUT(cairoui)   (((struct callback *) (cairoui)->cb)->output)
+
+/*
+ * current match
+ */
+#define CURRENT_UNUSED (-2)
+#define CURRENT_NONE (-1)
+void setcurrent(int *current, int value) {
+	if (*current != CURRENT_UNUSED)
+		*current = value;
+}
 
 /*
  * initialize position
@@ -545,6 +569,7 @@ int readpageraw(struct position *position, struct output *output) {
 	pagematch(position, output);
 	freeglistrectangles(output->selection);
 	output->selection = NULL;
+	setcurrent(&output->current, CURRENT_NONE);
 	return 0;
 }
 
@@ -1078,14 +1103,15 @@ int scrolltorectangle(struct position *position, struct output *output,
 /*
  * go to the first or next selected rectangle in the page, if any
  */
-int nextpageselected(struct position *position, struct output *output,
-		GList *selection, int forward,
-		gboolean inscreen, gboolean first) {
+int movetoselected(struct position *position, struct output *output,
+		GList *selection, int forward, int *current,
+		gboolean inscreen, gboolean beforescreen) {
 	int b;
 	int end, step;
-	double width, height, prev;
-	PopplerRectangle *t, r;
+	double width, height, y1;
+	PopplerRectangle *t, r, s;
 	GList *o, *l;
+	int previous, i, firstfound;
 
 	if (selection == NULL)
 		return -1;
@@ -1093,38 +1119,64 @@ int nextpageselected(struct position *position, struct output *output,
 	end = forward ? position->textarea->num : -1;
 	step = forward ? +1 : -1;
 
-	if (forward)
+	if (forward) {
 		o = selection;
+		previous = *current;
+	}
 	else {
 		o = g_list_copy(selection);
 		o = g_list_reverse(o);
+		previous = g_list_length(o) - *current - 1;
 	}
 
 	poppler_page_get_size(position->page, &width, &height);
 	for (b = position->box; b != end; b += step) {
 		t = &position->textarea->rect[b];
-		for (l = o; l != NULL; l = l->next) {
+		firstfound = -1;
+		for (l = o, i = 0; l != NULL; l = l->next, i++) {
 			r = * (PopplerRectangle *) l->data;
-			prev = r.y1;
+			y1 = r.y1;
 			r.y1 = height - r.y2;
-			r.y2 = height - prev;
+			r.y2 = height - y1;
 
 			if (! rectangle_contain(t, &r))
 				continue;
-			if (first &&
+
+			if (! beforescreen &&
 			    ! relativescreen(output, &r, inscreen, forward))
 				continue;
 
+			if (! beforescreen && i == previous &&
+			    relativescreen(output, &r, TRUE, ! forward)) {
+				firstfound = -1;
+				continue;
+			}
+
+			if (firstfound == -1) {
+				firstfound = i;
+				s = r;
+				if (i > previous)
+					break;
+			}
+		}
+		if (firstfound != -1) {
 			position->box = b;
-			scrolltorectangle(position, output, &r,
+			if (! relativescreen(output, &s, TRUE, ! forward) ||
+			    ! relativescreen(output, &s, TRUE, forward))
+				scrolltorectangle(position, output, &s,
 			                  forward, ! forward);
 
-			if (! forward)
+			if (forward)
+				setcurrent(current, firstfound);
+			else {
+				setcurrent(current,
+					g_list_length(o) - firstfound - 1);
 				g_list_free(o);
+			}
 			return 0;
 		}
 		inscreen = TRUE;
-		first = FALSE;
+		beforescreen = TRUE;
 	}
 
 	if (! forward)
@@ -1173,19 +1225,21 @@ void positionscan(struct position *position, struct position *scan, int step) {
  * go to the first/next match in the document
  */
 int gotomatch(struct position *position, struct output *output,
-		int nsearched, int inscreen) {
+		int step, int firstsearch) {
 	static struct position scan;
 
 	if (output->search[0] == '\0')
 		return -2;
 
-	if (nsearched == 0) {		// init
+	if (step == 0) {		// init
 		positionscan(position, &scan, 0);
 		moveto(&scan, output);
 		pagematch(&scan, output);
+		if (firstsearch)
+			setcurrent(&output->current, CURRENT_NONE);
 	}
 
-	if (nsearched == -1) {		// finish
+	if (step == -1) {		// finish
 		positionscan(position, &scan, -1);
 		return -1;
 	}
@@ -1194,13 +1248,18 @@ int gotomatch(struct position *position, struct output *output,
 		readpageraw(&scan, output);
 		if (output->found != NULL) {
 			textarea(&scan, output);
-			scan.box = output->forward ?
-				0 : (scan.textarea->num - 1);
+			if (output->forward)
+				firsttextbox(&scan, output);
+			else
+				lasttextbox(&scan, output);
+			moveto(&scan, output);
 		}
 	}
 
-	if (! nextpageselected(&scan, output, output->found, output->forward,
-			inscreen, nsearched == 0)) {
+	if (! movetoselected(&scan, output,
+			output->found, output->forward, &output->current,
+			firstsearch || output->current != CURRENT_UNUSED,
+			step != 0)) {
 		positionscan(position, &scan, 1);
 		return -1;
 	}
@@ -2846,7 +2905,7 @@ void draw(struct cairoui *cairoui) {
 			FALSE, FALSE, TRUE);
 		pageborder(position, output);
 	}
-	selection(cairoui, output->found, -1);
+	selection(cairoui, output->found, output->current);
 	selection(cairoui, output->selection, -1);
 }
 
@@ -3115,6 +3174,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	output.reload = &cairoui.reload;
 	output.drawbox = TRUE;
 	output.pagelabel = TRUE;
+	output.current = CURRENT_UNUSED;
 	output.pdfout = "selection-%d.pdf";
 	output.postsave = NULL;
 	output.keys = NULL;
@@ -3229,6 +3289,8 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 				doublebuffering = 1;
 			if (! strcmp(s, "nodoublebuffering"))
 				doublebuffering = 0;
+			if (! strcmp(s, "navigatematches"))
+				output.current = CURRENT_NONE;
 		}
 	}
 	if (config != NULL)
