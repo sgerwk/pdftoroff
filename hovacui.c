@@ -60,12 +60,14 @@
  *   (generalize sorting functions in pdfrects.c)
  * - i18n
  * - annotations and links:
- *   some key switches to anchor navigation mode, where keyup/keydown move to
- *   the next anchor (annotation or link) in displayed part of the current
- *   textbox (if any, otherwise they scroll as usual); this requires storing
- *   the current anchor both for its attribute (the text or the target) and for
- *   moving to the next; this way of navigation among matches is implemented
- *   for searching as navigatematches mode (output->current != CURRENT_UNUSED)
+ *   some key switches to anchor navigation mode, where keyup/keydown or n/p
+ *   move to the next anchor (annotation or link) in the displayed part of the
+ *   current textbox if any, otherwise they scroll as usual; this requires
+ *   storing the current anchor both for its attribute (the text or the target)
+ *   and for moving to the next; use movetoselected() with afterscreen=FALSE
+ *   and current!=CURRENT_UNUSED for searching in the visible part of the
+ *   current textbox; if search fails scroll, but then search again for an
+ *   annotation or link in the new position
  * - detect file changes via inotify; this requires the file descriptor to be
  *   passed to cairodevice->input(); return KEY_FILECHANGE; the pdf file may
  *   not being fully written at that point, which results in a sequence of
@@ -145,20 +147,24 @@
  * until reaching the number of pages in the document
  *
  * positionscan()
- *	the document is scanned by a temporary struct position; it is
- *	initialized as a copy of the current position, is copied back as the
- *	current position if a match is found and is deallocated when done;
- *	these operations are done by positionscan()
+ *	the document is scanned by a temporary struct position; this function
+ *	initializes it as a copy of the current position, copies it back as the
+ *	current position (done if a match is found) and deallocates it
  *
- * inscreen
+ * movetoselected()
  * beforescreen
- *	whether to consider matches that are before or in the visible part of
+ * inscreen
+ * afterscreen
+ *	move to the first or next match; the three arguments tell whether to
+ *	consider matches that are before, inside or after the visible part of
  *	the current textbox; beforescreen implies inscreen
  *
  *	the visible part of the current textbox is considered when looking for
- *	the first match ('/') but ignored when looking for the next ('n'); what
- *	over the visible part of the current textbox is initially ignored, but
- *	is considered after switching to the following boxes or pages
+ *	the first match ('/') but skipped when looking for the next ('n'); what
+ *	over the visible part of the current textbox is initially ignored, and
+ *	considered after switching to the following boxes or pages; afterscreen
+ *	is always true for searching; it is intended for next-or-scroll moves:
+ *	go to the next match if in the screen, otherwise scroll
  *
  * output->current
  *	if not CURRENT_UNUSED, matches are navigated one by one instead of a
@@ -1105,7 +1111,8 @@ int scrolltorectangle(struct position *position, struct output *output,
  */
 int movetoselected(struct position *position, struct output *output,
 		GList *selection, int forward, int *current,
-		gboolean inscreen, gboolean beforescreen) {
+		gboolean beforescreen, gboolean inscreen,
+		gboolean afterscreen) {
 	int b;
 	int end, step;
 	double width, height, y1;
@@ -1142,6 +1149,10 @@ int movetoselected(struct position *position, struct output *output,
 			if (! rectangle_contain(t, &r))
 				continue;
 
+			if (! afterscreen &&
+			    relativescreen(output, &r, FALSE, forward))
+				continue;
+
 			if (! beforescreen &&
 			    ! relativescreen(output, &r, inscreen, forward))
 				continue;
@@ -1175,6 +1186,8 @@ int movetoselected(struct position *position, struct output *output,
 			}
 			return 0;
 		}
+		if (! afterscreen)
+			break;
 		inscreen = TRUE;
 		beforescreen = TRUE;
 	}
@@ -1258,8 +1271,9 @@ int gotomatch(struct position *position, struct output *output,
 
 	if (! movetoselected(&scan, output,
 			output->found, output->forward, &output->current,
+			step != 0,
 			firstsearch || output->current != CURRENT_UNUSED,
-			step != 0)) {
+			TRUE)) {
 		positionscan(position, &scan, 1);
 		return -1;
 	}
