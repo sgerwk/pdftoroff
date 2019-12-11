@@ -716,6 +716,11 @@ void cairoui_resize(struct cairoui *cairoui) {
 		y = cairoui->full.y;
 		width = cairoui->full.width;
 		height = cairoui->full.height;
+		cairo_reset_clip(cairoui->cr);
+		cairo_rectangle(cairoui->cr,
+			cairoui->full.x, cairoui->full.y,
+			cairoui->full.width, cairoui->full.height);
+		cairo_clip(cairoui->cr);
 	}
 
 	cairoui->dest.x = x + cairoui->margin;
