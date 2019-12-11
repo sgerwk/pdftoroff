@@ -3142,7 +3142,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	char *mainopts = "m:f:w:t:o:d:s:pe:z:l:c:C:h", *allopts;
 	char configfile[4096], configline[1000], s[1000], r[1000];
 	FILE *config;
-	int i;
+	int i, n;
 	double d;
 	char *outdev;
 	int canopen;
@@ -3254,6 +3254,13 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 			cairoui.fontsize = d;
 		if (sscanf(configline, "margin %lg", &d) == 1)
 			cairoui.margin = d;
+		n = sscanf(configline, "full [%lg,%lg,%lg,%lg]",
+			&cairoui.full.x, &cairoui.full.y,
+			&cairoui.full.width, &cairoui.full.height);
+		if (0 < n && n < 4) {
+			cairoui.full.width = -1;
+			cairoui.full.height = -1;
+		}
 		if (sscanf(configline, "device %s", s) == 1)
 			outdev = strdup(s);
 		if (sscanf(configline, "fifo %s", s) == 1)
