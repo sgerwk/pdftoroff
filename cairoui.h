@@ -31,6 +31,7 @@ struct cairoui {
 	cairo_t *cr;
 
 	/* destination rectangle */
+	cairo_rectangle_t full;
 	cairo_rectangle_t dest;
 	int margin;
 

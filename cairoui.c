@@ -703,12 +703,23 @@ void cairoui_label(struct cairoui *cairoui, char *string, int bottom) {
  * resize output
  */
 void cairoui_resize(struct cairoui *cairoui) {
-	double width, height;
+	double x, y, width, height;
 
-	width = cairoui->cairodevice->width(cairoui->cairodevice);
-	height = cairoui->cairodevice->height(cairoui->cairodevice);
-	cairoui->dest.x = cairoui->margin;
-	cairoui->dest.y = cairoui->margin;
+	if (cairoui->full.width == -1 && cairoui->full.height == -1) {
+		x = 0;
+		y = 0;
+		width = cairoui->cairodevice->width(cairoui->cairodevice);
+		height = cairoui->cairodevice->height(cairoui->cairodevice);
+	}
+	else {
+		x = cairoui->full.x;
+		y = cairoui->full.y;
+		width = cairoui->full.width;
+		height = cairoui->full.height;
+	}
+
+	cairoui->dest.x = x + cairoui->margin;
+	cairoui->dest.y = y + cairoui->margin;
 	cairoui->dest.width = width - 2 * cairoui->margin;
 	cairoui->dest.height = height - 2 * cairoui->margin;
 
@@ -794,6 +805,9 @@ int cairoui_nopexternal(struct cairoui *cairoui, int window) {
 struct windowlist emptywindowlist[] = {{0, NULL, NULL}};
 void (*emptylabellist[])(struct cairoui *) = {NULL};
 void cairoui_default(struct cairoui *cairoui) {
+	cairoui->full.width = -1;
+	cairoui->full.height = -1;
+
 	cairoui->draw = cairoui_nop;
 	cairoui->resize = cairoui_nop;
 	cairoui->update = cairoui_nop;
