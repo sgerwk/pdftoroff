@@ -351,6 +351,11 @@ r
 reload the document (see also \fIDOCUMENT RELOAD\fP, below)
 .TP
 .B
+a
+draw to the rectangle specified by the \fIarea\fP config option;
+press again to return to default mode
+.TP
+.B
 b
 show the current box and append it to the output file, which
 by default is \fIhovacui-out.txt\fP but can be changed by \fI-z\fP
@@ -519,12 +524,11 @@ this has nothing to do with the size of the text in the pdf document
 the text does not exactly fit the width of the screen; a small margin is left
 around it; the default is \fI10.0\fP
 .TP
-.BI full " [x,y,width,height]
-the rectangle to draw onto; when not specified, is the whole available space:
-the entire screen for the Linux framebuffer and the entire window for X11; this
-is intended for usage in overhead presentations when misconfiguration of the
-projector or the screen makes part of the image invisible, hard to read or
-interfering with other presentation devices (whiteboards, etc.)
+.BI area " [x,y,width,height]
+the rectangle to draw onto when 'a' is pressed; this is intended for overhead
+presentations when misconfiguration of the projector or the screen makes part
+of the image invisible, hard to read or interfering with other presentation
+devices (whiteboards, etc.)
 .TP
 .BI device " d
 the framebuffer device to use; defaults to \fI/dev/fb0\fP

@@ -705,21 +705,23 @@ void cairoui_label(struct cairoui *cairoui, char *string, int bottom) {
 void cairoui_resize(struct cairoui *cairoui) {
 	double x, y, width, height;
 
-	if (cairoui->full.width == -1 && cairoui->full.height == -1) {
+	cairo_identity_matrix(cairoui->cr);
+	cairo_reset_clip(cairoui->cr);
+	if (! cairoui->usearea ||
+	    (cairoui->area.width == -1 && cairoui->area.height == -1)) {
 		x = 0;
 		y = 0;
 		width = cairoui->cairodevice->width(cairoui->cairodevice);
 		height = cairoui->cairodevice->height(cairoui->cairodevice);
 	}
 	else {
-		x = cairoui->full.x;
-		y = cairoui->full.y;
-		width = cairoui->full.width;
-		height = cairoui->full.height;
-		cairo_reset_clip(cairoui->cr);
+		x = cairoui->area.x;
+		y = cairoui->area.y;
+		width = cairoui->area.width;
+		height = cairoui->area.height;
 		cairo_rectangle(cairoui->cr,
-			cairoui->full.x, cairoui->full.y,
-			cairoui->full.width, cairoui->full.height);
+			cairoui->area.x, cairoui->area.y,
+			cairoui->area.width, cairoui->area.height);
 		cairo_clip(cairoui->cr);
 	}
 
@@ -736,6 +738,13 @@ void cairoui_resize(struct cairoui *cairoui) {
 	cairo_font_extents(cairoui->cr, &cairoui->extents);
 
 	cairoui->resize(cairoui);
+}
+
+/*
+ * reset output
+ */
+void cairoui_reset(struct cairoui *cairoui) {
+	cairoui_resize(cairoui);
 }
 
 /*
@@ -810,8 +819,9 @@ int cairoui_nopexternal(struct cairoui *cairoui, int window) {
 struct windowlist emptywindowlist[] = {{0, NULL, NULL}};
 void (*emptylabellist[])(struct cairoui *) = {NULL};
 void cairoui_default(struct cairoui *cairoui) {
-	cairoui->full.width = -1;
-	cairoui->full.height = -1;
+	cairoui->usearea = 0;
+	cairoui->area.width = -1;
+	cairoui->area.height = -1;
 
 	cairoui->draw = cairoui_nop;
 	cairoui->resize = cairoui_nop;

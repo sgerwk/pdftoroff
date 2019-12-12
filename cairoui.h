@@ -31,7 +31,8 @@ struct cairoui {
 	cairo_t *cr;
 
 	/* destination rectangle */
-	cairo_rectangle_t full;
+	int usearea;
+	cairo_rectangle_t area;
 	cairo_rectangle_t dest;
 	int margin;
 
@@ -138,6 +139,11 @@ void cairoui_initlabels(struct cairoui *cairoui);
  * cairoui structure default
  */
 void cairoui_default(struct cairoui *cairoui);
+
+/*
+ * cairoui reset
+ */
+void cairoui_reset(struct cairoui *cairoui);
 
 /*
  * ensure the output file is open

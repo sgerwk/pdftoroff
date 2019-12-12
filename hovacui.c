@@ -1794,6 +1794,10 @@ int document(int c, struct cairoui *cairoui) {
 		position->scrollx = 0;
 		position->scrolly = 0;
 		break;
+	case 'a':
+		cairoui->usearea = ! cairoui->usearea;
+		cairoui_reset(cairoui);
+		break;
 	case 's':
 		cairoui->timeout = 3000;
 		output->pagenumber = TRUE;
@@ -3254,12 +3258,12 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 			cairoui.fontsize = d;
 		if (sscanf(configline, "margin %lg", &d) == 1)
 			cairoui.margin = d;
-		n = sscanf(configline, "full [%lg,%lg,%lg,%lg]",
-			&cairoui.full.x, &cairoui.full.y,
-			&cairoui.full.width, &cairoui.full.height);
+		n = sscanf(configline, "area [%lg,%lg,%lg,%lg]",
+			&cairoui.area.x, &cairoui.area.y,
+			&cairoui.area.width, &cairoui.area.height);
 		if (0 < n && n < 4) {
-			cairoui.full.width = -1;
-			cairoui.full.height = -1;
+			cairoui.area.width = -1;
+			cairoui.area.height = -1;
 		}
 		if (sscanf(configline, "device %s", s) == 1)
 			outdev = strdup(s);
