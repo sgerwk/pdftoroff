@@ -27,6 +27,7 @@
  *	return whether double buffering is used
  *
  * void clear(struct cairodevice *cairodevice);
+ * void blank(struct cairodevice *cairodevice);
  * void flush(struct cairodevice *cairodevice);
  *	clear and flush
  *
@@ -122,6 +123,7 @@ struct cairodevice {
 	double (*screenheight)(struct cairodevice *cairodevice);
 	int (*doublebuffering)(struct cairodevice *cairodevice);
 	void (*clear)(struct cairodevice *cairodevice);
+	void (*blank)(struct cairodevice *cairodevice);
 	void (*flush)(struct cairodevice *cairodevice);
 	int (*isactive)(struct cairodevice *cairodevice);
 	int (*input)(struct cairodevice *cairodevice, int timeout,

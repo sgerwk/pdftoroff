@@ -744,6 +744,7 @@ void cairoui_resize(struct cairoui *cairoui) {
  * reset output
  */
 void cairoui_reset(struct cairoui *cairoui) {
+	cairoui->cairodevice->blank(cairoui->cairodevice);
 	cairoui_resize(cairoui);
 }
 

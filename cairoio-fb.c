@@ -90,14 +90,21 @@ int cairodoublebuffering_fb(struct cairodevice *cairodevice) {
 }
 
 /*
- * clear a cairo envelope
+ * clear
  */
 void cairoclear_fb(struct cairodevice *cairodevice) {
 	cairofb_clear((struct cairofb *) cairodevice->cairoio, 1.0, 1.0, 1.0);
 }
 
 /*
- * flush a cairo envelope
+ * blank
+ */
+void cairoblank_fb(struct cairodevice *cairodevice) {
+	cairofb_clear((struct cairofb *) cairodevice->cairoio, 0.0, 0.0, 0.0);
+}
+
+/*
+ * flush
  */
 void cairoflush_fb(struct cairodevice *cairodevice) {
 	cairofb_flush((struct cairofb *) cairodevice->cairoio);
@@ -177,7 +184,7 @@ struct cairodevice cairodevicefb = {
 	cairowidth_fb, cairoheight_fb,
 	cairowidth_fb, cairoheight_fb,
 	cairodoublebuffering_fb,
-	cairoclear_fb, cairoflush_fb,
+	cairoclear_fb, cairoblank_fb, cairoflush_fb,
 	cairoisactive_fb, cairoinput_fb
 };
 

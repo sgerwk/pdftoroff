@@ -215,6 +215,18 @@ void cairoclear_x11(struct cairodevice *cairodevice) {
 }
 
 /*
+ * blank
+ */
+void cairoblank_x11(struct cairodevice *cairodevice) {
+	struct cairoio *xhovacui;
+	xhovacui = cairodevice->cairoio;
+	cairo_identity_matrix(xhovacui->cr);
+	cairo_set_source_rgb(xhovacui->cr, 0.0, 0.0, 0.0);
+	cairo_rectangle(xhovacui->cr, 0, 0, xhovacui->width, xhovacui->height);
+	cairo_fill(xhovacui->cr);
+}
+
+/*
  * flush
  */
 void cairoflush_x11(struct cairodevice *cairodevice) {
@@ -450,7 +462,7 @@ struct cairodevice cairodevicex11 = {
 	cairowidth_x11, cairoheight_x11,
 	cairoscreenwidth_x11, cairoscreenheight_x11,
 	cairodoublebuffering_x11,
-	cairoclear_x11, cairoflush_x11,
+	cairoclear_x11, cairoblank_x11, cairoflush_x11,
 	cairoisactive_x11, cairoinput_x11
 };
 
