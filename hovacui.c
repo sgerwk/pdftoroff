@@ -2596,6 +2596,8 @@ int rectangle(int c, struct cairoui *cairoui) {
 			moveto(position, output);
 			rscreentodoc(output, &d, &s);
 			savebox(cairoui, &d);
+			if (res == CAIROUI_DONE)
+				return WINDOW_DOCUMENT;
 			first = c == 'S' ? 0 : position->npage;
 			last = c == 'S' ?
 				position->totpages - 1 : position->npage;
