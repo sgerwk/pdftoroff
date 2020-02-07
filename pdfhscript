@@ -12,7 +12,8 @@ then
 
 	if [ "$DISPLAY" = "" ];
 	then
-		elinks -remote 'openUrl(hovacui-out.html,new-tab)' >& /dev/null
+		elinks -remote 'openUrl(hovacui-out.html,new-tab)' \
+			> /dev/null 2>&1
 		[ $? != 0 ] && echo -n "elinks not running" && exit
 		elinks -remote 'reload()'
 		echo -n "passed links to elinks"
