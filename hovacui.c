@@ -3230,8 +3230,11 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 
 	optind = 1;
 	config = fopen(configfile, "r");
+	res = NULL;
 	while ((config != NULL && (res = fgets(configline, 900, config))) ||
-	       (-1 != (opt = getopt(argn, argv, allopts)) && opt == 'c')) {
+	       (-1 != (opt = getopt(argn, argv, allopts)))) {
+		if (res == NULL && opt != 'c')
+			continue;
 		if (res == NULL) {
 			strncpy(configline, optarg, 900);
 			res = strchr(configline, '=');
