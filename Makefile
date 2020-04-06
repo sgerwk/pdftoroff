@@ -1,11 +1,13 @@
 PROGS=pdftoroff pdffit pdfrects pdfrecur pdfannot \
-hovacui fbhovacui xhovacui cairoui
+hovacui fbhovacui drmhovacui xhovacui cairoui
 
 CFLAGS+=-g -Wall -Wextra -Wformat -Wformat-security
 CFLAGS+=${shell pkg-config --cflags poppler-glib}
 LDLIBS+=${shell pkg-config --libs poppler-glib}
-fbhovacui hovacui cairoui: LDLIBS+=\
+fbhovacui drmhovacui hovacui cairoui: LDLIBS+=\
 	${shell pkg-config --libs ncurses || echo '' -lncurses -ltinfo}
+drmhovacui.o cairodrm.o: CFLAGS+=${shell pkg-config --cflags libdrm}
+drmhovacui: LDLIBS+=${shell pkg-config --libs libdrm}
 xhovacui hovacui cairoui: LDLIBS+=${shell pkg-config --libs x11}
 
 all: ${PROGS}
@@ -20,8 +22,10 @@ install: all
 
 pdftoroff: pdftext.o
 pdfrects: pdfrects-main.o
-pdftoroff pdffit pdfrects pdfrecur hovacui fbhovacui xhovacui: pdfrects.o
+pdftoroff pdffit pdfrects pdfrecur: pdfrects.o
+hovacui fbhovacui drmhovacui xhovacui: pdfrects.o
 fbhovacui: cairofb.o vt.o cairoio-fb.o cairoui.o hovacui.o fbhovacui.o
+drmhovacui: cairodrm.o vt.o cairoio-drm.o cairoui.o hovacui.o drmhovacui.o
 xhovacui: cairofb.o vt.o cairoio-x11.o cairoui.o hovacui.o xhovacui.o
 hovacui: cairofb.o vt.o cairoio-fb.o cairoio-x11.o cairoui.o \
 hovacui.o hovacui-main.o
