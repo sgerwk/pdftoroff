@@ -75,7 +75,9 @@ int cairoinit_x11(struct cairodevice *cairodevice,
 	while (-1 != (opt = getopt(argn, argv, allopts))) {
 		switch (opt) {
 		case 'x':
-			if (! prefix(optarg, "display="))
+			if (! strcmp(optarg, "default"))
+				continue;
+			else if (! prefix(optarg, "display="))
 				display = second(optarg);
 			else if (! prefix(optarg, "geometry="))
 				geometry = second(optarg);
