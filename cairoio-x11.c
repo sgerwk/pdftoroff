@@ -50,7 +50,7 @@ int prefix(char *a, char *b) {
  */
 char *second(char *a) {
 	char *p;
-	p = rindex(a, ' ');
+	p = index(a, '=');
 	return p == NULL ? p : p + 1;
 }
 
@@ -75,9 +75,9 @@ int cairoinit_x11(struct cairodevice *cairodevice,
 	while (-1 != (opt = getopt(argn, argv, allopts))) {
 		switch (opt) {
 		case 'x':
-			if (! prefix(optarg, "display "))
+			if (! prefix(optarg, "display="))
 				display = second(optarg);
-			else if (! prefix(optarg, "geometry "))
+			else if (! prefix(optarg, "geometry="))
 				geometry = second(optarg);
 			else {
 				printf("unknown -x suboption: %s\n", optarg);
