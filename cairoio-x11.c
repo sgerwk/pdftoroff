@@ -72,6 +72,7 @@ int cairoinit_x11(struct cairodevice *cairodevice,
 
 	display = NULL;
 	geometry = NULL;
+	optind = 1;
 	while (-1 != (opt = getopt(argn, argv, allopts))) {
 		switch (opt) {
 		case 'x':
