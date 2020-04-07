@@ -182,7 +182,7 @@ int cairoinput_drm(struct cairodevice *cairodevice, int timeout,
  * the cairo device for the framebuffer
  */
 struct cairodevice cairodevicedrm = {
-	"",
+	"r:",
 	NULL,
 	cairoinit_drm, cairofinish_drm,
 	cairocontext_drm,

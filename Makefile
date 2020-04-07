@@ -7,7 +7,7 @@ LDLIBS+=${shell pkg-config --libs poppler-glib}
 fbhovacui drmhovacui hovacui cairoui: LDLIBS+=\
 	${shell pkg-config --libs ncurses || echo '' -lncurses -ltinfo}
 drmhovacui.o cairodrm.o: CFLAGS+=${shell pkg-config --cflags libdrm}
-drmhovacui: LDLIBS+=${shell pkg-config --libs libdrm}
+drmhovacui hovacui: LDLIBS+=${shell pkg-config --libs libdrm}
 xhovacui hovacui cairoui: LDLIBS+=${shell pkg-config --libs x11}
 
 all: ${PROGS}
@@ -27,8 +27,8 @@ hovacui fbhovacui drmhovacui xhovacui: pdfrects.o
 fbhovacui: cairofb.o vt.o cairoio-fb.o cairoui.o hovacui.o fbhovacui.o
 drmhovacui: cairodrm.o vt.o cairoio-drm.o cairoui.o hovacui.o drmhovacui.o
 xhovacui: cairofb.o vt.o cairoio-x11.o cairoui.o hovacui.o xhovacui.o
-hovacui: cairofb.o vt.o cairoio-fb.o cairoio-x11.o cairoui.o \
-hovacui.o hovacui-main.o
+hovacui: cairofb.o cairodrm.o vt.o cairoio-x11.o cairoio-fb.o cairoio-drm.o \
+cairoui.o hovacui.o hovacui-main.o
 cairoui: cairofb.o vt.o cairoio-fb.o cairoio-x11.o cairoui.o cairoui-main.o
 
 clean:
