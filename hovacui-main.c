@@ -12,6 +12,8 @@ int main(int argn, char *argv[]) {
 	struct cairodevice *cairodevice;
 
 	cairodevice = &cairodevicefb;
+	if (getenv("DISPLAY"))
+		cairodevice = &cairodevicex11;
 
 	opterr = 0;
 
@@ -24,9 +26,6 @@ int main(int argn, char *argv[]) {
 	while (-1 != (opt = getopt(argn, argv, cairodevicex11.options)))
 		if (opt != '?')
 			cairodevice = &cairodevicex11;
-
-	if (getenv("DISPLAY"))
-		cairodevice = &cairodevicex11;
 
 	opterr = 1;
 	optind = 1;
