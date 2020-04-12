@@ -5,6 +5,7 @@
  */
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <unistd.h>
 #include <cairo.h>
 #include "cairodrm.h"
@@ -20,8 +21,10 @@ int main() {
 
 				/* draw something */
 
-	cairo_set_source_rgb(cairodrm->cr, 0.0, 0.0, 0.0);
-	cairo_rectangle(cairodrm->cr, 0, 0, cairodrm->width, cairodrm->height);
+	cairodrm_clear(cairodrm, 1.0, 1.0, 1.0);
+	cairo_set_source_rgb(cairodrm->cr, 0.0, 1.0, 0.0);
+	cairo_rectangle(cairodrm->cr,
+		cairodrm->width - 100, cairodrm->height - 100, 100, 100);
 	cairo_fill(cairodrm->cr);
 
 	cairo_select_font_face(cairodrm->cr, "serif",
@@ -40,7 +43,7 @@ int main() {
 				/* flush */
 
 	cairodrm_flush(cairodrm);
-	sleep(3);
+	getchar();
 
 				/* finish */
 
