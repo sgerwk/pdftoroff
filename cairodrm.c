@@ -22,6 +22,56 @@
 #include "cairodrm.h"
 
 /*
+ * create, add and map a framebuffer
+ */
+uint32_t _createframebuffer(int drm, int width, int height, int bpp,
+		uint64_t *size, uint64_t *offset, uint32_t *stride,
+		uint32_t *handle) {
+	struct drm_mode_create_dumb createdumb;
+	struct drm_mode_map_dumb mapdumb;
+	uint32_t buf_id;
+	int res;
+
+	printf("create framebuffer\n");
+	memset(&createdumb, 0, sizeof(createdumb));
+	createdumb.width = width;
+	createdumb.height = height;
+	createdumb.bpp = bpp;
+	createdumb.flags = 0;
+	printf("\tcreate width=%d height=%d bpp=%d\n",
+		createdumb.width, createdumb.height, createdumb.bpp);
+	res = drmIoctl(drm, DRM_IOCTL_MODE_CREATE_DUMB, &createdumb);
+	printf("\t\tresult: %s\n", strerror(-res));
+	printf("\t\tsize: %llu\n", createdumb.size);
+	printf("\t\thandle: %d\n", createdumb.handle);
+
+	printf("\tadd width=%d height=%d 24 32 pitch=%d handle=%d\n",
+		createdumb.width, createdumb.height,
+		createdumb.pitch, createdumb.handle);
+	res = drmModeAddFB(drm,
+		createdumb.width, createdumb.height,
+		24, 32, // createdumb.bpp,
+		createdumb.pitch,
+		createdumb.handle, &buf_id);
+	printf("\t\tresult: %s\n", strerror(-res));
+	printf("\t\tbuf_id: %d\n", buf_id);
+
+	memset(&mapdumb, 0, sizeof(mapdumb));
+	mapdumb.handle = createdumb.handle;
+	mapdumb.pad = 0;
+	printf("\tmap handle=%d\n", mapdumb.handle);
+	res = drmIoctl(drm, DRM_IOCTL_MODE_MAP_DUMB, &mapdumb);
+	printf("\t\tresult: %s\n", strerror(-res));
+	printf("\t\toffset: %llu\n", mapdumb.offset);
+
+	*size = createdumb.size;
+	*offset = mapdumb.offset;
+	*stride = createdumb.pitch;
+	*handle = createdumb.handle;
+	return buf_id;
+}
+
+/*
  * create a cairo context from a drm device
  */
 struct cairodrm *cairodrm_init(char *devname, int doublebuffering) {
@@ -31,12 +81,11 @@ struct cairodrm *cairodrm_init(char *devname, int doublebuffering) {
 
 	drmModeConnectorPtr conn;
 	drmModeEncoderPtr enc;
-	uint32_t crtc;
-	drmModeModeInfoPtr mode;
+	drmModeModeInfo mode;
 	int nmode = 0;
 
-	struct drm_mode_create_dumb createdumb;
-	struct drm_mode_map_dumb mapdumb;
+	uint64_t size, offset;
+	uint32_t pitch, handle;
 
 	int i;
 	uint32_t buf_id;
@@ -69,120 +118,77 @@ struct cairodrm *cairodrm_init(char *devname, int doublebuffering) {
 	res = drmGetCap(drm, DRM_CAP_DUMB_BUFFER, &supportdumb);
 	// tbd: check res and supportdumb
 
-				/* list thinghs */
+				/* get resources */
 
 	resptr = drmModeGetResources(drm);
-	printf("count_fbs: %d\n", resptr->count_fbs);
-	for (i = 0; i < resptr->count_fbs; i++)
-		printf("fb[%d] = %d\n", i, resptr->crtcs[i]);
-	printf("count_crtcs: %d\n", resptr->count_crtcs);
-	for (i = 0; i < resptr->count_crtcs; i++)
-		printf("crtc[%d] = %d\n", i, resptr->crtcs[i]);
-	printf("count_connectors: %d\n", resptr->count_connectors);
-	for (i = 0; i < resptr->count_connectors; i++)
-		printf("connector[%d] = %d\n", i, resptr->connectors[i]);
-	printf("count_encoders: %d\n", resptr->count_encoders);
-	for (i = 0; i < resptr->count_encoders; i++)
-		printf("encoder[%d] = %d\n", i, resptr->encoders[i]);
 
-	printf("min_width: %d max_width: %d\n",
-		resptr->min_width, resptr->max_width);
-	printf("min_height: %d max_height: %d\n",
-		resptr->min_height, resptr->max_height);
-	printf("\n");
+				/* select mode */ 
 
-				/* first connected connector */
-
+	printf("select mode\n");
 	conn = NULL;
 	for (i = 0; i < resptr->count_connectors; i++) {
-		conn = drmModeGetConnector(drm, resptr->connectors[1]);
+		conn = drmModeGetConnector(drm, resptr->connectors[i]);
 		if (conn->connection == DRM_MODE_CONNECTED)
 			break;
-		else
-			conn = NULL;
+		drmModeFreeConnector(conn);
+		conn = NULL;
 	}
 	if (conn == NULL) {
-		printf("no available connector\n");
-		exit(1);
+		printf("\tno available connector\n");
+		exit(EXIT_FAILURE);
 	}
-
-				/* find crtc and select mode within */
-
-	printf("enc: %d\n", conn->encoder_id);
-	if (conn->encoder_id)
-		enc = drmModeGetEncoder(drm, conn->encoder_id);
-	else {
-		printf("no encoder\n");
-		return NULL;			// to be completed
-	}
-	if (enc->crtc_id)
-		crtc = enc->crtc_id;
-	else {
-		printf("no crtc\n");
-		return NULL;			// to be completed
-	}
-	drmModeFreeEncoder(enc);
-	printf("crtc: %d\n", crtc);
-	mode = &conn->modes[nmode];		// but not necessarily
-	printf("res: %dx%d\n", mode->hdisplay, mode->vdisplay);
-	printf("\n");
+	mode = conn->modes[nmode];		// but not necessarily
+	drmModeFreeConnector(conn);
+	printf("\tres: %dx%d\n", mode.hdisplay, mode.vdisplay);
 
 				/* create dumb framebuffer */
 
-	memset(&createdumb, 0, sizeof(createdumb));
-	createdumb.width = mode->hdisplay;
-	createdumb.height = mode->vdisplay;
-	createdumb.bpp = 32;			// TODO: ???
-	createdumb.flags = 0;
-	printf("DRM_IOCTL_MODE_CREATE_DUMB width=%d height=%d bpp=%d\n",
-		createdumb.width, createdumb.height, createdumb.bpp);
-	res = drmIoctl(drm, DRM_IOCTL_MODE_CREATE_DUMB, &createdumb);
-	printf("DRM_IOCTL_MODE_CREATE_DUMB: %s\n", strerror(-res));
-	printf("size: %llu handle: %d\n", createdumb.size, createdumb.handle);
+	buf_id = _createframebuffer(drm, mode.hdisplay, mode.vdisplay, 32,
+	                            &size, &offset, &pitch, &handle);
 
-	printf("drmModeAddFB width=%d height=%d 24 32 %d handle=%d\n",
-		createdumb.width, createdumb.height,
-		createdumb.pitch, createdumb.handle);
-	res = drmModeAddFB(drm,
-		createdumb.width, createdumb.height,
-		24, 32, // createdumb.bpp,
-		createdumb.pitch,
-		createdumb.handle, &buf_id);
-	printf("drmModeAddFB: %d buf_id=%d\n", res, buf_id);
+				/* link framebuffer -> crtc -> connector */
 
-	memset(&mapdumb, 0, sizeof(mapdumb));
-	mapdumb.handle = createdumb.handle;
-	mapdumb.pad = 0;
-	printf("drmIoctl DRM_IOCTL_MODE_MAP_DUMB %d\n", mapdumb.handle);
-	res = drmIoctl(drm, DRM_IOCTL_MODE_MAP_DUMB, &mapdumb);
-	printf("DRM_IOCTL_MODE_MAP_DUMB: %s\n", strerror(-res));
-	printf("offset: %llu\n", mapdumb.offset);
-
-				/* connect framebuffer to crtc */
-
-	res = drmModeSetCrtc(drm, crtc, buf_id, 0, 0,
-			     &conn->connector_id, 1,
-			     &conn->modes[nmode]);
-	printf("drmModeSetCrtc: %d\n", res);
+	printf("link framebuffer to connector(s)\n");
+	for (i = 0; i < resptr->count_connectors; i++) {
+		conn = drmModeGetConnector(drm, resptr->connectors[i]);
+		printf("\tconnector %d: ", conn->connector_id);
+		if (conn->connection != DRM_MODE_CONNECTED) {
+			printf("unconnected - not tried\n");
+			continue;
+		}
+		if (conn->encoder_id == 0) {
+			printf("no encoder\n");
+			exit(1);		// search of an encoder
+		}
+		enc = drmModeGetEncoder(drm, conn->encoder_id);
+		if (enc->crtc_id == 0) {
+			printf("no crtc\n");
+			exit(1);		// search for a crtc
+		}
+		res = drmModeSetCrtc(drm, enc->crtc_id, buf_id, 0, 0,
+			&conn->connector_id, 1, &mode);
+		printf("%s\n", strerror(-res));
+		drmModeFreeEncoder(enc);
+		drmModeFreeConnector(conn);
+		break;
+	}
 
 				/* map surface to memory */
 
-	printf("mmap: size=%llu drm=%d offset=%llu\n",
-		createdumb.size, drm, mapdumb.offset);
-	img = mmap(NULL, createdumb.size,
-		PROT_READ | PROT_WRITE, MAP_SHARED, drm, mapdumb.offset);
+	printf("mmap size=%llu drm=%d offset=%llu\n", size, drm, offset);
+	img = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, drm, offset);
 	if (img == MAP_FAILED) {
 		perror("mmap");
 		return NULL;
 	}
-	dbuf = doublebuffering ? malloc(createdumb.size) : img;
+	dbuf = doublebuffering ? malloc(size) : img;
 
 				/* create cairo */
 
 	format = CAIRO_FORMAT_RGB24; // or CAIRO_FORMAT_RGB16_565;
-	width = createdumb.width;
-	height = createdumb.height;
-	stride = createdumb.pitch;
+	width = mode.hdisplay;
+	height = mode.vdisplay;
+	stride = pitch;
 	surface = cairo_image_surface_create_for_data(dbuf, format,
 		width, height, stride);
 	status = cairo_surface_status(surface);
@@ -198,11 +204,11 @@ struct cairodrm *cairodrm_init(char *devname, int doublebuffering) {
 	cairodrm->width = width;
 	cairodrm->height = height;
 	cairodrm->dev = drm;
-	cairodrm->handle = createdumb.handle;
+	cairodrm->handle = handle;
 	cairodrm->buf_id = buf_id;
 	cairodrm->img = img;
 	cairodrm->dbuf = dbuf;
-	cairodrm->size = createdumb.size;
+	cairodrm->size = size;
 	return cairodrm;
 }
 
@@ -238,7 +244,7 @@ void cairodrm_flush(struct cairodrm *cairodrm) {
 	clip.x2 = cairodrm->width;
 	clip.y2 = cairodrm->height;
 	res = drmModeDirtyFB(cairodrm->dev, cairodrm->buf_id, &clip, 1);
-	printf("drmModeDirtyFB: %d\n", res);
+	printf("drmModeDirtyFB: %s\n", strerror(-res));
 }
 
 /*
@@ -252,12 +258,14 @@ void cairodrm_finish(struct cairodrm *cairodrm) {
 	cairo_surface_destroy(cairodrm->surface);
 	munmap(cairodrm->img, cairodrm->size);
 
-	drmModeRmFB(cairodrm->dev, cairodrm->buf_id);
+	res = drmModeRmFB(cairodrm->dev, cairodrm->buf_id);
+	printf("remove framebuffer: %s\n", strerror(-res));
 
 	destroydumb.handle = cairodrm->handle;
 	res = drmIoctl(cairodrm->dev,
 		DRM_IOCTL_MODE_DESTROY_DUMB, &destroydumb);
-	printf("DRM_IOCTL_MODE_DESTROY_DUMB: %s\n", strerror(-res));
+	printf("destroy framebuffer handle=%d: %s\n",
+	       destroydumb.handle, strerror(-res));
 	close(cairodrm->dev);
 }
 
