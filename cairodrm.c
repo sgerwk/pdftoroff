@@ -68,11 +68,11 @@ int _maximalcommon(int drm, drmModeResPtr resptr,
 			continue;
 		}
 		j = _maximalmode(conn, resptr);
-		drmModeFreeConnector(conn);
 		if (*width > conn->modes[j].hdisplay)
 			*width = conn->modes[j].hdisplay;
 		if (*height > conn->modes[j].vdisplay)
 			*height = conn->modes[j].vdisplay;
+		drmModeFreeConnector(conn);
 	}
 	if (*width == resptr->max_width || *height == resptr->max_height) {
 		printf("\tno available modes\n");
@@ -135,11 +135,11 @@ int _framebuffersize(int drm, drmModeResPtr resptr,
 			continue;
 		}
 		j = _minimalmode(conn, resptr, reqwidth, reqheight);
-		drmModeFreeConnector(conn);
 		if (*width < conn->modes[j].hdisplay)
 			*width = conn->modes[j].hdisplay;
 		if (*height < conn->modes[j].vdisplay)
 			*height = conn->modes[j].vdisplay;
+		drmModeFreeConnector(conn);
 	}
 	if (*width == 0 || *height == 0) {
 		printf("\tno available modes\n");
