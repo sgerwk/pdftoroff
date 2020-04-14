@@ -97,12 +97,58 @@
 #include "cairodrm.h"
 
 /*
+ * connector types
+ */
+struct {
+	char *name;	unsigned value;
+} connectorarray[] = {
+	{"unknown",	DRM_MODE_CONNECTOR_Unknown},
+	{"vga",		DRM_MODE_CONNECTOR_VGA},
+	{"dvii",	DRM_MODE_CONNECTOR_DVII},
+	{"dvi",		DRM_MODE_CONNECTOR_DVII},
+	{"dvid",	DRM_MODE_CONNECTOR_DVID},
+	{"dvi",		DRM_MODE_CONNECTOR_DVID},
+	{"dvia",	DRM_MODE_CONNECTOR_DVIA},
+	{"dvi",		DRM_MODE_CONNECTOR_DVIA},
+	{"composite",	DRM_MODE_CONNECTOR_Composite},
+	{"svideo",	DRM_MODE_CONNECTOR_SVIDEO},
+	{"lvds",	DRM_MODE_CONNECTOR_LVDS},
+	{"component",	DRM_MODE_CONNECTOR_Component},
+	{"9pindin",	DRM_MODE_CONNECTOR_9PinDIN},
+	{"displayport",	DRM_MODE_CONNECTOR_DisplayPort},
+	{"hdmia",	DRM_MODE_CONNECTOR_HDMIA},
+	{"hdmi",	DRM_MODE_CONNECTOR_HDMIA},
+	{"hdmib",	DRM_MODE_CONNECTOR_HDMIB},
+	{"hdmi",	DRM_MODE_CONNECTOR_HDMIB},
+	{"tv",		DRM_MODE_CONNECTOR_TV},
+	{"edp",		DRM_MODE_CONNECTOR_eDP},
+	{"virtual",	DRM_MODE_CONNECTOR_VIRTUAL},
+	{"dsi",		DRM_MODE_CONNECTOR_DSI},
+	{NULL,		0}
+};
+
+/*
+ * match a connector with a specification
+ */
+int matchconnector(drmModeConnectorPtr conn, char *spec) {
+	int i;
+	if ((unsigned) atoi(spec) == conn->connector_id)
+		return 1;
+
+	for (i = 0; connectorarray[i].name; i++)
+		if (! strcmp(spec, connectorarray[i].name) &&
+		    connectorarray[i].value == conn->connector_type)
+			return 1;
+	return 0;
+}
+
+/*
  * parse a connector string
  */
-int *enabledconnectors(drmModeResPtr resptr, char *connectors) {
+int *enabledconnectors(int drm, drmModeResPtr resptr, char *connectors) {
 	int *enabled;
-	char *scan, c;
-	unsigned int conn;
+	char *scan, field[100], c;
+	drmModeConnectorPtr conn;
 	int i, res;
 
 	printf("enabled connectors\n");
@@ -111,16 +157,18 @@ int *enabledconnectors(drmModeResPtr resptr, char *connectors) {
 		if (connectors == NULL || ! strcmp(connectors, "all"))
 			enabled[i] = 1;
 		else {
+			conn = drmModeGetConnector(drm, resptr->connectors[i]);
 			enabled[i] = 0;
 			for (scan = connectors; scan != NULL; ) {
-				res = sscanf(scan, "%u%c", &conn, &c);
+				res = sscanf(scan, "%90[^,]%c", field, &c);
 				if (res == 1 || (res == 2 && c == ','))
-					if (conn == resptr->connectors[i])
+					if (matchconnector(conn, field))
 						enabled[i] = 1;
 				scan = index(scan, ',');
 				if (scan)
 					scan++;
 			}
+			drmModeFreeConnector(conn);
 		}
 		printf("\tconnector %d: %s\n", resptr->connectors[i],
 			enabled[i] ? "enabled" : "disabled");
@@ -417,7 +465,7 @@ struct cairodrm *cairodrm_init(char *devname, int doublebuffering,
 
 				/* enabled connectors */
 
-	enabled = enabledconnectors(resptr, connectors);
+	enabled = enabledconnectors(drm, resptr, connectors);
 
 				/* maximal shared resolution */
 
@@ -429,7 +477,8 @@ struct cairodrm *cairodrm_init(char *devname, int doublebuffering,
 
 				/* size of framebuffer */
 
-	res = _framebuffersize(drm, resptr, enabled, width, height, &fbwidth, &fbheight);
+	res = _framebuffersize(drm, resptr, enabled,
+		width, height, &fbwidth, &fbheight);
 	if (res)
 		return NULL;
 
