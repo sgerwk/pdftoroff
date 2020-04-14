@@ -470,8 +470,10 @@ struct cairodrm *cairodrm_init(char *devname, int doublebuffering,
 				/* maximal shared resolution */
 
 	res = _maximalcommon(drm, resptr, enabled, &width, &height);
-	if (res)
+	if (res) {
+		drmModeFreeResources(resptr);
 		return NULL;
+	}
 	// width = 820;
 	// height = 200;
 
@@ -479,8 +481,10 @@ struct cairodrm *cairodrm_init(char *devname, int doublebuffering,
 
 	res = _framebuffersize(drm, resptr, enabled,
 		width, height, &fbwidth, &fbheight);
-	if (res)
+	if (res) {
+		drmModeFreeResources(resptr);
 		return NULL;
+	}
 
 				/* create dumb framebuffer */
 
@@ -491,6 +495,8 @@ struct cairodrm *cairodrm_init(char *devname, int doublebuffering,
 
 	res = _linkframebufferconnectors(drm, resptr, enabled, buf_id,
 		width, height, fbwidth, fbheight, &cwidth, &cheight);
+
+	drmModeFreeResources(resptr);
 
 				/* map surface to memory */
 
