@@ -71,7 +71,8 @@ int cairoinit_drm(struct cairodevice *cairodevice,
 
 	cairodrm = cairodrm_init(device, doublebuffering, connectors);
 	if (cairodrm == NULL) {
-		printf("cannot open %s as a cairo surface\n", device);
+		if (! ! strcmp(connectors, "list"))
+			printf("cannot open %s as a cairo surface\n", device);
 		return -1;
 	}
 

@@ -128,6 +128,25 @@ struct {
 };
 
 /*
+ * list connector types
+ */
+void listconnectors(int drm, drmModeResPtr resptr) {
+	int i, j;
+	drmModeConnectorPtr conn;
+
+	for (i = 0; i < resptr->count_connectors; i++) {
+		conn = drmModeGetConnector(drm, resptr->connectors[i]);
+		printf("connector %d: ", conn->connector_id);
+		for (j = 0; connectorarray[j].name; j++)
+			if (connectorarray[j].value == conn->connector_type) {
+				printf("%s\n", connectorarray[j].name);
+				break;
+			}
+		drmModeFreeConnector(conn);
+	}
+}
+
+/*
  * match a connector with a specification
  */
 int matchconnector(drmModeConnectorPtr conn, char *spec) {
@@ -463,9 +482,18 @@ struct cairodrm *cairodrm_init(char *devname, int doublebuffering,
 
 	resptr = drmModeGetResources(drm);
 
+				/* list connectors */
+
+	if (connectors != NULL && ! strcmp(connectors, "list")) {
+		listconnectors(drm, resptr);
+		drmModeFreeResources(resptr);
+		return NULL;
+	}
+
 				/* enabled connectors */
 
 	enabled = enabledconnectors(drm, resptr, connectors);
+
 
 				/* maximal shared resolution */
 
