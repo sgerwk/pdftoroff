@@ -97,6 +97,39 @@
 #include "cairodrm.h"
 
 /*
+ * parse a connector string
+ */
+int *enabledconnectors(drmModeResPtr resptr, char *connectors) {
+	int *enabled;
+	char *scan, c;
+	unsigned int conn;
+	int i, res;
+
+	printf("enabled connectors\n");
+	enabled = malloc(resptr->count_connectors * sizeof(int));
+	for (i = 0; i < resptr->count_connectors; i++) {
+		if (connectors == NULL || ! strcmp(connectors, "all"))
+			enabled[i] = 1;
+		else {
+			enabled[i] = 0;
+			for (scan = connectors; scan != NULL; ) {
+				res = sscanf(scan, "%u%c", &conn, &c);
+				if (res == 1 || (res == 2 && c == ','))
+					if (conn == resptr->connectors[i])
+						enabled[i] = 1;
+				scan = index(scan, ',');
+				if (scan)
+					scan++;
+			}
+		}
+		printf("\tconnector %d: %s\n", resptr->connectors[i],
+			enabled[i] ? "enabled" : "disabled");
+	}
+
+	return enabled;
+}
+
+/*
  * maximal-resolution mode of a connector
  */
 int _maximalmode(drmModeConnectorPtr conn, drmModeResPtr resptr) {
@@ -126,7 +159,7 @@ int _maximalmode(drmModeConnectorPtr conn, drmModeResPtr resptr) {
 /*
  * maximal resolution supported by all connectors
  */
-int _maximalcommon(int drm, drmModeResPtr resptr,
+int _maximalcommon(int drm, drmModeResPtr resptr, int *enabled,
 		unsigned *width, unsigned *height) {
 	drmModeConnectorPtr conn;
 	int i, j;
@@ -137,8 +170,8 @@ int _maximalcommon(int drm, drmModeResPtr resptr,
 	for (i = 0; i < resptr->count_connectors; i++) {
 		conn = drmModeGetConnector(drm, resptr->connectors[i]);
 		printf("\tconnector %d\n", conn->connector_id);
-		if (conn->connection != DRM_MODE_CONNECTED) {
-			printf("\t\tunconnected\n");
+		if (! enabled[i] || conn->connection != DRM_MODE_CONNECTED) {
+			puts(! enabled[i] ? "\t\tdisabled": "\t\tunconnected");
 			drmModeFreeConnector(conn);
 			continue;
 		}
@@ -149,7 +182,8 @@ int _maximalcommon(int drm, drmModeResPtr resptr,
 			*height = conn->modes[j].vdisplay;
 		drmModeFreeConnector(conn);
 	}
-	if (*width == resptr->max_width || *height == resptr->max_height) {
+	if (*width == resptr->max_width + 1 ||
+	    *height == resptr->max_height + 1) {
 		printf("\tno available modes\n");
 		return -1;
 	}
@@ -192,7 +226,7 @@ int _minimalmode(drmModeConnectorPtr conn, drmModeResPtr resptr,
 /*
  * minimal framebuffer size
  */
-int _framebuffersize(int drm, drmModeResPtr resptr,
+int _framebuffersize(int drm, drmModeResPtr resptr, int *enabled,
 		int reqwidth, int reqheight,
 		unsigned *width, unsigned *height) {
 	drmModeConnectorPtr conn;
@@ -204,8 +238,8 @@ int _framebuffersize(int drm, drmModeResPtr resptr,
 	for (i = 0; i < resptr->count_connectors; i++) {
 		conn = drmModeGetConnector(drm, resptr->connectors[i]);
 		printf("\tconnector %d\n", conn->connector_id);
-		if (conn->connection != DRM_MODE_CONNECTED) {
-			printf("\t\tunconnected\n");
+		if (! enabled[i] || conn->connection != DRM_MODE_CONNECTED) {
+			puts(! enabled[i] ? "\t\tdisabled": "\t\tunconnected");
 			drmModeFreeConnector(conn);
 			continue;
 		}
@@ -277,7 +311,8 @@ uint32_t _createframebuffer(int drm, int width, int height, int bpp,
 /*
  * link a framebuffer to the connectors
  */
-int _linkframebufferconnectors(int drm, drmModeResPtr resptr, int buf_id,
+int _linkframebufferconnectors(int drm, drmModeResPtr resptr, int *enabled,
+		int buf_id,
 		int width, int height,
 		int fbwidth, int fbheight,
 		int *cwidth, int *cheight) {
@@ -294,8 +329,9 @@ int _linkframebufferconnectors(int drm, drmModeResPtr resptr, int buf_id,
 	for (i = 0; i < resptr->count_connectors; i++) {
 		conn = drmModeGetConnector(drm, resptr->connectors[i]);
 		printf("\tconnector %d\n", conn->connector_id);
-		if (conn->connection != DRM_MODE_CONNECTED) {
-			printf("\t\tunconnected - not tried\n");
+		if (! enabled[i] || conn->connection != DRM_MODE_CONNECTED) {
+			puts(! enabled[i] ? "\t\tdisabled": "\t\tunconnected");
+			drmModeFreeConnector(conn);
 			continue;
 		}
 		if (conn->encoder_id == 0) {
@@ -329,12 +365,14 @@ int _linkframebufferconnectors(int drm, drmModeResPtr resptr, int buf_id,
 /*
  * create a cairo context from a drm device
  */
-struct cairodrm *cairodrm_init(char *devname, int doublebuffering) {
+struct cairodrm *cairodrm_init(char *devname, int doublebuffering,
+		char *connectors) {
 	unsigned width, height, bpp = 32;
 
 	int drm, res;
 	uint64_t supportdumb;
 	drmModeResPtr resptr;
+	int *enabled;
 
 	uint64_t size, offset;
 	uint32_t pitch, handle;
@@ -377,9 +415,13 @@ struct cairodrm *cairodrm_init(char *devname, int doublebuffering) {
 
 	resptr = drmModeGetResources(drm);
 
+				/* enabled connectors */
+
+	enabled = enabledconnectors(resptr, connectors);
+
 				/* maximal shared resolution */
 
-	res = _maximalcommon(drm, resptr, &width, &height);
+	res = _maximalcommon(drm, resptr, enabled, &width, &height);
 	if (res)
 		return NULL;
 	// width = 820;
@@ -387,7 +429,7 @@ struct cairodrm *cairodrm_init(char *devname, int doublebuffering) {
 
 				/* size of framebuffer */
 
-	res = _framebuffersize(drm, resptr, width, height, &fbwidth, &fbheight);
+	res = _framebuffersize(drm, resptr, enabled, width, height, &fbwidth, &fbheight);
 	if (res)
 		return NULL;
 
@@ -398,7 +440,7 @@ struct cairodrm *cairodrm_init(char *devname, int doublebuffering) {
 
 				/* link framebuffer -> connectors */
 
-	res = _linkframebufferconnectors(drm, resptr, buf_id,
+	res = _linkframebufferconnectors(drm, resptr, enabled, buf_id,
 		width, height, fbwidth, fbheight, &cwidth, &cheight);
 
 				/* map surface to memory */

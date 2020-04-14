@@ -15,7 +15,8 @@ int main() {
 
 				/* create a cairodrm */
 
-	cairodrm = cairodrm_init("/dev/dri/card0", 1);
+	cairodrm = cairodrm_init("/dev/dri/card0", 1, "all");
+	// cairodrm = cairodrm_init("/dev/dri/card0", 1, "43,45");
 	if (cairodrm == NULL)
 		exit(EXIT_FAILURE);
 

@@ -31,7 +31,7 @@ int cairoinit_drm(struct cairodevice *cairodevice,
 	if (device == NULL)
 		device = "/dev/dri/card0";
 
-	cairodrm = cairodrm_init(device, doublebuffering);
+	cairodrm = cairodrm_init(device, doublebuffering, "all");
 	if (cairodrm == NULL) {
 		printf("cannot open %s as a cairo surface\n", device);
 		return -1;
