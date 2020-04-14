@@ -4,6 +4,7 @@
 
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 #include "vt.h"
 #include "cairodrm.h"
 #include "cairoio.h"
@@ -16,12 +17,30 @@ struct initdata {
 };
 
 /*
+ * check whether b is a prefix of a
+ */
+int _cairodrm_prefix(char *a, char *b) {
+	return strncmp(a, b, strlen(b));
+}
+
+/*
+ * extract the last part of a string
+ */
+char *_cairodrm_second(char *a) {
+	char *p;
+	p = index(a, '=');
+	return p == NULL ? p : p + 1;
+}
+
+/*
  * create a cairo context
  */
 int cairoinit_drm(struct cairodevice *cairodevice,
 		char *device, int doublebuffering,
 		int argn, char *argv[], char *allopts) {
 	struct cairodrm *cairodrm;
+	int opt;
+	char *connectors;
 	WINDOW *w;
 
 	(void) argn;
@@ -31,7 +50,20 @@ int cairoinit_drm(struct cairodevice *cairodevice,
 	if (device == NULL)
 		device = "/dev/dri/card0";
 
-	cairodrm = cairodrm_init(device, doublebuffering, "all");
+	connectors = "all";
+	optind = 1;
+	while (-1 != (opt = getopt(argn, argv, allopts))) {
+		switch (opt) {
+		case 'r':
+			if (! strcmp(optarg, "default"))
+				connectors = "all";
+			else if (! _cairodrm_prefix(optarg, "connectors="))
+				connectors = _cairodrm_second(optarg);
+			break;
+		}
+	}
+
+	cairodrm = cairodrm_init(device, doublebuffering, connectors);
 	if (cairodrm == NULL) {
 		printf("cannot open %s as a cairo surface\n", device);
 		return -1;
