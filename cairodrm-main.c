@@ -10,13 +10,14 @@
 #include <cairo.h>
 #include "cairodrm.h"
 
-int main() {
+int main(int argc, char *argv[]) {
 	struct cairodrm *cairodrm;
 
 				/* create a cairodrm */
 
-	cairodrm = cairodrm_init("/dev/dri/card0", 1, "all");
-	// cairodrm = cairodrm_init("/dev/dri/card0", 1, "43,45");
+	(void) argc;
+
+	cairodrm = cairodrm_init("/dev/dri/card0", 1, argv[1]);
 	if (cairodrm == NULL)
 		exit(EXIT_FAILURE);
 
