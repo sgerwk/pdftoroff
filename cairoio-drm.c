@@ -57,6 +57,8 @@ int cairoinit_drm(struct cairodevice *cairodevice,
 		case 'r':
 			if (! strcmp(optarg, "default"))
 				connectors = "all";
+			else if (! strcmp(optarg, ".")) {
+			}
 			else if (! strcmp(optarg, "all"))
 				connectors = "all";
 			else if (! _cairodrm_prefix(optarg, "connectors="))
