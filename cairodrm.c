@@ -487,6 +487,8 @@ void cairodrm_finish(struct cairodrm *cairodrm) {
 	cairo_destroy(cairodrm->cr);
 	cairo_surface_destroy(cairodrm->surface);
 	munmap(cairodrm->img, cairodrm->size);
+	if (cairodrm_doublebuffering(cairodrm))
+		free(cairodrm->dbuf);
 
 	res = drmModeRmFB(cairodrm->dev, cairodrm->buf_id);
 	printf("remove framebuffer: %s\n", strerror(-res));
