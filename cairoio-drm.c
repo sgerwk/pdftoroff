@@ -57,8 +57,14 @@ int cairoinit_drm(struct cairodevice *cairodevice,
 		case 'r':
 			if (! strcmp(optarg, "default"))
 				connectors = "all";
+			else if (! strcmp(optarg, "all"))
+				connectors = "all";
 			else if (! _cairodrm_prefix(optarg, "connectors="))
 				connectors = _cairodrm_second(optarg);
+			else {
+				printf("unknown -r suboption: %s\n", optarg);
+				return -1;
+			}
 			break;
 		}
 	}
