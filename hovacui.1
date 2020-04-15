@@ -452,8 +452,14 @@ window positioned at 200,100 on display :1 is:
 \fIhovacui -x display=:1 -x geometry=400x300+200+100 file.pdf\fP
 .fi
 .TP
-.BI -r " default
-use the direct rendering infrastructure
+.BI -r " suboption
+use the direct rendering infrastructure; the suboption may be \fIdefault\fP for
+showing the pdf file on all video outputs or \fIconnectors=conn,conn,conn\fP
+showing it only on the specified video outputs; each \fIconn\fP may be the id
+of a connector or its type, like \fIvga\fP, \fIhdmi\fP, \fIlvds\fP,
+\fIsvideo\fP, etc.; option \fI-r connectors=list\fP prints the available
+connector ids and types; option \fI-r .\fP is for using drm without specifying
+the outputs
 .TP
 .BI -h
 show a summary of the command line options and the main keys
