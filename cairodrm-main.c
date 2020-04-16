@@ -17,7 +17,7 @@ int main(int argc, char *argv[]) {
 
 	(void) argc;
 
-	cairodrm = cairodrm_init("/dev/dri/card0", 1, argv[1]);
+	cairodrm = cairodrm_init("/dev/dri/card0", argv[1], 0, 0, 0);
 	if (cairodrm == NULL)
 		exit(EXIT_FAILURE);
 

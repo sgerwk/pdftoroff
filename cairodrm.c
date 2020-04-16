@@ -432,9 +432,9 @@ int _linkframebufferconnectors(int drm, drmModeResPtr resptr, int *enabled,
 /*
  * create a cairo context from a drm device
  */
-struct cairodrm *cairodrm_init(char *devname, int doublebuffering,
-		char *connectors) {
-	unsigned width, height, bpp = 32;
+struct cairodrm *cairodrm_init(char *devname,
+		char *connectors, unsigned width, unsigned height, int flags) {
+	unsigned bpp = 32;
 
 	int drm, res;
 	uint64_t supportdumb;
@@ -494,17 +494,15 @@ struct cairodrm *cairodrm_init(char *devname, int doublebuffering,
 
 	enabled = enabledconnectors(drm, resptr, connectors);
 
-
 				/* maximal shared resolution */
 
-	res = _maximalcommon(drm, resptr, enabled, &width, &height);
-	if (res) {
-		drmModeFreeResources(resptr);
-		return NULL;
+	if (width == 0 || height == 0) {
+		res = _maximalcommon(drm, resptr, enabled, &width, &height);
+		if (res) {
+			drmModeFreeResources(resptr);
+			return NULL;
+		}
 	}
-	// width = 820;
-	// height = 200;
-
 				/* size of framebuffer */
 
 	res = _framebuffersize(drm, resptr, enabled,
@@ -523,6 +521,10 @@ struct cairodrm *cairodrm_init(char *devname, int doublebuffering,
 
 	res = _linkframebufferconnectors(drm, resptr, enabled, buf_id,
 		width, height, fbwidth, fbheight, &cwidth, &cheight);
+	if (flags & CAIRODRM_EXACT) {
+		cwidth = width;
+		cheight = height;
+	}
 
 	drmModeFreeResources(resptr);
 
@@ -534,7 +536,7 @@ struct cairodrm *cairodrm_init(char *devname, int doublebuffering,
 		perror("mmap");
 		return NULL;
 	}
-	dbuf = doublebuffering ? malloc(size) : img;
+	dbuf = (flags & CAIRODRM_DOUBLEBUFFERING) ? malloc(size) : img;
 
 				/* create the cairo context */
 

@@ -10,6 +10,9 @@
 
 #include <cairo.h>
 
+#define CAIRODRM_DOUBLEBUFFERING 0x0001
+#define CAIRODRM_EXACT 0x0002
+
 struct cairodrm {
 /* public */
 	cairo_surface_t *surface;
@@ -26,8 +29,8 @@ struct cairodrm {
 	int size;
 };
 
-struct cairodrm *cairodrm_init(char *devname, int doublebuffering,
-	char *connectors);
+struct cairodrm *cairodrm_init(char *devname,
+	char *connectors, unsigned width, unsigned height, int flags);
 void cairodrm_clear(struct cairodrm *cairofb,
 	double red, double green, double blue);
 int cairodrm_doublebuffering(struct cairodrm *cairofb);

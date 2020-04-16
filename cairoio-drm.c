@@ -40,17 +40,18 @@ int cairoinit_drm(struct cairodevice *cairodevice,
 		int argn, char *argv[], char *allopts) {
 	struct cairodrm *cairodrm;
 	int opt;
-	char *connectors;
+	int width, height;
+	int flags;
+	char *connectors, *s;
 	WINDOW *w;
-
-	(void) argn;
-	(void) argv;
-	(void) allopts;
 
 	if (device == NULL)
 		device = "/dev/dri/card0";
 
 	connectors = "all";
+	width = 0;
+	height = 0;
+	flags = doublebuffering ? CAIRODRM_DOUBLEBUFFERING : 0;
 	optind = 1;
 	while (-1 != (opt = getopt(argn, argv, allopts))) {
 		switch (opt) {
@@ -61,8 +62,19 @@ int cairoinit_drm(struct cairodevice *cairodevice,
 			}
 			else if (! strcmp(optarg, "all"))
 				connectors = "all";
+			else if (! strcmp(optarg, "exact"))
+				flags |= CAIRODRM_EXACT;
 			else if (! _cairodrm_prefix(optarg, "connectors="))
 				connectors = _cairodrm_second(optarg);
+			else if (! _cairodrm_prefix(optarg, "size=")) {
+				s = _cairodrm_second(optarg);
+				if (2 == sscanf(s, "%dx%d", &width, &height)) {
+				}
+				else {
+					printf("cannot parse resolution: ");
+					printf("%s\n", optarg);
+				}
+			}
 			else {
 				printf("unknown -r suboption: %s\n", optarg);
 				return -1;
@@ -71,7 +83,8 @@ int cairoinit_drm(struct cairodevice *cairodevice,
 		}
 	}
 
-	cairodrm = cairodrm_init(device, doublebuffering, connectors);
+	cairodrm = cairodrm_init(device,
+	                         connectors, width, height, flags);
 	if (cairodrm == NULL) {
 		if (! ! strcmp(connectors, "list"))
 			printf("cannot open %s as a cairo surface\n", device);

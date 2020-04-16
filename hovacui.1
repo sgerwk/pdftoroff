@@ -453,13 +453,41 @@ window positioned at 200,100 on display :1 is:
 .fi
 .TP
 .BI -r " suboption
-use the direct rendering infrastructure; the suboption may be \fIdefault\fP for
-showing the pdf file on all video outputs or \fIconnectors=conn,conn,conn\fP
-showing it only on the specified video outputs; each \fIconn\fP may be the id
-of a connector or its type, like \fIvga\fP, \fIhdmi\fP, \fIlvds\fP,
-\fIsvideo\fP, etc.; option \fI-r connectors=list\fP prints the available
-connector ids and types; option \fI-r .\fP is for using drm without specifying
-the outputs
+use the direct rendering infrastructure; the allwed suboptions are:
+
+.RS
+.TP
+.I default
+show the pdf file on all video outputs at the maximal allowed size
+
+.TP
+.I connectors=conn,conn,conn
+show the pdf file only on the specified video outputs; each \fIconn\fP may be
+the id of a connector or its type, like \fIvga\fP, \fIhdmi\fP, \fIlvds\fP,
+\fIsvideo\fP, etc.; \fIconnectors=list\fP prints the available connector ids
+and types
+
+.TP
+.I size=wxh
+the width and height of the screen area to be used for showing the pdf file;
+this is related to the resolution set for the video outputs but is not the same
+because: a. only the default resolutions are used and b. different video output
+may support different resolutions
+
+.TP
+.I exact
+the width and height in the \fIsize=wxh\fP suboption are the minimal requested
+size of a screen area to be used for showing the pdf file; the video modes that
+best suit that size on all connectors are selected, and the area used for
+showing the pdf file is computed from them maximizing the screen usage; this
+may result in an area larger than requested; this option forces the use of the
+requested size, possibly leaving a black frame around the pdf file
+
+.TP
+.I -r
+use drm without specifying the video outputs or size
+.RE
+
 .TP
 .BI -h
 show a summary of the command line options and the main keys
