@@ -10,22 +10,31 @@
 int main(int argn, char *argv[]) {
 	int opt;
 	struct cairodevice *cairodevice;
+	int cargn;
+	char **cargv;
 
 	cairodevice = &cairodevicefb;
 	if (getenv("DISPLAY"))
 		cairodevice = &cairodevicex11;
 
 	opterr = 0;
+	cargv = malloc(argn * sizeof(char *));
 
 	optind = 1;
-	while (-1 != (opt = getopt(argn, argv, cairodevicedrm.options)))
+	cargn = argn;
+	memcpy(cargv, argv, argn * sizeof(char *));
+	while (-1 != (opt = getopt(cargn, cargv, cairodevicedrm.options)))
 		if (opt != '?')
 			cairodevice = &cairodevicedrm;
 
 	optind = 1;
-	while (-1 != (opt = getopt(argn, argv, cairodevicex11.options)))
+	cargn = argn;
+	memcpy(cargv, argv, argn * sizeof(char *));
+	while (-1 != (opt = getopt(cargn, cargv, cairodevicex11.options)))
 		if (opt != '?')
 			cairodevice = &cairodevicex11;
+
+	free(cargv);
 
 	opterr = 1;
 	optind = 1;
