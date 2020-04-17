@@ -70,6 +70,10 @@ int cairoinit_drm(struct cairodevice *cairodevice,
 				s = _cairodrm_second(optarg);
 				if (2 == sscanf(s, "%dx%d", &width, &height)) {
 				}
+				else if (! strcmp(s, "list")) {
+					width = 0;
+					height = 1;
+				}
 				else {
 					printf("cannot parse resolution: ");
 					printf("%s\n", optarg);
@@ -86,7 +90,8 @@ int cairoinit_drm(struct cairodevice *cairodevice,
 	cairodrm = cairodrm_init(device,
 	                         connectors, width, height, flags);
 	if (cairodrm == NULL) {
-		if (! ! strcmp(connectors, "list"))
+		if (! strstr(connectors, "list") &&
+		    width != 0 && height != 1)
 			printf("cannot open %s as a cairo surface\n", device);
 		return -1;
 	}

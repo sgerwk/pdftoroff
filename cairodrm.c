@@ -130,18 +130,26 @@ struct {
 /*
  * list connector types
  */
-void listconnectors(int drm, drmModeResPtr resptr) {
+void listconnectors(int drm, drmModeResPtr resptr, int *enabled, int modes) {
 	int i, j;
 	drmModeConnectorPtr conn;
 
 	for (i = 0; i < resptr->count_connectors; i++) {
+		if (! enabled[i])
+			continue;
 		conn = drmModeGetConnector(drm, resptr->connectors[i]);
 		printf("connector %d: ", conn->connector_id);
 		for (j = 0; connectorarray[j].name; j++)
 			if (connectorarray[j].value == conn->connector_type) {
-				printf("%s\n", connectorarray[j].name);
+				printf("%s", connectorarray[j].name);
 				break;
 			}
+		if (modes)
+			for (j = 0; j < conn->count_modes; j++)
+				printf(" %dx%d",
+					conn->modes[j].hdisplay,
+					conn->modes[j].vdisplay);
+		printf("\n");
 		drmModeFreeConnector(conn);
 	}
 }
@@ -173,7 +181,9 @@ int *enabledconnectors(int drm, drmModeResPtr resptr, char *connectors) {
 	printf("enabled connectors\n");
 	enabled = malloc(resptr->count_connectors * sizeof(int));
 	for (i = 0; i < resptr->count_connectors; i++) {
-		if (connectors == NULL || ! strcmp(connectors, "all"))
+		if (connectors == NULL ||
+		    strstr(connectors, "all") ||
+		    ! strcmp(connectors, "list"))
 			enabled[i] = 1;
 		else {
 			conn = drmModeGetConnector(drm, resptr->connectors[i]);
@@ -482,17 +492,19 @@ struct cairodrm *cairodrm_init(char *devname,
 
 	resptr = drmModeGetResources(drm);
 
-				/* list connectors */
-
-	if (connectors != NULL && ! strcmp(connectors, "list")) {
-		listconnectors(drm, resptr);
-		drmModeFreeResources(resptr);
-		return NULL;
-	}
-
 				/* enabled connectors */
 
 	enabled = enabledconnectors(drm, resptr, connectors);
+
+				/* list connectors */
+
+	if ((connectors != NULL && strstr(connectors, "list")) ||
+	    (width == 0 && height == 1)) {
+		listconnectors(drm, resptr, enabled,
+		               width == 0 && height == 1);
+		drmModeFreeResources(resptr);
+		return NULL;
+	}
 
 				/* maximal shared resolution */
 

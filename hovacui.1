@@ -453,7 +453,7 @@ window positioned at 200,100 on display :1 is:
 .fi
 .TP
 .BI -r " suboption
-use the direct rendering infrastructure; the allwed suboptions are:
+use the direct rendering infrastructure; the suboptions are:
 
 .RS
 .TP
@@ -464,8 +464,10 @@ show the pdf file on all video outputs at the maximal allowed size
 .I connectors=conn,conn,conn
 show the pdf file only on the specified video outputs; each \fIconn\fP may be
 the id of a connector or its type, like \fIvga\fP, \fIhdmi\fP, \fIlvds\fP,
-\fIsvideo\fP, etc.; \fIconnectors=list\fP prints the available connector ids
-and types
+\fIsvideo\fP, etc.; the default is all connectors
+
+if the suboption contains \fIlist\fP the selected connectors ids and types are
+printed and the program terminates immediately
 
 .TP
 .I size=wxh
@@ -473,6 +475,8 @@ the width and height of the screen area to be used for showing the pdf file;
 this is related to the resolution set for the video outputs but is not the same
 because: a. only the default resolutions are used and b. different video output
 may support different resolutions
+
+the form \fIsize=list\fP prints the available resolutions
 
 .TP
 .I exact
@@ -484,7 +488,7 @@ may result in an area larger than requested; this option forces the use of the
 requested size, possibly leaving a black frame around the pdf file
 
 .TP
-.I -r
+.I .
 use drm without specifying the video outputs or size
 .RE
 
