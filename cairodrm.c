@@ -509,8 +509,12 @@ struct cairodrm *cairodrm_init(char *devname,
 				/* maximal shared resolution */
 
 	if (size == NULL || 2 != sscanf(size, "%dx%d", &width, &height)) {
-		sizeenabled = size == NULL ?
-			enabled : enabledconnectors(drm, resptr, size);
+		if (size == NULL)
+			sizeenabled = enabled;
+		else {
+			sizeenabled = enabledconnectors(drm, resptr, size);
+			flags |= CAIRODRM_EXACT;
+		}
 		res = _maximalcommon(drm, resptr, sizeenabled, &width, &height);
 		if (sizeenabled != enabled)
 			free(sizeenabled);
