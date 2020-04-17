@@ -30,7 +30,7 @@ struct cairodrm {
 };
 
 struct cairodrm *cairodrm_init(char *devname,
-	char *connectors, unsigned width, unsigned height, int flags);
+	char *connectors, char *size, int flags);
 void cairodrm_clear(struct cairodrm *cairofb,
 	double red, double green, double blue);
 int cairodrm_doublebuffering(struct cairodrm *cairofb);

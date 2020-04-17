@@ -42,7 +42,7 @@ int cairoinit_drm(struct cairodevice *cairodevice,
 	int opt;
 	int width, height;
 	int flags;
-	char *connectors, *s;
+	char *connectors, *size;
 	WINDOW *w;
 
 	if (device == NULL)
@@ -66,19 +66,8 @@ int cairoinit_drm(struct cairodevice *cairodevice,
 				flags |= CAIRODRM_EXACT;
 			else if (! _cairodrm_prefix(optarg, "connectors="))
 				connectors = _cairodrm_second(optarg);
-			else if (! _cairodrm_prefix(optarg, "size=")) {
-				s = _cairodrm_second(optarg);
-				if (2 == sscanf(s, "%dx%d", &width, &height)) {
-				}
-				else if (! strcmp(s, "list")) {
-					width = 0;
-					height = 1;
-				}
-				else {
-					printf("cannot parse resolution: ");
-					printf("%s\n", optarg);
-				}
-			}
+			else if (! _cairodrm_prefix(optarg, "size="))
+				size = _cairodrm_second(optarg);
 			else {
 				printf("unknown -r suboption: %s\n", optarg);
 				return -1;
@@ -87,8 +76,7 @@ int cairoinit_drm(struct cairodevice *cairodevice,
 		}
 	}
 
-	cairodrm = cairodrm_init(device,
-	                         connectors, width, height, flags);
+	cairodrm = cairodrm_init(device, connectors, size, flags);
 	if (cairodrm == NULL) {
 		if (! strstr(connectors, "list") &&
 		    width != 0 && height != 1)

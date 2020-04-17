@@ -443,15 +443,15 @@ int _linkframebufferconnectors(int drm, drmModeResPtr resptr, int *enabled,
  * create a cairo context from a drm device
  */
 struct cairodrm *cairodrm_init(char *devname,
-		char *connectors, unsigned width, unsigned height, int flags) {
-	unsigned bpp = 32;
+		char *connectors, char *size, int flags) {
+	unsigned width, height, bpp = 32;
 
 	int drm, res;
 	uint64_t supportdumb;
 	drmModeResPtr resptr;
 	int *enabled;
 
-	uint64_t size, offset;
+	uint64_t fbsize, offset;
 	uint32_t pitch, handle;
 
 	uint32_t buf_id;
@@ -499,16 +499,16 @@ struct cairodrm *cairodrm_init(char *devname,
 				/* list connectors */
 
 	if ((connectors != NULL && strstr(connectors, "list")) ||
-	    (width == 0 && height == 1)) {
+	    (size != NULL && ! strcmp(size, "list"))) {
 		listconnectors(drm, resptr, enabled,
-		               width == 0 && height == 1);
+		size != NULL && ! strcmp(size, "list"));
 		drmModeFreeResources(resptr);
 		return NULL;
 	}
 
 				/* maximal shared resolution */
 
-	if (width == 0 || height == 0) {
+	if (size == NULL || 2 != sscanf(size, "%dx%d", &width, &height)) {
 		res = _maximalcommon(drm, resptr, enabled, &width, &height);
 		if (res) {
 			drmModeFreeResources(resptr);
@@ -527,7 +527,7 @@ struct cairodrm *cairodrm_init(char *devname,
 				/* create dumb framebuffer */
 
 	buf_id = _createframebuffer(drm, fbwidth, fbheight, bpp,
-	                            &size, &offset, &pitch, &handle);
+	                            &fbsize, &offset, &pitch, &handle);
 
 				/* link framebuffer -> connectors */
 
@@ -542,13 +542,14 @@ struct cairodrm *cairodrm_init(char *devname,
 
 				/* map surface to memory */
 
-	printf("mmap size=%llu drm=%d offset=%llu\n", size, drm, offset);
-	img = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, drm, offset);
+	printf("mmap size=%llu drm=%d offset=%llu\n", fbsize, drm, offset);
+	img = mmap(NULL, fbsize,
+	           PROT_READ | PROT_WRITE, MAP_SHARED, drm, offset);
 	if (img == MAP_FAILED) {
 		perror("mmap");
 		return NULL;
 	}
-	dbuf = (flags & CAIRODRM_DOUBLEBUFFERING) ? malloc(size) : img;
+	dbuf = (flags & CAIRODRM_DOUBLEBUFFERING) ? malloc(fbsize) : img;
 
 				/* create the cairo context */
 
@@ -576,7 +577,7 @@ struct cairodrm *cairodrm_init(char *devname,
 	cairodrm->buf_id = buf_id;
 	cairodrm->img = img;
 	cairodrm->dbuf = dbuf;
-	cairodrm->size = size;
+	cairodrm->size = fbsize;
 	return cairodrm;
 }
 

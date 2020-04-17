@@ -12,20 +12,11 @@
 
 int main(int argc, char *argv[]) {
 	struct cairodrm *cairodrm;
-	unsigned int width, height;
-
-				/* arguments */
-
-	width = 0;
-	height = 0;
-	if (argc - 1 > 1)
-		width = atoi(argv[2]);
-	if (argc - 1 > 2)
-		height = atoi(argv[3]);
 
 				/* create a cairodrm */
 
-	cairodrm = cairodrm_init("/dev/dri/card0", argv[1], width, height, 0);
+	cairodrm = cairodrm_init("/dev/dri/card0", argv[1],
+		argc - 1 > 1 ? argv[2] : NULL, 0);
 	if (cairodrm == NULL)
 		exit(EXIT_FAILURE);
 
