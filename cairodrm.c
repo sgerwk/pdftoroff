@@ -449,7 +449,7 @@ struct cairodrm *cairodrm_init(char *devname,
 	int drm, res;
 	uint64_t supportdumb;
 	drmModeResPtr resptr;
-	int *enabled;
+	int *enabled, *sizeenabled;
 
 	uint64_t fbsize, offset;
 	uint32_t pitch, handle;
@@ -509,7 +509,11 @@ struct cairodrm *cairodrm_init(char *devname,
 				/* maximal shared resolution */
 
 	if (size == NULL || 2 != sscanf(size, "%dx%d", &width, &height)) {
-		res = _maximalcommon(drm, resptr, enabled, &width, &height);
+		sizeenabled = size == NULL ?
+			enabled : enabledconnectors(drm, resptr, size);
+		res = _maximalcommon(drm, resptr, sizeenabled, &width, &height);
+		if (sizeenabled != enabled)
+			free(sizeenabled);
 		if (res) {
 			drmModeFreeResources(resptr);
 			return NULL;
@@ -539,6 +543,7 @@ struct cairodrm *cairodrm_init(char *devname,
 	}
 
 	drmModeFreeResources(resptr);
+	free(enabled);
 
 				/* map surface to memory */
 
