@@ -40,7 +40,6 @@ int cairoinit_drm(struct cairodevice *cairodevice,
 		int argn, char *argv[], char *allopts) {
 	struct cairodrm *cairodrm;
 	int opt;
-	int width, height;
 	int flags;
 	char *connectors, *size;
 	WINDOW *w;
@@ -49,8 +48,7 @@ int cairoinit_drm(struct cairodevice *cairodevice,
 		device = "/dev/dri/card0";
 
 	connectors = "all";
-	width = 0;
-	height = 0;
+	size = NULL;
 	flags = doublebuffering ? CAIRODRM_DOUBLEBUFFERING : 0;
 	optind = 1;
 	while (-1 != (opt = getopt(argn, argv, allopts))) {
@@ -78,8 +76,7 @@ int cairoinit_drm(struct cairodevice *cairodevice,
 
 	cairodrm = cairodrm_init(device, connectors, size, flags);
 	if (cairodrm == NULL) {
-		if (! strstr(connectors, "list") &&
-		    width != 0 && height != 1)
+		if (! strstr(connectors, "list") && ! ! strcmp(size, "list"))
 			printf("cannot open %s as a cairo surface\n", device);
 		return -1;
 	}
