@@ -178,6 +178,7 @@ int cairoinput_fb(struct cairodevice *cairodevice, int timeout,
  */
 struct cairodevice cairodevicefb = {
 	"",
+	"",
 	NULL,
 	cairoinit_fb, cairofinish_fb,
 	cairocontext_fb,

@@ -3122,7 +3122,7 @@ double fraction(char *arg) {
 /*
  * usage
  */
-void usage() {
+void usage(char *additional) {
 	printf("pdf viewer with automatic zoom to text\n");
 	printf("usage:\n\thovacui\t[-m viewmode] [-f direction] ");
 	printf("[-w minwidth] [-t distance] [-p]\n");
@@ -3137,6 +3137,7 @@ void usage() {
 	printf("\t\t-e fifo\t\treceive commands from the given fifo\n");
 	printf("\t\t-z out\t\toutput file or fifo\n");
 	printf("\t\t-l level\tlogging level\n");
+	puts(additional);
 	printf("main keys: 'h'=help 'g'=go to page '/'=search 'q'=quit ");
 	printf("'m'=menu\n");
 }
@@ -3340,7 +3341,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 			output.viewmode = optindex(optarg[0], "atbp");
 			if (output.viewmode == -1) {
 				printf("unsupported mode: %s\n", optarg);
-				usage();
+				usage(cairodevice->usage);
 				exit(EXIT_FAILURE);
 			}
 			break;
@@ -3348,7 +3349,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 			output.fit = optindex(optarg[0], "nhvb");
 			if (output.fit == -1) {
 				printf("unsupported fit mode: %s\n", optarg);
-				usage();
+				usage(cairodevice->usage);
 				exit(EXIT_FAILURE);
 			}
 			break;
@@ -3370,7 +3371,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 			output.order = optindex(optarg[0], "qtc");
 			if (output.order == -1) {
 				printf("unsupported ordering: %s\n", optarg);
-				usage();
+				usage(cairodevice->usage);
 				exit(EXIT_FAILURE);
 			}
 			break;
@@ -3402,14 +3403,14 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 			cairoui.log = atoi(optarg);
 			break;
 		case 'h':
-			usage();
+			usage(cairodevice->usage);
 			exit(EXIT_SUCCESS);
 			break;
 		}
 
 	if (argn - 1 < optind) {
 		printf("file name missing\n");
-		usage();
+		usage(cairodevice->usage);
 		exit(EXIT_FAILURE);
 	}
 	filename = argv[optind];

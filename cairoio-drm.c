@@ -227,6 +227,7 @@ int cairoinput_drm(struct cairodevice *cairodevice, int timeout,
  */
 struct cairodevice cairodevicedrm = {
 	"r:",
+	"\t\t-r suboption\tdri options (connectors, size)",
 	NULL,
 	cairoinit_drm, cairofinish_drm,
 	cairocontext_drm,

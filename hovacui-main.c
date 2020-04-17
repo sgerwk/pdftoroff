@@ -12,8 +12,23 @@ int main(int argn, char *argv[]) {
 	struct cairodevice *cairodevice;
 	int cargn;
 	char **cargv;
+	char *usage;
 
-	cairodevice = &cairodevicefb;
+					/* collect usage of output devices */
+
+	usage = malloc(strlen(cairodevicefb.usage) + 1 +
+	               strlen(cairodevicedrm.usage) + 1 +
+	               strlen(cairodevicex11.usage) + 1);
+	strcpy(usage, "");
+	// strcat(usage, cairodevicefb.usage);
+	// strcat(usage, "\n");
+	strcat(usage, cairodevicedrm.usage);
+	strcat(usage, "\n");
+	strcat(usage, cairodevicex11.usage);
+
+					/* determine device */
+
+	cairodevice = NULL;
 	if (getenv("DISPLAY"))
 		cairodevice = &cairodevicex11;
 
@@ -35,6 +50,13 @@ int main(int argn, char *argv[]) {
 			cairodevice = &cairodevicex11;
 
 	free(cargv);
+
+	if (cairodevice == NULL) {
+		cairodevice = &cairodevicefb;
+		cairodevice->usage = usage;
+	}
+
+					/* run hovacui */
 
 	opterr = 1;
 	optind = 1;

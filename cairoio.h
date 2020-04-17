@@ -111,6 +111,7 @@ struct command {
  */
 struct cairodevice {
 	char *options;
+	char *usage;
 	struct cairoio *cairoio;
 	int (*init)(struct cairodevice *cairodevice,
 		char *device, int doublebuffering,

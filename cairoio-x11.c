@@ -459,6 +459,7 @@ int cairoinput_x11(struct cairodevice *cairodevice, int timeout,
  */
 struct cairodevice cairodevicex11 = {
 	"x:",
+	"\t\t-x suboption\tx11 options (display, geometry)",
 	NULL,
 	cairoinit_x11, cairofinish_x11,
 	cairocontext_x11,
