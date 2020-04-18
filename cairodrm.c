@@ -1,29 +1,25 @@
 /*
  * cairodrm.c
  *
- * a cairo context for drawing on a linux framebuffer
- *
- * to do:
- * - allow to activate only some of the connector(s)
- * - pass a resolution instead of always targeting the best;
- *   may be a maximal width and height to use for the cairo context
+ * a cairo context for drawing on the linux direct rendering infrastructure
  */
 
 /*
  * Internals
  * ---------
  *
- * The framebuffers are the memory areas used for drawing. The connectors are
- * the actual video outputs of the device (VGA, HDMI, AV, LVDS, etc.). In order
- * to produce video, a framebuffer needs to be created and linked to the
- * connectors.
+ * The framebuffers are the memory areas where the programs draw. The
+ * connectors are the actual video outputs of the device (VGA, HDMI, AV, LVDS,
+ * etc.). Each connector supports certain resolutions (modes), like 1280x1024,
+ * 1024x768, 800x600, etc. In order to produce video, a framebuffer needs to be
+ * created and linked to the connectors, each set on its mode (resolution).
  *
  * The case of a single connector is easy: choose a mode of the connector,
  * create a framebuffer as large as that mode and link it to the connector.
  *
- * The complication with multiple connectors is that they may have different
- * modes, with different size. They may also differ in aspect, like in the
- * following (exaggerated) example.
+ * The complication with multiple connectors is that they may support different
+ * modes (resolutions). These may even differ in aspect, like in the following
+ * (exaggerated) example.
  *
  *
  *         +----------------+ <---- mode of connector 1
@@ -37,12 +33,15 @@
  *         +----------------+
  *
  * A mode of a connector can be seen as the size of a possible viewport on a
- * framebuffer, like a camera that takes only a part of a larger image. Linking
- * a framebuffer to a connector requires:
+ * framebuffer, like a camera that takes only a part of a larger image. The
+ * video output from that connector shows only the part of the framebuffer that
+ * is inside the viewport.
+ *
+ * Linking a framebuffer to a connector requires:
  *
  * - the mode to use
  *   this tells the resolution of the video output,
- *   but also the size of the viewport on the framebuffer
+ *   but also the size of the viewport of the connector on the framebuffer
  * - the position of the viewport within the framebuffer
  *
  * This allows to link the same framebuffer to connectors set to different
@@ -52,15 +51,15 @@
  * its height the maximal of the heights. Such a framebuffer can be linked to
  * all connectors by placing each connector viewport at its center.
  *
- * In order for the same image to be shown on all connector, it must be drawn
- * on the common part of these viewports. This is the intersection of the two
- * rectangles in the example above. This intersection is what is used for
+ * In order for the same image to be shown in full on all connector, it must be
+ * drawn on the common part of these viewports. This is the intersection of the
+ * two rectangles in the example above. This intersection is what is used for
  * creating a cairo context. This way, the cairo context is visualized at the
  * center of each connected video device, possiblly leaving black bands on the
  * sides or on at the top and bottom.
  *
  * To use the maximal possible resolution while minimizing the size of the
- * black bands, so that the image is as large as possible on all video outputs,
+ * black bands so that the image is as large as possible on all video outputs,
  * the size of the framebuffer and the modes are calculated as follows.
  *
  * 1. for each connector, find its maximal resolution mode
@@ -74,13 +73,44 @@
  * Since the size of the modes comprises two numbers (width and height), the
  * maximal (in step 1) and minimal (in step 3) are not always unique. The code
  * here keeps the current best (maximal or minimal so far) and updates it only
- * when a new mode is better on both measures. The minimization in step 2 and
- * the maximization in step 4 are instead done separately on the widths and on
+ * when another mode is better on both dimensions. The minimization in step 2
+ * and the maximization in step 4 are instead done separately on the widths and
  * the heights, and are therefore unique.
  *
  * Actually, the modes of a connector are not necessarily the only ones
  * supported by the connector. The code here is however designed to only employ
  * them.
+ */
+
+/*
+ * Parameters
+ * ----------
+ *
+ * This module takes a list of connectors to use and a requested size.
+ *
+ * When a list of connectors is passed, only the connectors in it are used. The
+ * others are excluded from the calculation of the size of the framebuffer and
+ * the cairo context and are not linked to the framebuffer. They do not show
+ * any output and do not affect the resolution and size of the output on the
+ * others.
+ *
+ * When a requested size is passed, steps 1. and 2. of the calculation of the
+ * size of the framebuffer and cairo context are skipped. Only 3. and 4.
+ * remain: the size of the framebuffer is calculated to include a mode large
+ * enough to contain an area of the requested size on all connectors, and the
+ * cairo context is the intersection of them. When a flag "exact" is also
+ * passed, the cairo context size is instead exactly the requested size. This
+ * allows:
+ *
+ * - without "exact", a resolution lower than maximal
+ * - with "exact", to optmize the output toward a specific connector at the
+ *   expense of the others
+ *
+ * The second is also obtained by passing "id" or "type" as the requested size.
+ * The best resolution for the connector of that id or type is used as the
+ * requested size. The pdf file is shown at full screen at the maximal
+ * resolution on that connectors; the others may show it with a black frame or
+ * only the central part of it.
  */
 
 #define _FILE_OFFSET_BITS 64

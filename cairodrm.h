@@ -1,7 +1,7 @@
 /*
  * cairodrm.h
  *
- * a cairo context for drawing on linux drm
+ * a cairo context for drawing on the linux direct rendering infrastructure
  */
 
 #ifdef _CAIRODRM_H
