@@ -657,8 +657,11 @@ int cairoui_number(int c, struct cairoui *cairoui,
 		break;
 
 	default:
-		if (! cairoui_keynumeric(c))
-			return CAIROUI_UNCHANGED;
+		if (cairoui_keynumeric(c))
+			break;
+		if (c == '-' && *pos == 0 && min < 0)
+			break;
+		return CAIROUI_UNCHANGED;
 	}
 
 	res = cairoui_field(c, cairoui, prompt, current, pos, error);
