@@ -185,7 +185,7 @@ int main(int argc, char *argv[]) {
 
 				/* copy to destination */
 
-	surface = cairo_pdf_surface_create(outfile, width, height);
+	surface = cairo_pdf_surface_create(outfile, 1, 1);
 
 	printf("infile: %s\n", argv[optind]);
 	printf("outfile: %s\n", outfile);
