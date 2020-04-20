@@ -411,6 +411,20 @@ block order
 presentation mode, suitable for an overhead presentation: page mode, fit both,
 no margins, no page labels, no boxes, no initial tutorial, no menu and help
 .TP
+.BI -O " offset
+page 1 is normally the first in the document, but not always; prefaces, tables
+of contents, lists and other material may move it to a following page; this
+makes page numbers misaligned; if for example page 1 is the eleventh in the
+document, jumping to page 20 leads to page 9; passing \fI-O 9\fP realigns the
+page numbers; pages preceding page 1 are numbered \fI0\fP, \fI-1\fP, \fI-2\fP,
+etc.
+.TP
+.BI -F " first
+a document that is a section of a longer texts may have its first page number
+larger than 1; this creates a misalignment in the page numbers; for example, if
+the first page of the document is page \fI120\fP then jumping to page \fI140\fP
+leads to page \fI160\fP; passing \fI-F 120\fP realigns the page numbers
+.TP
 .BI -d " device
 the device to use, by default \fI/dev/fb0\fP for the framebuffer and the
 content of the environment variable \fIDISPLAY\fP for X11

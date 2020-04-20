@@ -248,6 +248,33 @@
  */
 
 /*
+ * note: the page offset
+ *
+ * pages are numbered from 0 to numpages-1 in poppler but the page numbers as
+ * printed in them go from 1 up; prefaces, tables of content and other material
+ * may make page 1 not the first in the document; files that are cut from
+ * longer documents may begin with a page number larger than one
+ *
+ * this creates a user interface misaligment; for example, the expected result
+ * of jumping to page 20 is to see the page with "20" printed at the bottom,
+ * not "12" or "24", even if the page marked "12" or "24" is the twenty-th page
+ * of the document
+ *
+ * for this reason, pages in the user interface are as expected by the user;
+ * they start with page 1, not 0; this is the default, it can be changed by the
+ * -O and -F options
+ *
+ * internally, page numbers are always stored as poppler pages, from 0 to
+ * numpages-1; they are translated only when shown to the user or input from
+ * the user; the output structure contains an offset field that stores the
+ * difference; conversion is done by pagepdftoui() and pageuitopdf()
+ *
+ * a similar conversion is also done for internal references in
+ * movetonameddestination(), as destinations in pdf always use the
+ * 1-to-numpages numbering
+ */
+
+/*
  * note: step-by-step operations
  *
  * some operations like searching and saving a range of pages may take long,
@@ -432,6 +459,9 @@ struct output {
 	/* scroll distance, as a fraction of the screen size */
 	double scroll;
 
+	/* page offset */
+	int offset;
+
 	/* show the ui (menu and help) */
 	int ui;
 
@@ -520,6 +550,16 @@ void setcurrent(int *current, int value) {
 }
 
 /*
+ * convert between pdf internal page number and page number in the interface
+ */
+int pagepdftoui(struct output *output, int page) {
+	return page - output->offset + 2;
+}
+int pageuitopdf(struct output *output, int page) {
+	return page + output->offset - 2;
+}
+
+/*
  * initialize position
  */
 void initposition(struct position *position) {
@@ -531,6 +571,14 @@ void initposition(struct position *position) {
 	position->viewbox = NULL;
 	position->scrollx = 0;
 	position->scrolly = 0;
+}
+
+/*
+ * initial page number
+ */
+void initpage(struct position *position, int npage) {
+	position->npage = npage < 0 ? 0 :
+		npage >= position->totpages ? position->totpages - 1 : npage;
 }
 
 /*
@@ -1473,7 +1521,7 @@ int savepdf(int c, struct cairoui *cairoui,
 		if (status != CAIRO_STATUS_SUCCESS)
 			return CAIROUI_FAIL;
 		cairoui_printlabel(cairoui, output->help, 0,
-			"    saved page %-5d ", npage + 1);
+			"    saved page %-5d ", pagepdftoui(output, npage));
 		npage++;
 		return npage > last ? CAIROUI_DONE : CAIROUI_CHANGED;
 	}
@@ -1928,13 +1976,16 @@ int chop(int c, struct cairoui *cairoui) {
 		else if (output->first != -1 && output->last != -1)
 			cairoui_printlabel(cairoui, output->help,
 				NO_TIMEOUT, "range: %d-%d",
-				output->first + 1, output->last + 1);
+				pagepdftoui(output, output->first),
+				pagepdftoui(output, output->last));
 		else if (output->first != -1)
 			cairoui_printlabel(cairoui, output->help,
-				NO_TIMEOUT, "range: %d-", output->first + 1);
+				NO_TIMEOUT, "range: %d-",
+				pagepdftoui(output, output->first));
 		else if (output->last != -1)
 			cairoui_printlabel(cairoui, output->help,
-				NO_TIMEOUT, "range: -%d", output->last + 1);
+				NO_TIMEOUT, "range: -%d",
+				pagepdftoui(output, output->last));
 		else
 			output->help[0] = '\0';
 
@@ -2464,23 +2515,27 @@ int gotopage(int c, struct cairoui *cairoui) {
 		c = c == KEY_PPAGE ? KEY_UP : KEY_DOWN;
 		break;
 	case 'c':
-		sprintf(gotopagestring, "%d", position->npage + 1);
+		sprintf(gotopagestring, "%d",
+			pagepdftoui(output, position->npage));
 		c = KEY_REFRESH;
 		break;
 	case 'l':
-		sprintf(gotopagestring, "%d", position->totpages);
+		sprintf(gotopagestring, "%d",
+			pagepdftoui(output, position->totpages - 1));
 		c = KEY_REFRESH;
 		break;
 	}
 
-	n = position->npage + 1;
+	n = pagepdftoui(output, position->npage);
 	res = cairoui_number(c, cairoui,
 		"go to page: ", gotopagestring, &pos, NULL,
-		&n, 1, position->totpages);
+		&n,
+		pagepdftoui(output, 0),
+		pagepdftoui(output, position->totpages - 1));
 	switch (res) {
 	case CAIROUI_DONE:
-		if (position->npage != n - 1) {
-			position->npage = n - 1;
+		if (position->npage != pageuitopdf(output, n)) {
+			position->npage = pageuitopdf(output, n);
 			readpage(position, output);
 			firsttextbox(position, output);
 		}
@@ -2494,7 +2549,9 @@ int gotopage(int c, struct cairoui *cairoui) {
 	case CAIROUI_INVALID:
 		cairoui_number(KEY_REFRESH, cairoui,
 			"go to page: ", gotopagestring, &pos, "no such page",
-			&n, 1, position->totpages);
+			&n,
+			pagepdftoui(output, 0),
+			pagepdftoui(output, position->totpages - 1));
 		/* fallthrough */
 	default:
 		cairoui_printlabel(cairoui, output->help, NO_TIMEOUT,
@@ -2725,11 +2782,14 @@ void pagenumber(struct cairoui *cairoui) {
 
 	if (output->first != -1 && output->last != -1)
 		snprintf(r, 30, " - range:%d-%d",
-			output->first + 1, output->last + 1);
+			pagepdftoui(output, output->first),
+			pagepdftoui(output, output->last));
 	else if (output->first != -1)
-		snprintf(r, 30, " - range:%d-", output->first + 1);
+		snprintf(r, 30, " - range:%d-",
+			pagepdftoui(output, output->first));
 	else if (output->last != -1)
-		snprintf(r, 30, " - range:-%d", output->last + 1);
+		snprintf(r, 30, " - range:-%d",
+			pagepdftoui(output, output->last));
 	else
 		r[0] = '\0';
 
@@ -2739,12 +2799,21 @@ void pagenumber(struct cairoui *cairoui) {
 	annots = hasannots ? " annotations" : "";
 	actions = hasactions ? hasannots ? " and actions" : " actions" : "";
 
-	if (output->totalpages)
+	if (output->totalpages && output->offset == 1)
 		snprintf(s, 100, "page %d of %d%s%s%s%s",
-			position->npage + 1, position->totpages,
+			pagepdftoui(output, position->npage),
+			pagepdftoui(output, position->totpages - 1),
 			other, annots, actions, r);
+	else if (output->totalpages) {
+		snprintf(s, 100, "page %d in %d-%d%s%s%s%s",
+			pagepdftoui(output, position->npage),
+			pagepdftoui(output, 0),
+			pagepdftoui(output, position->totpages - 1),
+			other, annots, actions, r);
+	}
 	else
-		sprintf(s, "page %d%s%s%s%s", position->npage + 1,
+		sprintf(s, "page %d%s%s%s%s",
+			pagepdftoui(output, position->npage),
 			other, annots, actions, r);
 	cairoui_label(cairoui, s, 2);
 
@@ -3146,7 +3215,7 @@ void usage(char *additional) {
  * show a pdf file on an arbitrary cairo device
  */
 int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
-	char *mainopts = "m:f:w:t:o:d:s:pe:z:l:c:C:h", *allopts;
+	char *mainopts = "m:f:w:t:o:d:s:pO:F:e:z:l:c:C:h", *allopts;
 	char configfile[4096], configline[1000], s[1000], r[1000];
 	FILE *config;
 	int i, n;
@@ -3190,6 +3259,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	output.distance = -1;
 	output.order = 1;
 	output.scroll = 1.0 / 4.0;
+	output.offset = 1;
 	output.ui = TRUE;
 	output.immediate = FALSE;
 	output.reload = &cairoui.reload;
@@ -3392,6 +3462,12 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 		case 's':
 			output.screenaspect = fraction(optarg);
 			break;
+		case 'O':
+			output.offset = atoi(optarg);
+			break;
+		case 'F':
+			output.offset = -atoi(optarg) + 2;
+			break;
 		case 'e':
 			if (openfifo(optarg, &cairoui.command, &keepopen))
 				exit(EXIT_FAILURE);
@@ -3421,6 +3497,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	if (callback.position == NULL)
 		exit(EXIT_FAILURE);
 	initposition(callback.position);
+	initpage(callback.position, pageuitopdf(&output, 1));
 
 				/* open output device as cairo */
 
