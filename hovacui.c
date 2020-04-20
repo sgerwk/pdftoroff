@@ -15,10 +15,6 @@
  * - merge boxes with the same (or very similar) horizontal coordinates
  * - bookmarks, with field() for creating and list() for going to
  * - save last position(s) to $HOME/.pdfpositions
- * - keystroke 'O' for setting the current page as page 1, like -O;
- *   same by a entry in the main menu; or field for changing the page offset;
- *   'f' in the gotopage field for the first page (like 'l' is for last)
- *   (makes sense because the first page may not be page 1)
  * - commandline option for initial position: -p page,box,scrollx,scrolly any
  *   part can be empty, even page; every one implies a default for the
  *   folliowing ones; if this option is given, the final position is printed in
@@ -34,6 +30,8 @@
  * - save an arbitrary selection/order of pages to file, not just a range;
  *   allow moving when chop() is active;
  *
+ * - keystroke 'O' for setting the current page as page 1, like -O;
+ *   same by a entry in the main menu; or field for changing the page offset
  * - printf format string for page number label, with total pages
  * - make minwidth depend on the size of the letters
  * - list() yes/no to confirm exit; disabled by config option
@@ -2523,6 +2521,10 @@ int gotopage(int c, struct cairoui *cairoui) {
 			pagepdftoui(output, position->npage));
 		c = KEY_REFRESH;
 		break;
+	case 'f':
+		sprintf(gotopagestring, "%d", pagepdftoui(output, 0));
+		c = KEY_REFRESH;
+		break;
 	case 'l':
 		sprintf(gotopagestring, "%d",
 			pagepdftoui(output, position->totpages - 1));
@@ -2559,7 +2561,7 @@ int gotopage(int c, struct cairoui *cairoui) {
 		/* fallthrough */
 	default:
 		cairoui_printlabel(cairoui, output->help, NO_TIMEOUT,
-			"c=current l=last up=previous down=next enter=go");
+			"c=current f=first l=last up=-1 down=+1 enter=go");
 		return WINDOW_GOTOPAGE;
 	}
 }
