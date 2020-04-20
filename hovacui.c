@@ -1290,14 +1290,14 @@ int gotomatch(struct position *position, struct output *output,
 int movetopage(struct cairoui *cairoui, int page) {
 	struct position *position = POSITION(cairoui);
 	struct output *output = OUTPUT(cairoui);
-	if (page < 1 || page > position->totpages) {
+	if (page < 0 || page >= position->totpages) {
 		cairoui_printlabel(cairoui, output->help,
-			2000, "no such page: %d", page);
+			2000, "no such page: %d", pagepdftoui(output, page));
 		return -1;
 	}
-	if (page - 1 == position->npage)
+	if (page == position->npage)
 		return -2;
-	position->npage = page - 1;
+	position->npage = page;
 	readpage(position, output);
 	return firsttextbox(position, output);
 }
