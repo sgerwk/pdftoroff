@@ -3139,6 +3139,11 @@ int external(struct cairoui* cairoui, int window) {
 		return movetonameddestination(cairoui, dest) ?
 			window : CAIROUI_REFRESH;
 	}
+	if (1 == sscanf(command->command, "offset %d", &output->offset)) {
+		cairoui_printlabel(cairoui, output->help,
+			4000, "new page 1 set");
+		return CAIROUI_REFRESH;
+	}
 
 	cairoui_printlabel(cairoui, output->help,
 		4000, "error in command: %s", command->command);
