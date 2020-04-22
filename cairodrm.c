@@ -113,6 +113,32 @@
  * only the central part of it.
  */
 
+/*
+ * Virtual terminal switching
+ * --------------------------
+ *
+ * When the virtual terminal switches out, the original framebuffer-connector
+ * links have to be restored. They are saved in the cairodrm->prev array before
+ * changing them.
+ *
+ * The cairodrm->curr array contains the framebuffer-connector links as changed
+ * by the initialization. They are restored when switching the virtual terminal
+ * in.
+ *
+ * - init:
+ *   . cairodrm->prev = framebuffer-connector links
+ *   . change framebuffer-connector links
+ *   . cairodrm->curr = framebuffer-connector links
+ * - switch terminal out:
+ *     framebuffer-connector links = cairodrm->prev
+ * - switch terminal in:
+ *     framebuffer-connector links = cairodrm->curr
+ *
+ * Also drmDropMaster(), drmSetMaster() are called when switching the terminal
+ * out and in, but they are only necessary when switching between drm
+ * applications on the same virtual terminal, and fail unless called by root.
+ */
+
 #define _FILE_OFFSET_BITS 64
 #include <stdlib.h>
 #include <stdio.h>
@@ -418,7 +444,9 @@ uint32_t _createframebuffer(int drm, int width, int height, int bpp,
 /*
  * link a framebuffer to the connectors
  */
-int _linkframebufferconnectors(int drm, drmModeResPtr resptr, int *enabled,
+int _linkframebufferconnectors(int drm,
+		drmModeResPtr resptr, int *enabled,
+		drmModeCrtcPtr *prev, drmModeCrtcPtr *curr,
 		int buf_id,
 		int width, int height,
 		int fbwidth, int fbheight,
@@ -434,22 +462,40 @@ int _linkframebufferconnectors(int drm, drmModeResPtr resptr, int *enabled,
 	*cwidth = resptr->max_width + 1;
 	*cheight = resptr->max_height + 1;
 	for (i = 0; i < resptr->count_connectors; i++) {
+		prev[i] = NULL;
+		curr[i] = NULL;
+
+		printf("\tconnector %d\n", resptr->connectors[i]);
+		if (! enabled[i]) {
+			puts("\t\tdisabled");
+			continue;
+		}
 		conn = drmModeGetConnector(drm, resptr->connectors[i]);
-		printf("\tconnector %d\n", conn->connector_id);
-		if (! enabled[i] || conn->connection != DRM_MODE_CONNECTED) {
-			puts(! enabled[i] ? "\t\tdisabled": "\t\tunconnected");
+		if (conn->connection != DRM_MODE_CONNECTED) {
+			puts("\t\tunconnected");
 			drmModeFreeConnector(conn);
 			continue;
 		}
+
 		if (conn->encoder_id == 0) {
 			printf("no encoder\n");
-			exit(1);		// search an encoder
+			exit(1);
+			// search for an encoder
+			// also: save previous and current,
+			// restore in _restoreframebufferconnectors()
 		}
 		enc = drmModeGetEncoder(drm, conn->encoder_id);
+
 		if (enc->crtc_id == 0) {
 			printf("no crtc\n");
-			exit(1);		// search a crtc
+			exit(1);
+			// search for a crtc
+			// also: save previous and current,
+			// restore in _restoreframebufferconnectors()
 		}
+
+		prev[i] = drmModeGetCrtc(drm, enc->crtc_id);
+
 		nmode = _minimalmode(conn, resptr, width, height);
 		x = (fbwidth - conn->modes[nmode].hdisplay) / 2;
 		y = (fbheight - conn->modes[nmode].vdisplay) / 2;
@@ -457,16 +503,43 @@ int _linkframebufferconnectors(int drm, drmModeResPtr resptr, int *enabled,
 		res = drmModeSetCrtc(drm, enc->crtc_id, buf_id, x, y,
 			&conn->connector_id, 1, &conn->modes[nmode]);
 		printf("\t\tresult: %s\n", strerror(-res));
+
+		curr[i] = drmModeGetCrtc(drm, enc->crtc_id);
+
 		if (*cwidth > conn->modes[nmode].hdisplay)
 			*cwidth = conn->modes[nmode].hdisplay;
 		if (*cheight > conn->modes[nmode].vdisplay)
 			*cheight = conn->modes[nmode].vdisplay;
+
 		drmModeFreeEncoder(enc);
 		drmModeFreeConnector(conn);
 	}
-	printf("\tintersection: %d x %d\n", *cwidth, *cheight);
 
+	printf("\tintersection: %d x %d\n", *cwidth, *cheight);
 	return 0;
+}
+
+/*
+ * restore saved framebuffers-connectors links
+ */
+void _restoreframebufferconnectors(int drm, drmModeResPtr resptr,
+		drmModeCrtcPtr *saved) {
+	int i;
+	int res;
+
+	printf("restoring framebuffer-connector links\n");
+	for (i = 0; i < resptr->count_connectors; i++) {
+		printf("\tconnector %d\n", resptr->connectors[i]);
+		if (saved[i] == NULL) {
+			printf("\t\tnot saved\n");
+			continue;
+		}
+		// restore previous encoder and its crtc if changed
+		res = drmModeSetCrtc(drm, saved[i]->crtc_id,
+			saved[i]->buffer_id, saved[i]->x, saved[i]->y,
+			&resptr->connectors[i], 1, &saved[i]->mode);
+		printf("\t\tresult: %s\n", strerror(-res));
+	}
 }
 
 /*
@@ -485,6 +558,7 @@ struct cairodrm *cairodrm_init(char *devname,
 	uint32_t pitch, handle;
 
 	uint32_t buf_id;
+	drmModeCrtcPtr *prev, *curr;
 
 	unsigned char *img, *dbuf, *pos;
 	unsigned int fbwidth, fbheight;
@@ -531,7 +605,7 @@ struct cairodrm *cairodrm_init(char *devname,
 	if ((connectors != NULL && strstr(connectors, "list")) ||
 	    (size != NULL && ! strcmp(size, "list"))) {
 		listconnectors(drm, resptr, enabled,
-		size != NULL && ! strcmp(size, "list"));
+			size != NULL && ! strcmp(size, "list"));
 		drmModeFreeResources(resptr);
 		return NULL;
 	}
@@ -569,17 +643,16 @@ struct cairodrm *cairodrm_init(char *devname,
 
 				/* link framebuffer -> connectors */
 
-	res = _linkframebufferconnectors(drm, resptr, enabled, buf_id,
-		width, height, fbwidth, fbheight, &cwidth, &cheight);
+	prev = malloc(resptr->count_connectors * sizeof(drmModeCrtcPtr));
+	curr = malloc(resptr->count_connectors * sizeof(drmModeCrtcPtr));
+	res = _linkframebufferconnectors(drm, resptr, enabled, prev, curr,
+		buf_id, width, height, fbwidth, fbheight, &cwidth, &cheight);
 	if (flags & CAIRODRM_EXACT) {
 		cwidth = width;
 		cheight = height;
 	}
 
-	drmModeFreeResources(resptr);
-	free(enabled);
-
-				/* map surface to memory */
+				/* map framebuffer to memory */
 
 	printf("mmap size=%llu drm=%d offset=%llu\n", fbsize, drm, offset);
 	img = mmap(NULL, fbsize,
@@ -617,7 +690,33 @@ struct cairodrm *cairodrm_init(char *devname,
 	cairodrm->img = img;
 	cairodrm->dbuf = dbuf;
 	cairodrm->size = fbsize;
+	cairodrm->resptr = resptr;
+	cairodrm->enabled = enabled;
+	cairodrm->prev = prev;
+	cairodrm->curr = curr;
 	return cairodrm;
+}
+
+/*
+ * switch in and out a virtual terminal
+ */
+void cairodrm_switcher(struct cairodrm *cairodrm, int inout) {
+	int res;
+
+	if (inout == 0) {
+		printf(">>> switch vt out\n");
+		_restoreframebufferconnectors(cairodrm->dev,
+			cairodrm->resptr, cairodrm->prev);
+		res = drmDropMaster(cairodrm->dev);	// ok if fails
+		printf("drmDropMaster: %s\n", strerror(-res));
+	}
+	else {
+		printf(">>> switch vt in\n");
+		res = drmSetMaster(cairodrm->dev);	// ok if fails
+		printf("drmSetMaster: %s\n", strerror(-res));
+		_restoreframebufferconnectors(cairodrm->dev,
+			cairodrm->resptr, cairodrm->curr);
+	}
 }
 
 /*
@@ -662,6 +761,7 @@ void cairodrm_flush(struct cairodrm *cairodrm) {
 void cairodrm_finish(struct cairodrm *cairodrm) {
 	struct drm_mode_destroy_dumb destroydumb;
 	int res;
+	int i;
 
 	cairo_destroy(cairodrm->cr);
 	cairo_surface_destroy(cairodrm->surface);
@@ -677,6 +777,19 @@ void cairodrm_finish(struct cairodrm *cairodrm) {
 		DRM_IOCTL_MODE_DESTROY_DUMB, &destroydumb);
 	printf("destroy framebuffer handle=%d: %s\n",
 	       destroydumb.handle, strerror(-res));
+
+	for (i = 0; i < cairodrm->resptr->count_connectors; i++) {
+		if (cairodrm->prev[i] != NULL)
+			drmModeFreeCrtc(cairodrm->prev[i]);
+		if (cairodrm->curr[i] != NULL)
+			drmModeFreeCrtc(cairodrm->curr[i]);
+	}
+	free(cairodrm->prev);
+	free(cairodrm->curr);
+	drmModeFreeResources(cairodrm->resptr);
+	free(cairodrm->enabled);
+
 	close(cairodrm->dev);
+	free(cairodrm);
 }
 

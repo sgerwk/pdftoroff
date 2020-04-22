@@ -15,7 +15,7 @@ extern int vt_suspend;
 extern int vt_redraw;
 
 /* setup virtual terminal for suspend and resume */
-void vt_setup();
+void vt_setup(void (*switcher)(int, void *), void *data);
 
 #endif
 

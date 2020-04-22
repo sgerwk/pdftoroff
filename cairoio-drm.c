@@ -33,6 +33,13 @@ char *_cairodrm_second(char *a) {
 }
 
 /*
+ * switch in and out the vt
+ */
+void drmswitcher(int inout, void *data) {
+	cairodrm_switcher((struct cairodrm *) data, inout);
+}
+
+/*
  * create a cairo context
  */
 int cairoinit_drm(struct cairodevice *cairodevice,
@@ -92,7 +99,7 @@ int cairoinit_drm(struct cairodevice *cairodevice,
 	getch();
 	timeout(0);
 
-	vt_setup();
+	vt_setup(drmswitcher, cairodrm);
 
 	cairodevice->cairoio = (struct cairoio *) cairodrm;
 	return 0;

@@ -44,7 +44,7 @@ int cairoinit_fb(struct cairodevice *cairodevice,
 	getch();
 	timeout(0);
 
-	vt_setup();
+	vt_setup(NULL, NULL);
 
 	cairodevice->cairoio = (struct cairoio *) cairofb;
 	return 0;

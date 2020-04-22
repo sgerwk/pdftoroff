@@ -6,7 +6,8 @@ CFLAGS+=${shell pkg-config --cflags poppler-glib}
 LDLIBS+=${shell pkg-config --libs poppler-glib}
 fbhovacui drmhovacui hovacui cairoui: LDLIBS+=\
 	${shell pkg-config --libs ncurses || echo '' -lncurses -ltinfo}
-drmhovacui.o cairodrm.o: CFLAGS+=${shell pkg-config --cflags libdrm}
+drmhovacui.o cairoio-drm.o cairodrm.o: CFLAGS+=\
+	${shell pkg-config --cflags libdrm}
 drmhovacui hovacui cairodrm: LDLIBS+=${shell pkg-config --libs libdrm}
 xhovacui hovacui cairoui: LDLIBS+=${shell pkg-config --libs x11}
 

@@ -23,10 +23,21 @@ volatile int vt_suspend;
 volatile int vt_redraw;
 
 /*
+ * called when the terminal switches in (1) or out (0)
+ */
+void *switcherdata;
+void (*switcher)(int, void *);
+void noswitcher(int inout, void *data) {
+	(void) inout;
+	(void) data;
+}
+
+/*
  * signal handler: leave the virtual terminal
  */
 void sigusr1(int s) {
 	(void) s;
+	switcher(0, switcherdata);
 	ioctl(STDIN_FILENO, VT_RELDISP, 1);
 	vt_suspend = 1;
 }
@@ -36,6 +47,7 @@ void sigusr1(int s) {
  */
 void sigusr2(int s) {
 	(void) s;
+	switcher(1, switcherdata);
 	ioctl(STDIN_FILENO, VT_RELDISP, VT_ACKACQ);
 	vt_suspend = 0;
 	vt_redraw = 1;
@@ -44,7 +56,7 @@ void sigusr2(int s) {
 /*
  * setup virtual terminal for suspend and resume
  */
-void vt_setup() {
+void vt_setup(void (*switcherfunction)(int, void *), void *data) {
 	struct vt_mode vtmode;
 
 	vt_suspend = 0;
@@ -61,5 +73,8 @@ void vt_setup() {
 	// tell the kernel not to restore the text on page
 	// uncomment when program is finished
 	// ioctl(STDIN_FILENO, KDSETMODE, KD_GRAPHICS);
+
+	switcher = switcherfunction ? switcherfunction : noswitcher;
+	switcherdata = data;
 }
 
