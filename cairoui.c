@@ -259,6 +259,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <signal.h>
+#include <time.h>
 #include <ctype.h>
 #include "cairoio.h"
 #include "cairoui.h"
@@ -274,12 +275,28 @@ int _cairoui_out(int res) {
 }
 
 /*
+ * time between equal keys
+ */
+time_t _interval_equal(int c) {
+	static time_t prev = -1;
+	static int d = KEY_NONE;
+	time_t curr, diff;
+
+	curr = time(NULL);
+	diff = c == d ? curr - prev : 10000;
+	prev = curr;
+	d = c;
+	return diff;
+}
+
+/*
  * a changeable rectangle
  */
 int cairoui_rectangle(int c, struct cairoui *cairoui, int corner,
 		cairo_rectangle_t *rect) {
 	double x1, y1, x2, y2;
 	double *x, *y;
+	int step;
 
 	x1 = rect->x;
 	y1 = rect->y;
@@ -301,18 +318,20 @@ int cairoui_rectangle(int c, struct cairoui *cairoui, int corner,
 		return CAIROUI_CHANGED;
 	}
 
+	step = _interval_equal(c) < 200 ? 25 : 10;
+
 	switch (c) {
 	case KEY_RIGHT:
-		*x += 10;
+		*x += step;
 		break;
 	case KEY_LEFT:
-		*x -= 10;
+		*x -= step;
 		break;
 	case KEY_UP:
-		*y -= 10;
+		*y -= step;
 		break;
 	case KEY_DOWN:
-		*y += 10;
+		*y += step;
 		break;
 	case 'c':
 		break;
