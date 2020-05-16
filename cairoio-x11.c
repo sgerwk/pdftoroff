@@ -393,6 +393,8 @@ int cairoinput_x11(struct cairodevice *cairodevice, int timeout,
 				return KEY_BACKSPACE;
 			case XK_slash:
 				return '/';
+			case XK_space:
+				return ' ';
 			default:
 				if (isalnum(key)) {
 					if (evt.xkey.state & ShiftMask)
