@@ -8,7 +8,6 @@
 #include <cairo.h>
 #include <cairo-xlib.h>
 #include "cairoio.h"
-#include "cairoio-x11.h"
 
 /*
  * structure for a window

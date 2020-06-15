@@ -9,7 +9,7 @@
 /*
  * the cairodevice for x11
  */
-struct cairodevice cairodevicex11;
+extern struct cairodevice cairodevicex11;
 
 #endif
 

@@ -3,7 +3,6 @@
 #include "vt.h"
 #include "cairofb.h"
 #include "cairoio.h"
-#include "cairoio-fb.h"
 
 /*
  * structure for init data

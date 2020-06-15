@@ -266,6 +266,11 @@
 #undef clear
 
 /*
+ * reload by signal
+ */
+int sig_reload;
+
+/*
  * return value of windows when they finish
  */
 int _cairoui_out(int res) {

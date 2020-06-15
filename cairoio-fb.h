@@ -9,6 +9,6 @@
 /*
  * the cairo device for the framebuffer
  */
-struct cairodevice cairodevicefb;
+extern struct cairodevice cairodevicefb;
 
 #endif

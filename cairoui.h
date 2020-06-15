@@ -90,11 +90,6 @@ struct cairoui {
 };
 
 /*
- * reload by signal
- */
-int sig_reload;
-
-/*
  * a changeable rectangle
  */
 int cairoui_rectangle(int c, struct cairoui *cairoui, int corner,

@@ -9,6 +9,6 @@
 /*
  * the cairo device for drm
  */
-struct cairodevice cairodevicedrm;
+extern struct cairodevice cairodevicedrm;
 
 #endif

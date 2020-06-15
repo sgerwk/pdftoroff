@@ -8,7 +8,6 @@
 #include "vt.h"
 #include "cairodrm.h"
 #include "cairoio.h"
-#include "cairoio-drm.h"
 
 /*
  * structure for init data
