@@ -2551,7 +2551,10 @@ int gotopage(int c, struct cairoui *cairoui) {
 	case CAIROUI_LEAVE:
 		gotopagestring[0] = '\0';
 		pos = 0;
+		output->help[0] = '\0';
 		return WINDOW_DOCUMENT;
+	case CAIROUI_UNCHANGED:
+		return WINDOW_GOTOPAGE;
 	case CAIROUI_INVALID:
 		cairoui_number(KEY_REFRESH, cairoui,
 			"go to page: ", gotopagestring, &pos, "no such page",
