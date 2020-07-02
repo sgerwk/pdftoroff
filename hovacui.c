@@ -723,8 +723,14 @@ int textarea(struct position *position, struct output *output) {
 		order[output->order](position->textarea, position->page);
 		break;
 	case 2:
+#if POPPLER_CHECK_VERSION(0, 90, 0)
+		position->boundingbox = poppler_rectangle_new();
+		poppler_page_get_bounding_box(position->page,
+			position->boundingbox);
+#else
 		position->boundingbox =
 			rectanglelist_boundingbox(position->page);
+#endif
 		position->textarea = NULL;
 		break;
 	case 3:
