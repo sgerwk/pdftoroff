@@ -144,6 +144,7 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <inttypes.h>
 #include <errno.h>
 #include <string.h>
 #include <sys/mman.h>
@@ -654,7 +655,8 @@ struct cairodrm *cairodrm_init(char *devname,
 
 				/* map framebuffer to memory */
 
-	printf("mmap size=%llu drm=%d offset=%llu\n", fbsize, drm, offset);
+	printf("mmap size=%" PRIu64 "drm=%d offset=%" PRIu64 "\n",
+		fbsize, drm, offset);
 	img = mmap(NULL, fbsize,
 	           PROT_READ | PROT_WRITE, MAP_SHARED, drm, offset);
 	if (img == MAP_FAILED) {
