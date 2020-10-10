@@ -68,6 +68,8 @@ int cairoinit_x11(struct cairodevice *cairodevice,
 	Visual *vis;
 	int x, y;
 	char *wintitle;
+	Atom utf8, name, pid;
+	int pidn;
 
 	display = NULL;
 	geometry = NULL;
@@ -138,6 +140,17 @@ int cairoinit_x11(struct cairodevice *cairodevice,
 	strcpy(wintitle, "hovacui: ");
 	strcat(wintitle, title);
 	XStoreName(xhovacui->dsp, xhovacui->win, wintitle);
+	utf8 = XInternAtom(xhovacui->dsp, "UTF8_STRING", False);
+	name = XInternAtom(xhovacui->dsp, "_NET_WM_NAME", False);
+	XChangeProperty(xhovacui->dsp, xhovacui->win,
+		name, utf8, 8, PropModeReplace,
+		(unsigned char *) wintitle, strlen(wintitle));
+	pid = XInternAtom(xhovacui->dsp, "_NET_WM_PID", False);
+	pidn = getpid();
+	XChangeProperty(xhovacui->dsp, xhovacui->win,
+		pid, XA_CARDINAL, 32, PropModeReplace,
+		(unsigned char *) &pidn, 1);
+	free(wintitle);
 
 	XMapWindow(xhovacui->dsp, xhovacui->win);
 
