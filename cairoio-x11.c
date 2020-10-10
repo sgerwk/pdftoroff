@@ -121,7 +121,7 @@ int cairoinit_x11(struct cairodevice *cairodevice,
 
 	xhovacui->win = XCreateSimpleWindow(xhovacui->dsp,
 		DefaultRootWindow(xhovacui->dsp),
-		x, y, xhovacui->width, xhovacui->height, 1,
+		x, y, xhovacui->width, xhovacui->height, 0,
 		BlackPixelOfScreen(scr), WhitePixelOfScreen(scr));
 	XSelectInput(xhovacui->dsp, xhovacui->win, EVENTMASK);
 
