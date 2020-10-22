@@ -426,6 +426,11 @@
 #undef clear
 
 /*
+ * name of the program
+ */
+#define HOVACUI "hovacui"
+
+/*
  * output parameters
  */
 struct output {
@@ -1882,7 +1887,7 @@ int document(int c, struct cairoui *cairoui) {
  */
 int help(int c, struct cairoui *cairoui) {
 	static char *helptext[] = {
-		"hovacui - pdf viewer with autozoom to text",
+		HOVACUI " - pdf viewer with autozoom to text",
 		"PageUp     previous page",
 		"PageDown   next page",
 		"Home       top of page",
@@ -1920,8 +1925,8 @@ int help(int c, struct cairoui *cairoui) {
 int tutorial(int c, struct cairoui *cairoui) {
 	struct output *output = OUTPUT(cairoui);
 	static char *tutorialtext[] = {
-		"hovacui - pdf viewer with autozoom to text",
-		"hovacui displays a block of text at time",
+		HOVACUI " - pdf viewer with autozoom to text",
+		HOVACUI " displays a block of text at time",
 		"the current block is bordered in blue",
 		"",
 		"zoom is automatic",
@@ -2288,7 +2293,7 @@ int menu(int c, struct cairoui *cairoui) {
 	struct position *position = POSITION(cairoui);
 	struct output *output = OUTPUT(cairoui);
 	static char *menutext[] = {
-		"hovacui - menu",
+		HOVACUI " - menu",
 		"(g) go to page",
 		"(/) search",
 		"(c) save document or page selection",

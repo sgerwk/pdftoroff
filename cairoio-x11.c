@@ -10,6 +10,11 @@
 #include "cairoio.h"
 
 /*
+ * name of the program, as used in the window title
+ */
+#define HOVACUI "hovacui"
+
+/*
  * structure for a window
  */
 struct cairoio {
@@ -136,8 +141,8 @@ int cairoinit_x11(struct cairodevice *cairodevice,
 			xhovacui->width, xhovacui->height);
 	xhovacui->cr = cairo_create(xhovacui->surface);
 
-	wintitle = malloc(strlen("hovacui: ") + strlen(title) + 1);
-	strcpy(wintitle, "hovacui: ");
+	wintitle = malloc(strlen(HOVACUI ": ") + strlen(title) + 1);
+	strcpy(wintitle, HOVACUI ": ");
 	strcat(wintitle, title);
 	XStoreName(xhovacui->dsp, xhovacui->win, wintitle);
 	utf8 = XInternAtom(xhovacui->dsp, "UTF8_STRING", False);
