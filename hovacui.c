@@ -3218,7 +3218,7 @@ double fraction(char *arg) {
  */
 void usage(char *additional) {
 	printf("pdf viewer with automatic zoom to text\n");
-	printf("usage:\n\thovacui\t[-m viewmode] [-f direction] ");
+	printf("usage:\n\t" HOVACUI "\t[-m viewmode] [-f direction] ");
 	printf("[-w minwidth] [-t distance] [-p]\n");
 	printf("\t\t[-s aspect] [-d device] file.pdf\n");
 	printf("\t\t-m viewmode\tzoom to: text, boundingbox, page\n");
