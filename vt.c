@@ -61,13 +61,13 @@ void vt_setup(void (*switcherfunction)(int, void *), void *data) {
 	int ttyfd;
 	int res;
 
+	switcher = switcherfunction ? switcherfunction : noswitcher;
+	switcherdata = data;
+
 	vt_suspend = 0;
 	vt_redraw = 0;
 	signal(SIGUSR1, sigusr1);
 	signal(SIGUSR2, sigusr2);
-
-	switcher = switcherfunction ? switcherfunction : noswitcher;
-	switcherdata = data;
 
 	ttyfd = STDIN_FILENO;
 
