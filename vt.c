@@ -58,23 +58,33 @@ void sigusr2(int s) {
  */
 void vt_setup(void (*switcherfunction)(int, void *), void *data) {
 	struct vt_mode vtmode;
+	int res;
 
 	vt_suspend = 0;
 	vt_redraw = 0;
 	signal(SIGUSR1, sigusr1);
 	signal(SIGUSR2, sigusr2);
 
-	ioctl(STDIN_FILENO, VT_GETMODE, &vtmode);
+	switcher = switcherfunction ? switcherfunction : noswitcher;
+	switcherdata = data;
+
+	res = ioctl(STDIN_FILENO, VT_GETMODE, &vtmode);
+	if (res == -1) {
+		perror("VT_GETMODE");
+		return;
+	}
 	vtmode.mode = VT_PROCESS;
 	vtmode.relsig = SIGUSR1;
 	vtmode.acqsig = SIGUSR2;
-	ioctl(STDIN_FILENO, VT_SETMODE, &vtmode);
+	res = ioctl(STDIN_FILENO, VT_SETMODE, &vtmode);
+	if (res == -1) {
+		perror("VT_SETMODE");
+		return;
+	}
 
 	// tell the kernel not to restore the text on page
 	// uncomment when program is finished
-	// ioctl(STDIN_FILENO, KDSETMODE, KD_GRAPHICS);
-
-	switcher = switcherfunction ? switcherfunction : noswitcher;
-	switcherdata = data;
+	// res = ioctl(STDIN_FILENO, KDSETMODE, KD_GRAPHICS);
+	// check res
 }
 
