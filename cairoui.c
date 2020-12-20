@@ -1074,6 +1074,8 @@ void cairoui_main(struct cairoui *cairoui, int firstwindow) {
 			cairoui_logstatus(LEVEL_MAIN, "postinput",
 				window, cairoui, c);
 		}
+		if (c == KEY_SUSPEND && pending)
+			cairoui->redraw = TRUE;
 		if (c == KEY_SUSPEND || c == KEY_SIGNAL ||
 		    c == KEY_NONE || c == KEY_F(3) || c == KEY_F(4)) {
 			c = KEY_NONE;
