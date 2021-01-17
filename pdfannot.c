@@ -485,7 +485,7 @@ int main(int argn, char *argv[]) {
 				/* scan pages */
 
 	npages = poppler_document_get_n_pages(doc);
-	if (first < 0 || last >= npages) {
+	if (first < 0 || last > npages) {
 		printf("no such page: %d\n", last - 1);
 		return EXIT_FAILURE;
 	}
