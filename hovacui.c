@@ -1717,7 +1717,7 @@ int keyscript(struct cairoui *cairoui, char c, gboolean unescaped) {
 
 	sprintf(line, "%s %c \"%s\" %d %s",
 	        output->script, c,
-		position->filename, position->npage, rectangle);
+		position->filename, position->npage + 1, rectangle);
 	pipe = popen(line, "r");
 	if (pipe == NULL)
 		return -1;

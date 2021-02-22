@@ -469,8 +469,8 @@ int main(int argn, char *argv[]) {
 	filename = argv[optind];
 	uri = filenametouri(filename);
 	if (argn - optind > 1) {
-		first = atoi(argv[optind + 1]);
-		last = atoi(argv[optind + 1]) + 1;
+		first = atoi(argv[optind + 1]) - 1;
+		last = atoi(argv[optind + 1]) - 1 + 1;
 		headers = FALSE;
 	}
 
