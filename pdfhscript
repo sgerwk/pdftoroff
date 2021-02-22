@@ -5,6 +5,13 @@
 # l: show annotation and actions in the current page in a browser
 # s: save the document
 
+# echo "1: >>>$1<<<" >> hovacui-out.txt
+# echo "2: >>>$2<<<" >> hovacui-out.txt
+# echo "3: >>>$3<<<" >> hovacui-out.txt
+# echo "4: >>>$4<<<" >> hovacui-out.txt
+
+# links in page
+
 if [ "$1" = 'l' ];
 then
 	pdfannot -w -d "$2" $3 > hovacui-out.html
@@ -30,6 +37,8 @@ then
 	echo -n "no browser available"
 fi
 
+# save a copy of the document
+
 if [ "$1" = 's' ];
 then
 	I=1
@@ -40,5 +49,15 @@ then
 
 	cp "$2" selection-$I.pdf
 	echo -n "saved as selection-$I.pdf"
+fi
+
+# copy text in page or rectangle for pasting
+
+if [ "$1" = 'y' ];
+then
+	[ "$4" != '' ] && BOX="-b $4"
+	pdftoroff -t -i $3:$3 $BOX "$2" >> hovacui-out.txt
+	pdftoroff -t -i $3:$3 $BOX "$2" | sed 's,$,\r,' | $COPIER
+	echo -n ok
 fi
 

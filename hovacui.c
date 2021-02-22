@@ -510,6 +510,7 @@ struct output {
 	/* external script */
 	char *keys;
 	char *script;
+	cairo_rectangle_t *rectangle;
 };
 
 /*
@@ -1693,7 +1694,7 @@ int keyscript(struct cairoui *cairoui, char c, gboolean unescaped) {
 	struct position *position = POSITION(cairoui);
 	struct output *output = OUTPUT(cairoui);
 	char key;
-	char *line, out[100];
+	char *line, out[100], rectangle[100];
 	int len, res;
 	FILE *pipe;
 
@@ -1704,10 +1705,19 @@ int keyscript(struct cairoui *cairoui, char c, gboolean unescaped) {
 	if ((! res && unescaped) || key == ' ')
 		return -1;
 
-	len = strlen(output->script) + strlen(position->filename) + 20;
+	len = strlen(output->script) + strlen(position->filename) + 200;
 	line = malloc(len);
-	sprintf(line, "%s %c \"%s\" %d",
-	        output->script, c, position->filename, position->npage);
+	if (output->rectangle == NULL)
+		sprintf(rectangle, "''");
+	else
+		sprintf(rectangle, "[%g,%g-%g,%g]",
+			output->rectangle->x, output->rectangle->y,
+			output->rectangle->x + output->rectangle->width,
+			output->rectangle->y + output->rectangle->height);
+
+	sprintf(line, "%s %c \"%s\" %d %s",
+	        output->script, c,
+		position->filename, position->npage, rectangle);
 	pipe = popen(line, "r");
 	if (pipe == NULL)
 		return -1;
@@ -2640,6 +2650,7 @@ int rectangle(int c, struct cairoui *cairoui) {
 	static int res, savec;
 	static PopplerRectangle d;
 	static int first, last;
+	static gboolean showhelp = TRUE;
 
 	struct position *position = POSITION(cairoui);
 	struct output *output = OUTPUT(cairoui);
@@ -2655,12 +2666,15 @@ int rectangle(int c, struct cairoui *cairoui) {
 		if (c == KEY_INIT) {
 			r = cairoui->dest;
 			corner = FALSE;
+			output->rectangle = &r;
 		}
 		if (c == 'c' || c == 'd')
 			corner = ! corner;
 
 		res = cairoui_rectangle(c, cairoui, corner, &r);
 	}
+	if (c == KEY_FINISH)
+		output->rectangle = NULL;
 
 	if (res == CAIROUI_LEAVE)
 		return WINDOW_DOCUMENT;
@@ -2692,9 +2706,15 @@ int rectangle(int c, struct cairoui *cairoui) {
 	}
 	if (res == CAIROUI_REFRESH || c == 'd')
 		return CAIROUI_REFRESH;
+	if (res == CAIROUI_UNCHANGED && -1 != keyscript(cairoui, c, TRUE)) {
+		showhelp = FALSE;
+		return CAIROUI_REFRESH;
+	}
 
-	cairoui_printlabel(cairoui, output->help, NO_TIMEOUT,
-		"c/d=opposite corner, enter=save, s/S=save content");
+	if (showhelp)
+		cairoui_printlabel(cairoui, output->help, NO_TIMEOUT,
+			"c/d=opposite corner, enter=save, s/S=save content");
+	showhelp = TRUE;
 	return WINDOW_RECTANGLE;
 }
 
@@ -3298,6 +3318,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	output.first = -1;
 	output.last = -1;
 	output.screenaspect = -1;
+	output.rectangle = NULL;
 
 	firstwindow = WINDOW_TUTORIAL;
 	outdev = NULL;

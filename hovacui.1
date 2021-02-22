@@ -754,15 +754,22 @@ The first option \fIpdfhscript\fP is the name of the script. The second option
 \fI'l[links]_s[save document]'\fP comprises the keystrokes and the menu entries:
 
 .IP "  * " 4
-pressing key 'l' at
-page 9 of \fIfile.pdf\fP causes the execution of \fIpdfhscript l "file.pdf"
-9\fP;
+pressing key 'l' at page 9 of \fIfile.pdf\fP causes the execution of
+.I
+pdfhscript l "file.pdf" 9 ''
+
+.IP "  * "
+if a rectangle is currently being drawn (key 'd'), it is passed as the last
+argument to the script:
+.I
+pdfhscript l "file.pdf" 9 [100,120-400,230]
 
 .IP "  * "
 the script can also be executed from a menu reachable from the main menu or by
 keystroke 'e'; it contains two entries: \fIlinks\fP and \fIsave document\fP;
 the first is equivalent to keystroke 'l'; the second fires the execution of
-\fIpdfhscript s "file.pdf" 9\fP
+.I
+pdfhscript s "file.pdf" 9 ''
 
 .P
 
@@ -776,10 +783,13 @@ The script is executed in foreground; \fIhovacui\fP blocks until it ends.
 
 Only one script can be specified. It is supposed to perform different actions
 depending on its first argument. The included script \fIpdfhscript\fP shows the
-links in page 9 of the document in a browser if the first argument is 'l', and
-saves the document if it is 's'. The result of 's' is different than the 'save
+links in page 9 of the document in a browser if the first argument is 'l',
+saves the document if it is 's' and selects the page or the content of the
+rectangle being drawn on 'y'. The result of 's' is different than the 'save
 document' entry in the 'page range' menu because the former saves an identical
-copy of the file, the latter renders it to a new PDF file.
+copy of the file, the latter renders it to a new PDF file. The 'y' function
+requires the environment variable \fICOPIER\fP to be the name of a program that
+selects its input.
 
 .
 .
