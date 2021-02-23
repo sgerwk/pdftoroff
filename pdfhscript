@@ -57,7 +57,9 @@ if [ "$1" = 'y' ];
 then
 	[ "$4" != '' ] && BOX="-b $4"
 	pdftoroff -t -i $3:$3 $BOX "$2" >> hovacui-out.txt
-	pdftoroff -t -i $3:$3 $BOX "$2" | $COPIER
-	echo -n ok
+	{
+		pdftoroff -t -i $3:$3 $BOX "$2" | $COPIER 2>&1;
+		[ "$?" = 0 ] && echo -n "text copied";
+	} | tr '\n' ' '
 fi
 
