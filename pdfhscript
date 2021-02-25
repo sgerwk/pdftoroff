@@ -9,6 +9,7 @@
 # echo "2: >>>$2<<<" >> hovacui-out.txt
 # echo "3: >>>$3<<<" >> hovacui-out.txt
 # echo "4: >>>$4<<<" >> hovacui-out.txt
+# echo "5: >>>$5<<<" >> hovacui-out.txt
 
 # links in page
 
@@ -55,11 +56,36 @@ fi
 
 if [ "$1" = 'y' ];
 then
-	[ "$4" != '' ] && BOX="-b $4"
+	[ "$5" != '' ] && BOX="-b $5"
 	pdftoroff -t -i $3:$3 $BOX "$2" >> hovacui-out.txt
 	{
 		pdftoroff -t -i $3:$3 $BOX "$2" | $COPIER 2>&1;
 		[ "$?" = 0 ] && echo -n "text copied";
 	} | tr '\n' ' '
+fi
+
+# edit the notes associated to the pdf file
+
+if [ "$1" = 'A' ];
+then
+	BASE=$(echo "$2" | sed -e 's,.pdf,,' -e 's,$,-notes.txt,')
+	if [ -e "$BASE" ];
+	then
+		if ! [ -f "$BASE" ];
+		then
+			echo -n "$BASE is not a regular file"
+			exit 1
+		fi
+	else
+		echo "# $(basename "$2")" > "$BASE"
+		echo >> "$BASE"
+		for P in $(seq 1 $4);
+		do
+			echo "## Page $P" >> "$BASE"
+			echo >> "$BASE"
+		done
+	fi
+	vi +"/## Page $3$" "$BASE" < /dev/tty > /dev/tty 2> /dev/tty
+	setterm --cursor off > /dev/tty
 fi
 
