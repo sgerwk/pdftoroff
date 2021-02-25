@@ -5,11 +5,16 @@
 # l: show annotation and actions in the current page in a browser
 # s: save the document
 
-# echo "1: >>>$1<<<" >> hovacui-out.txt
-# echo "2: >>>$2<<<" >> hovacui-out.txt
-# echo "3: >>>$3<<<" >> hovacui-out.txt
-# echo "4: >>>$4<<<" >> hovacui-out.txt
-# echo "5: >>>$5<<<" >> hovacui-out.txt
+# save parameters
+
+if false;
+then
+	echo "1: >>>$1<<<" >> hovacui-out.txt
+	echo "2: >>>$2<<<" >> hovacui-out.txt
+	echo "3: >>>$3<<<" >> hovacui-out.txt
+	echo "4: >>>$4<<<" >> hovacui-out.txt
+	echo "5: >>>$5<<<" >> hovacui-out.txt
+fi
 
 # links in page
 
