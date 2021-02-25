@@ -64,11 +64,12 @@ then
 	} | tr '\n' ' '
 fi
 
-# edit the notes associated to the pdf file
+# edit the notes of the pdf file
 
-if [ "$1" = 'A' ];
+if [ "$1" = 'A' ] || [ "$1" = 'N' ];
 then
 	BASE=$(echo "$2" | sed -e 's,.pdf,,' -e 's,$,-notes.txt,')
+
 	if [ -e "$BASE" ];
 	then
 		if ! [ -f "$BASE" ];
@@ -76,7 +77,18 @@ then
 			echo -n "$BASE is not a regular file"
 			exit 1
 		fi
+		if [ "$1" = 'N' ] && \
+		   grep -A2 "^## Page $3$" "$BASE" | tail -2 | grep -q "^##";
+		then
+			echo -n "no notes for page $3"
+			exit 1
+		fi
 	else
+		if [ "$1" = 'N' ];
+		then
+			echo -n "no notes for page $3"
+			exit 1
+		fi
 		echo "# $(basename "$2")" > "$BASE"
 		echo >> "$BASE"
 		for P in $(seq 1 $4);
@@ -84,7 +96,9 @@ then
 			echo "## Page $P" >> "$BASE"
 			echo >> "$BASE"
 		done
+		echo '## End' >> "$BASE"
 	fi
+
 	vi +"/## Page $3$" "$BASE" < /dev/tty > /dev/tty 2> /dev/tty
 	setterm --cursor off > /dev/tty
 fi
