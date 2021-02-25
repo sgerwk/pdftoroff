@@ -1715,9 +1715,10 @@ int keyscript(struct cairoui *cairoui, char c, gboolean unescaped) {
 			output->rectangle->x + output->rectangle->width,
 			output->rectangle->y + output->rectangle->height);
 
-	sprintf(line, "%s %c \"%s\" %d %s",
+	sprintf(line, "%s %c \"%s\" %d %d %s",
 	        output->script, c,
-		position->filename, position->npage + 1, rectangle);
+		position->filename,
+		position->npage + 1, position->totpages, rectangle);
 	pipe = popen(line, "r");
 	if (pipe == NULL)
 		return -1;

@@ -754,22 +754,22 @@ The first option \fIpdfhscript\fP is the name of the script. The second option
 \fI'l[links]_s[save document]'\fP comprises the keystrokes and the menu entries:
 
 .IP "  * " 4
-pressing key 'l' at page 9 of \fIfile.pdf\fP causes the execution of
+pressing key 'l' at page 9 (out of 20) of \fIfile.pdf\fP causes the execution of
 .I
-pdfhscript l "file.pdf" 9 ''
+pdfhscript l "file.pdf" 9 20 ''
 
 .IP "  * "
 if a rectangle is currently being drawn (key 'd'), it is passed as the last
 argument to the script:
 .I
-pdfhscript l "file.pdf" 9 [100,120-400,230]
+pdfhscript l "file.pdf" 9 20 [100,120-400,230]
 
 .IP "  * "
 the script can also be executed from a menu reachable from the main menu or by
 keystroke 'e'; it contains two entries: \fIlinks\fP and \fIsave document\fP;
 the first is equivalent to keystroke 'l'; the second fires the execution of
 .I
-pdfhscript s "file.pdf" 9 ''
+pdfhscript s "file.pdf" 9 20 ''
 
 .P
 
