@@ -1604,6 +1604,16 @@ int savecurrenttextbox(struct cairoui *cairoui) {
 }
 
 /*
+ * convert a cairo rectangle to a poppler rectangle
+ */
+void cairorectangletopoppler(PopplerRectangle *p, cairo_rectangle_t *c) {
+	p->x1 = c->x;
+	p->y1 = c->y;
+	p->x2 = c->x + c->width;
+	p->y2 = c->y + c->height;
+}
+
+/*
  * append the coordindates of a box to a file
  */
 int savebox(struct cairoui *cairoui, PopplerRectangle *r) {
@@ -1694,6 +1704,7 @@ int keyscript(struct cairoui *cairoui, char c, gboolean unescaped) {
 	struct position *position = POSITION(cairoui);
 	struct output *output = OUTPUT(cairoui);
 	char key;
+	PopplerRectangle s, d;
 	char *line, out[100], rectangle[100];
 	int len, res;
 	FILE *pipe;
@@ -1709,11 +1720,12 @@ int keyscript(struct cairoui *cairoui, char c, gboolean unescaped) {
 	line = malloc(len);
 	if (output->rectangle == NULL)
 		sprintf(rectangle, "''");
-	else
-		sprintf(rectangle, "[%g,%g-%g,%g]",
-			output->rectangle->x, output->rectangle->y,
-			output->rectangle->x + output->rectangle->width,
-			output->rectangle->y + output->rectangle->height);
+	else {
+		cairorectangletopoppler(&s, output->rectangle);
+		moveto(position, output);
+		rscreentodoc(output, &d, &s);
+		sprintf(rectangle, "[%g,%g-%g,%g]", d.x1, d.y1, d.x2, d.y2);
+	}
 
 	sprintf(line, "%s %c \"%s\" %d %d %s",
 	        output->script, c,
@@ -2681,10 +2693,7 @@ int rectangle(int c, struct cairoui *cairoui) {
 		return WINDOW_DOCUMENT;
 	if (res == CAIROUI_DONE || c == 's' || c == 'S') {
 		if (! iterating) {
-			s.x1 = r.x;
-			s.y1 = r.y;
-			s.x2 = r.x + r.width;
-			s.y2 = r.y + r.height;
+			cairorectangletopoppler(&s, &r);
 			moveto(position, output);
 			rscreentodoc(output, &d, &s);
 			savebox(cairoui, &d);
