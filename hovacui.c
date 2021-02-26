@@ -2720,6 +2720,8 @@ int rectangle(int c, struct cairoui *cairoui) {
 		showhelp = FALSE;
 		return CAIROUI_REFRESH;
 	}
+	if (res == CAIROUI_UNCHANGED && cairoui->redraw)
+		return CAIROUI_REFRESH;
 
 	if (showhelp)
 		cairoui_printlabel(cairoui, output->help, NO_TIMEOUT,
