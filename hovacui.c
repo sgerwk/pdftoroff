@@ -1663,6 +1663,9 @@ int findentry(char *config, char f, char *key, char **entry) {
 	char *s;
 	int menu, underline, found, next;
 
+	if (f == ' ' && entry == NULL)
+		return 0;
+
 	menu = 0;
 	underline = 0;
 	next = 0;
