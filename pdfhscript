@@ -91,7 +91,18 @@ then
 		if $CHECK false && \
 		   grep -A2 "^## Page $3$" "$BASE" | tail -2 | grep -q "^##";
 		then
-			echo -n "no notes for page $3"
+			echo -n "no notes for page $3, next: "
+			sed '
+			: begin
+				/\n##/	{ P; D; b }
+					s,\n, ,g
+					N
+					b begin
+			' "$BASE"					| \
+			sed -n "/^## Page $3 /,$ p"			| \
+			{ grep -m1 '## Page [0-9]* .' || echo '  none'; } | \
+			cut -d' ' -f3					| \
+			tr -d '\n'
 			exit 1
 		fi
 	else
