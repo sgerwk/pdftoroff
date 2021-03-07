@@ -133,6 +133,18 @@ void face(FILE *fd, gboolean start, gboolean reset,
  */
 void showcharacter(FILE *fd, char *cur, char *next, char *rest,
 		gboolean newpar, char hyphen, struct format *format) {
+	char *ligatures[] = {
+		"ff",  "\xef\xac\x80",
+		"fi",  "\xef\xac\x81",
+		"fl",  "\xef\xac\x82",
+		"ffi", "\xef\xac\x83",
+		"ffl", "\xef\xac\x84",
+		"st",  "\xef\xac\x85",
+		"st",  "\xef\xac\x86",
+		NULL,  NULL
+	};
+	int l;
+
 	*rest = NONE;
 	if (*cur == '\\')
 		fputs(format->backslash, fd);
@@ -146,8 +158,17 @@ void showcharacter(FILE *fd, char *cur, char *next, char *rest,
 		fputs(format->and, fd);
 	else if (*cur == hyphen && (*next == '\0' || *next == '\n'))
 		*rest = '-';
-	else
+	else {
+		for (l = 0; ligatures[l] != NULL; l += 2) {
+			if ((int) strlen(ligatures[l + 1]) != next - cur)
+				continue;
+			if (! memcmp(ligatures[l + 1], cur, next - cur)) {
+				fputs(ligatures[l], fd);
+				return;
+			}
+		}
 		fwrite(cur, 1, next - cur, fd);
+	}
 }
 
 /*
