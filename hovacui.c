@@ -2941,7 +2941,7 @@ void filename(struct cairoui *cairoui) {
 	if (! output->filename)
 		return;
 
-	sprintf(s, "%s", position->filename);
+	snprintf(s, 100, "%s", position->filename);
 	cairoui_label(cairoui, s, 5);
 
 	if (cairoui->timeout == NO_TIMEOUT)
