@@ -2,13 +2,19 @@
 #
 # view text of a pdf file
 #
-# pdfview [-d distance] file.pdf
+# pdfview [-h] [-w] [-d distance] file.pdf
 #
 # default distance is 15; lower values like 10 or 12 may be useful on
 # multiple-column pages or documents with headers or footers
 
 [ $# -lt 1 ] && echo "pdf file name missing" && exit 1
-[ "$1" = -d ] && DISTANCE="-d $2" && shift && shift
+FILTER=less
+while echo "$1" | grep -q '^-';
+do
+	[ "$1" = -h ] && FILTER=head && shift
+	[ "$1" = -w ] && WAIT=read && shift
+	[ "$1" = -d ] && DISTANCE="-d $2" && shift && shift
+done
 [ ! -f "$1" ] && echo "file $1 does not exist" && exit 1
 
 [ "$COLUMN" != "" ] && WIDTH=80 || \
@@ -18,5 +24,7 @@ pdftoroff -t -m 3 $DISTANCE "$1"		| \
 sed 's,^,_PAR_,'				| \
 fmt -s -w $WIDTH				| \
 sed 's,^_PAR_,   ,'				| \
-less
+$FILTER
+
+$WAIT
 
