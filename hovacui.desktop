@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Hovacui
+MimeType=application/pdf;
+GenericName=PDF Viewer
+GenericName[it]=Visualizzatore PDF
+Exec=hovacui %f
+Icon=text-x-generic
+Type=Application
+Terminal=false
+X-KDE-StartupNotify=false
+Categories=Graphics;
