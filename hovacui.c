@@ -3144,9 +3144,13 @@ void reloadpdf(struct cairoui *cairoui) {
 	new->npage = position->npage;
 	readpage(new, output);
 
-	new->box = position->box >= new->textarea->num ?
-		new->textarea->num - 1 :
-		position->box;
+	if (position->box >= new->textarea->num)
+		new->box = new->textarea->num - 1;
+	else {
+		new->box = position->box;
+		new->scrollx = position->scrollx;
+		new->scrolly = position->scrolly;
+	}
 	free(position);
 	((struct callback *) cairoui->cb)->position = new;
 }
