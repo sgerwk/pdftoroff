@@ -3138,6 +3138,7 @@ void reloadpdf(struct cairoui *cairoui) {
 		readpage(new, output);
 		lasttextbox(new, output);
 		free(position);
+		((struct callback *) cairoui->cb)->position = new;
 		return;
 	}
 	new->npage = position->npage;
