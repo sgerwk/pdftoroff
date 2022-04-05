@@ -706,10 +706,12 @@ int cairoui_number(int c, struct cairoui *cairoui,
  */
 void cairoui_label(struct cairoui *cairoui, char *string, int bottom) {
 	double width, x, y, h;
+	cairo_text_extents_t extents;
 
 	cairo_identity_matrix(cairoui->cr);
 
-	width = strlen(string) * cairoui->extents.max_x_advance;
+	cairo_text_extents(cairoui->cr, string, &extents);
+	width = extents.width;
 	h = cairoui->extents.height;
 	x = cairoui->dest.x + cairoui->dest.width / 2 - width / 2;
 	y = cairoui->dest.y + cairoui->dest.height - bottom * (h + 20.0 + 2.0);
