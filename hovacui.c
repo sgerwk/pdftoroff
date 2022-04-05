@@ -1738,7 +1738,7 @@ int keyscript(struct cairoui *cairoui, char c, gboolean unescaped) {
 	if (pipe == NULL)
 		return -1;
 	res = fread(out, 1, 80, pipe);
-	fclose(pipe);
+	pclose(pipe);
 	if (res < 0)
 		cairoui_printlabel(cairoui, output->help, 2000,
 			"executed: %s", line);
