@@ -711,7 +711,7 @@ void cairoui_label(struct cairoui *cairoui, char *string, int bottom) {
 	cairo_identity_matrix(cairoui->cr);
 
 	cairo_text_extents(cairoui->cr, string, &extents);
-	width = extents.width;
+	width = extents.x_advance;
 	h = cairoui->extents.height;
 	x = cairoui->dest.x + cairoui->dest.width / 2 - width / 2;
 	y = cairoui->dest.y + cairoui->dest.height - bottom * (h + 20.0 + 2.0);
