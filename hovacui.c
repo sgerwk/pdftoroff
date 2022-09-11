@@ -1780,6 +1780,8 @@ enum window {
 int document(int c, struct cairoui *cairoui) {
 	struct position *position = POSITION(cairoui);
 	struct output *output = OUTPUT(cairoui);
+	static gboolean labels;
+
 	switch (c) {
 	case 'r':
 		cairoui->reload = TRUE;
@@ -1791,6 +1793,7 @@ int document(int c, struct cairoui *cairoui) {
 	case KEY_FINISH:
 		return WINDOW_DOCUMENT;
 	case KEY_REFRESH:
+		labels = FALSE;
 		cairoui->flush = TRUE;
 		return WINDOW_DOCUMENT;
 	case 'q':
@@ -1889,6 +1892,12 @@ int document(int c, struct cairoui *cairoui) {
 		cairoui_reset(cairoui);
 		break;
 	case 's':
+		if (labels) {
+			cairoui->flush = TRUE;
+			labels = FALSE;
+			return WINDOW_DOCUMENT;
+		}
+		labels = TRUE;
 		cairoui->timeout = 3000;
 		output->pagenumber = TRUE;
 		output->showmode = TRUE;
