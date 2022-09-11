@@ -487,6 +487,7 @@ struct output {
 	/* labels */
 	gboolean pagenumber;
 	gboolean totalpages;
+	gboolean showclock;
 	gboolean showmode;
 	gboolean showfit;
 	gboolean filename;
@@ -2841,7 +2842,9 @@ void pagenumber(struct cairoui *cairoui) {
 	static int prev = -1;
 	char r[30], s[100];
 	int hasannots, hasactions;
-	char *other, *annots, *actions;
+	char *other, *annots, *actions, clock[9];
+	time_t t;
+	struct tm n;
 
 	if ((position->npage == prev || ! output->pagelabel) &&
 	    ! output->pagenumber)
@@ -2866,22 +2869,32 @@ void pagenumber(struct cairoui *cairoui) {
 	annots = hasannots ? " annotations" : "";
 	actions = hasactions ? hasannots ? " and actions" : " actions" : "";
 
+
+	t = time(NULL);
+
+	if (! output->showclock)
+		clock[0] = '\0';
+	else {
+		localtime_r(&t, &n);
+		strftime(clock, 9, " - %H:%M", &n);
+	}
+
 	if (output->totalpages && output->offset == 1)
-		snprintf(s, 100, "page %d of %d%s%s%s%s",
+		snprintf(s, 100, "page %d of %d%s%s%s%s%s",
 			pagepdftoui(output, position->npage),
 			pagepdftoui(output, position->totpages - 1),
-			other, annots, actions, r);
+			other, annots, actions, r, clock);
 	else if (output->totalpages) {
-		snprintf(s, 100, "page %d in %d-%d%s%s%s%s",
+		snprintf(s, 100, "page %d in %d-%d%s%s%s%s%s",
 			pagepdftoui(output, position->npage),
 			pagepdftoui(output, 0),
 			pagepdftoui(output, position->totpages - 1),
-			other, annots, actions, r);
+			other, annots, actions, r, clock);
 	}
 	else
-		sprintf(s, "page %d%s%s%s%s",
+		sprintf(s, "page %d%s%s%s%s%s",
 			pagepdftoui(output, position->npage),
-			other, annots, actions, r);
+			other, annots, actions, r, clock);
 	cairoui_label(cairoui, s, 2);
 
 	if (cairoui->timeout == NO_TIMEOUT)
@@ -3331,6 +3344,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 
 	output.viewmode = 0;
 	output.totalpages = FALSE;
+	output.showclock = FALSE;
 	output.fit = 1;
 	output.minwidth = -1;
 	output.distance = -1;
@@ -3451,6 +3465,8 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 				firstwindow = WINDOW_DOCUMENT;
 			if (! strcmp(s, "totalpages"))
 				output.totalpages = TRUE;
+			if (! strcmp(s, "clock"))
+				output.showclock = TRUE;
 			if (! strcmp(s, "noinitlabels"))
 				noinitlabels = TRUE;
 			if (! strcmp(s, "presentation")) {
