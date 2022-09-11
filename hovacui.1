@@ -364,12 +364,12 @@ press again to return to default mode
 .TP
 .B
 b
-show the current box and append it to the output file, which
+show the current textbox and append it to the output file, which
 by default is \fIhovacui-out.txt\fP but can be changed by \fI-z\fP
 .TP
 .B
 B
-same as \fIb\fP, but with the visible part of the current box
+same as \fIb\fP, but with the visible part of the current textbox
 .TP
 .B
 s
@@ -636,7 +636,7 @@ receive commands from the given existing fifo;
 see \fIEXTERNAL COMMANDS\fP, below
 .TP
 .BI outfile " name
-name of the output file name, used to save the current box with key 'b' and
+name of the output file name, used to save the current textbox with key 'b' and
 the logs if enabled by \fI-l\fP
 .TP
 .BI postsave " command
@@ -765,11 +765,12 @@ script pdfhscript 'l[links]_s[save document]'
 .fi
 
 The first option \fIpdfhscript\fP is the name of the script. The second option
-\fI'l[links]_s[save document]'\fP comprises the keystrokes and the menu entries:
+\fI'l[links]_s[save document]'\fP comprises the keystrokes and the menu
+entries:
 
 .IP "  * " 4
-pressing key 'l' at page 9 (out of 20) of \fIfile.pdf\fP when the current box
-is \fI[0,0,100,200]\fP causes the execution of
+pressing key 'l' at page 9 (out of 20) of \fIfile.pdf\fP when the current
+textbox is \fI[0,0,100,200]\fP causes the execution of
 .I
 pdfhscript l "file.pdf" 9 20 [0,0,100,200]
 
@@ -801,7 +802,7 @@ save the document;
 this is an identical copy of the file, not a new rendering of it like done by
 the 'save document' entry in the 'page range' menu
 .IP "  y "
-selects the current box or the content of the rectangle being drawn on
+selects the current textbox or the content of the rectangle being drawn on
 keystroke 'd';
 requires the environment variable \fICOPIER\fP to be the name of a program that
 selects its input
