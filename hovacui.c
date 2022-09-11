@@ -1708,7 +1708,7 @@ int keyscript(struct cairoui *cairoui, char c, gboolean unescaped) {
 	struct output *output = OUTPUT(cairoui);
 	char key;
 	PopplerRectangle s, d;
-	char *line, out[100], rectangle[100];
+	char *line, out[100], rectangle[200];
 	int len, res;
 	FILE *pipe;
 
@@ -1719,10 +1719,13 @@ int keyscript(struct cairoui *cairoui, char c, gboolean unescaped) {
 	if ((! res && unescaped) || key == ' ')
 		return -1;
 
-	len = strlen(output->script) + strlen(position->filename) + 200;
+	len = strlen(output->script) + strlen(position->filename) + 300;
 	line = malloc(len);
-	if (output->rectangle == NULL)
-		sprintf(rectangle, "''");
+	if (output->rectangle == NULL) {
+		// TBD: also pass visible area
+		d = position->textarea->rect[position->box];
+		sprintf(rectangle, "[%g,%g-%g,%g]", d.x1, d.y1, d.x2, d.y2);
+	}
 	else {
 		cairorectangletopoppler(&s, output->rectangle);
 		moveto(position, output);

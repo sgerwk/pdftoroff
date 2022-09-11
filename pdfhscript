@@ -61,7 +61,7 @@ fi
 
 if [ "$1" = 'y' ];
 then
-	[ "$5" != '' ] && BOX="-b $5"
+	BOX="-b $5"
 	# pdftoroff -t -i $3:$3 $BOX "$2" | sed '/./,$ ! d' >> hovacui-out.txt
 	{
 		pdftoroff -t -i $3:$3 $BOX "$2" | \

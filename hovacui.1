@@ -756,22 +756,17 @@ The first option \fIpdfhscript\fP is the name of the script. The second option
 \fI'l[links]_s[save document]'\fP comprises the keystrokes and the menu entries:
 
 .IP "  * " 4
-pressing key 'l' at page 9 (out of 20) of \fIfile.pdf\fP causes the execution of
+pressing key 'l' at page 9 (out of 20) of \fIfile.pdf\fP when the current box
+is \fI[0,0,100,200]\fP causes the execution of
 .I
-pdfhscript l "file.pdf" 9 20 ''
-
-.IP "  * "
-if a rectangle is currently being drawn (key 'd'), it is passed as the last
-argument to the script:
-.I
-pdfhscript l "file.pdf" 9 20 [100,120-400,230]
+pdfhscript l "file.pdf" 9 20 [0,0,100,200]
 
 .IP "  * "
 the script can also be executed from a menu reachable from the main menu or by
 keystroke 'e'; it contains two entries: \fIlinks\fP and \fIsave document\fP;
 the first is equivalent to keystroke 'l'; the second fires the execution of
 .I
-pdfhscript s "file.pdf" 9 20 ''
+pdfhscript s "file.pdf" 9 20 [0,0,100,200]
 
 .P
 
@@ -794,7 +789,8 @@ save the document;
 this is an identical copy of the file, not a new rendering of it like done by
 the 'save document' entry in the 'page range' menu
 .IP "  y "
-selects the page or the content of the rectangle being drawn;
+selects the current box or the content of the rectangle being drawn on
+keystroke 'd';
 requires the environment variable \fICOPIER\fP to be the name of a program that
 selects its input
 .IP "  N "
