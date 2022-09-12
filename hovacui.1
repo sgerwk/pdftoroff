@@ -772,17 +772,21 @@ The first option \fIpdfhscript\fP is the name of the script. The second option
 entries:
 
 .IP "  * " 4
-pressing key 'l' at page 9 (out of 20) of \fIfile.pdf\fP when the current
-textbox is \fI[0,0,100,200]\fP causes the execution of
+pressing 'l' at page 9 (out of 20) of \fIfile.pdf\fP causes the execution of:
+
 .I
-pdfhscript l "file.pdf" 9 20 [0,0,100,200]
+pdfhscript l "file.pdf" 9 20 [10,10,100,200] [0,0,345,245] []
+
+the three rectangles are the current textbox, the visible part of the page and
+the rectangle being drawn by keystroke `d', if any
 
 .IP "  * "
 the script can also be executed from a menu reachable from the main menu or by
 keystroke 'e'; it contains two entries: \fIlinks\fP and \fIsave document\fP;
-the first is equivalent to keystroke 'l'; the second fires the execution of
+the first is equivalent to keystroke 'l'; the second fires the execution of:
+
 .I
-pdfhscript s "file.pdf" 9 20 [0,0,100,200]
+pdfhscript s "file.pdf" 9 20 [10,10,100,200] [0,0,345,245] []
 
 .P
 

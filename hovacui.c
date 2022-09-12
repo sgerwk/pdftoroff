@@ -1709,7 +1709,7 @@ int keyscript(struct cairoui *cairoui, char c, gboolean unescaped) {
 	struct output *output = OUTPUT(cairoui);
 	char key;
 	PopplerRectangle s, d;
-	char *line, out[100], rectangle[200];
+	char *line, out[100], textbox[200], dest[200], rectangle[200];
 	int len, res;
 	FILE *pipe;
 
@@ -1720,13 +1720,13 @@ int keyscript(struct cairoui *cairoui, char c, gboolean unescaped) {
 	if ((! res && unescaped) || key == ' ')
 		return -1;
 
-	len = strlen(output->script) + strlen(position->filename) + 300;
-	line = malloc(len);
-	if (output->rectangle == NULL) {
-		// TBD: also pass visible area
-		d = position->textarea->rect[position->box];
-		sprintf(rectangle, "[%g,%g-%g,%g]", d.x1, d.y1, d.x2, d.y2);
-	}
+	d = position->textarea->rect[position->box];
+	sprintf(textbox, "[%g,%g-%g,%g]", d.x1, d.y1, d.x2, d.y2);
+	s = output->dest;
+	rscreentodoc(output, &d, &s);
+	sprintf(dest, "[%g,%g-%g,%g]", d.x1, d.y1, d.x2, d.y2);
+	if (output->rectangle == NULL)
+		sprintf(rectangle, "[]");
 	else {
 		cairorectangletopoppler(&s, output->rectangle);
 		moveto(position, output);
@@ -1734,10 +1734,13 @@ int keyscript(struct cairoui *cairoui, char c, gboolean unescaped) {
 		sprintf(rectangle, "[%g,%g-%g,%g]", d.x1, d.y1, d.x2, d.y2);
 	}
 
-	sprintf(line, "%s %c \"%s\" %d %d %s",
+	len = strlen(output->script) + strlen(position->filename) + 620;
+	line = malloc(len);
+	sprintf(line, "%s %c \"%s\" %d %d %s %s %s",
 	        output->script, c,
 		position->filename,
-		position->npage + 1, position->totpages, rectangle);
+		position->npage + 1, position->totpages,
+		textbox, dest, rectangle);
 	pipe = popen(line, "r");
 	if (pipe == NULL)
 		return -1;
