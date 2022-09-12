@@ -14,6 +14,8 @@ then
 	echo "3: >>>$3<<<" >> hovacui-out.txt
 	echo "4: >>>$4<<<" >> hovacui-out.txt
 	echo "5: >>>$5<<<" >> hovacui-out.txt
+	echo "6: >>>$6<<<" >> hovacui-out.txt
+	echo "7: >>>$7<<<" >> hovacui-out.txt
 fi
 
 # links in page
@@ -61,7 +63,26 @@ fi
 
 if [ "$1" = 'y' ];
 then
-	BOX="-b $5"
+	if [ "$7" != "[]" ];
+	then
+		BOX="-b $7"
+	else
+		T=$(echo $5 | tr - , | tr -d '[]')
+		TX1=$(echo $T | cut -d, -f1 | cut -d. -f1)
+		TY1=$(echo $T | cut -d, -f2 | cut -d. -f1)
+		TX2=$(echo $T | cut -d, -f3 | cut -d. -f1)
+		TY2=$(echo $T | cut -d, -f4 | cut -d. -f1)
+		D=$(echo $6 | tr - , | tr -d '[]')
+		DX1=$(echo $D | cut -d, -f1 | cut -d. -f1)
+		DY1=$(echo $D | cut -d, -f2 | cut -d. -f1)
+		DX2=$(echo $D | cut -d, -f3 | cut -d. -f1)
+		DY2=$(echo $D | cut -d, -f4 | cut -d. -f1)
+		BOX="-b ["
+		BOX=$BOX$([ $TX1 -gt $DX1 ] && echo $TX1 || echo $DX1),
+		BOX=$BOX$([ $TY1 -gt $DY1 ] && echo $TY1 || echo $DY1)-
+		BOX=$BOX$([ $TX2 -lt $DX2 ] && echo $TX2 || echo $DX2),
+		BOX=$BOX$([ $TY2 -lt $DY2 ] && echo $TY2 || echo $DY2)]
+	fi
 	# pdftoroff -t -i $3:$3 $BOX "$2" | sed '/./,$ ! d' >> hovacui-out.txt
 	{
 		pdftoroff -t -i $3:$3 $BOX "$2" | \
