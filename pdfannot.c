@@ -419,28 +419,37 @@ int main(int argn, char *argv[]) {
 	int opt, usage;
 	char *filename, *uri;
 	int first, last;
+	gboolean annotations, links;
 	int flags;
 	PopplerDocument *doc;
 	PopplerPage *page;
 	int npages, n;
-	int present = 0;
+	int present;
 
 				/* arguments */
 
 	usage = 0;
 	headers = TRUE;
 	outformat = text;
+	annotations = TRUE;
+	links = TRUE;
 	first = 0;
 	last = -1;
 	flags = 0;
 
-	while (-1 != (opt = getopt(argn, argv, "wtdh")))
+	while (-1 != (opt = getopt(argn, argv, "wtaldh")))
 		switch (opt) {
 		case 't':
 			outformat = text;
 			break;
 		case 'w':
 			outformat = html;
+			break;
+		case 'a':
+			links = FALSE;
+			break;
+		case 'l':
+			annotations = FALSE;
 			break;
 		case 'd':
 			flags |= DESTCONTENT;
@@ -458,10 +467,12 @@ int main(int argn, char *argv[]) {
 	}
 	if (usage > 0) {
 		printf("print annotations and actions in a pdf file\n");
-		printf("usage:\n\tpdfannot [-t] [-w] [-d] [-h] ");
+		printf("usage:\n\tpdfannot [-t] [-w] [-a] [-l] [-d] [-h] ");
 		printf("file.pdf [page]\n");
 		printf("\t\t-t\toutput is text-only\n");
 		printf("\t\t-w\toutput is html\n");
+		printf("\t\t-a\tonly output annotations\n");
+		printf("\t\t-a\tonly output links\n");
 		printf("\t\t-d\tprint text at destination of inner links\n");
 		printf("\t\t-h\tthis help\n");
 		exit(usage == 1 ? EXIT_SUCCESS : EXIT_FAILURE);
@@ -490,10 +501,13 @@ int main(int argn, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
+	present = 0;
 	for (n = first; n < (last == -1 ? npages : last); n++) {
 		page = poppler_document_get_page(doc, n);
-		present = present | (printannotations(page) << 0);
-		present = present | (printlinks(doc, page, flags) << 1);
+		if (annotations)
+			present = present | (printannotations(page) << 0);
+		if (links)
+			present = present | (printlinks(doc, page, flags) << 1);
 		g_object_unref(page);
 	}
 
