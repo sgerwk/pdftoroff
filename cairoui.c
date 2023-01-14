@@ -260,6 +260,7 @@
 #include <string.h>
 #include <signal.h>
 #include <time.h>
+#include <stdarg.h>
 #include <ctype.h>
 #include "cairoio.h"
 #include "cairoui.h"
