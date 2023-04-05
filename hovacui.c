@@ -448,6 +448,9 @@ struct output {
 	/* the pixel aspect */
 	double aspect;
 
+	/* night mode */
+	int night;
+
 	/* the minimal textbox-to-textbox distance */
 	int distance;
 
@@ -2872,7 +2875,6 @@ void pagenumber(struct cairoui *cairoui) {
 	annots = hasannots ? " annotations" : "";
 	actions = hasactions ? hasannots ? " and actions" : " actions" : "";
 
-
 	t = time(NULL);
 
 	if (! output->showclock)
@@ -3066,6 +3068,15 @@ void draw(struct cairoui *cairoui) {
 	}
 	cairoui_logstatus(LEVEL_DRAW, NULL, 0, cairoui, KEY_NONE);
 	poppler_page_render(position->page, output->cr);
+
+	if (output->night) {
+		cairo_set_source_rgb(output->cr, 1, 1, 1);
+		cairo_set_operator(output->cr, CAIRO_OPERATOR_DIFFERENCE);
+		cairo_paint(output->cr);
+		cairo_stroke(output->cr);
+		cairo_set_operator(output->cr, CAIRO_OPERATOR_OVER);
+	}
+
 	if (changedpdf(position)) {
 		cairoui->reload = TRUE;
 		cairoui->redraw = TRUE;
@@ -3079,6 +3090,7 @@ void draw(struct cairoui *cairoui) {
 	}
 	selection(cairoui, output->found, output->current);
 	selection(cairoui, output->selection, -1);
+
 }
 
 /*
@@ -3348,6 +3360,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	output.viewmode = 0;
 	output.totalpages = FALSE;
 	output.showclock = FALSE;
+	output.night = FALSE;
 	output.fit = 1;
 	output.minwidth = -1;
 	output.distance = -1;
@@ -3460,6 +3473,8 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 				output.ui = FALSE;
 			if (! strcmp(s, "immediate"))
 				output.immediate = TRUE;
+			if (! strcmp(s, "night"))
+				output.night = TRUE;
 			if (! strcmp(s, "nobox"))
 				output.drawbox = FALSE;
 			if (! strcmp(s, "nopagelabel"))
