@@ -717,7 +717,7 @@ void cairoui_label(struct cairoui *cairoui, char *string, int bottom) {
 	x = cairoui->dest.x + cairoui->dest.width / 2 - width / 2;
 	y = cairoui->dest.y + cairoui->dest.height - bottom * (h + 20.0 + 2.0);
 
-	cairo_set_source_rgb(cairoui->cr, 0, 0, 0);
+	cairo_set_source_rgb(cairoui->cr, 0.1, 0.1, 0.1);
 	cairo_rectangle(cairoui->cr,
 		x - 10.0, y - 20.0, width + 20.0, h + 20.0);
 	cairo_fill(cairoui->cr);
