@@ -17,7 +17,7 @@
  * - save last position(s) to $HOME/.pdfpositions
  * - commandline option for initial position: -p page,box,scrollx,scrolly any
  *   part can be empty, even page; every one implies a default for the
- *   folliowing ones; if this option is given, the final position is printed in
+ *   following ones; if this option is given, the final position is printed in
  *   the same format at exit; make separate functions for parsing and printing
  *   a struct position; the function for parsing takes care of illegal values:
  *   for example, a page number too large is reduced to the last, and
