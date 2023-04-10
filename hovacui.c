@@ -151,7 +151,7 @@
  * positionscan()
  *	the document is scanned by a temporary struct position; this function
  *	initializes it as a copy of the current position, copies it back as the
- *	current position (done if a match is found) and deallocates it
+ *	current position (only if a match is found) and deallocates it
  *
  * movetoselected()
  * beforescreen
@@ -547,9 +547,32 @@ struct position {
 struct callback {
 	struct output *output;
 	struct position *position;
+	struct position *previous;
 };
 #define POSITION(cairoui) (((struct callback *) (cairoui)->cb)->position)
+#define PREVIOUS(cairoui) (((struct callback *) (cairoui)->cb)->previous)
 #define OUTPUT(cairoui)   (((struct callback *) (cairoui)->cb)->output)
+
+/*
+ * copy a position
+ */
+void copyposition(struct position *destination, struct position *source) {
+	destination->npage = source->npage;
+	destination->box = source->box;
+	destination->scrollx = source->scrollx;
+	destination->scrolly = source->scrolly;
+}
+
+/*
+ * swap positions
+ */
+void swapposition(struct position *one, struct position *two) {
+	struct position swap;
+
+	copyposition(&swap, one);
+	copyposition(one, two);
+	copyposition(two, &swap);
+}
 
 /*
  * current match
@@ -1814,6 +1837,11 @@ int document(int c, struct cairoui *cairoui) {
 	case KEY_MOVE:
 	case 'g':
 		return WINDOW_GOTOPAGE;
+	case 'G':
+		swapposition(PREVIOUS(cairoui), position);
+		readpage(position, output);
+		moveto(position, output);
+		break;
 	case 'c':
 		return WINDOW_CHOP;
 	case 'C':
@@ -1946,7 +1974,7 @@ int help(int c, struct cairoui *cairoui) {
 		"           (determines the maximal zoom)",
 		"t          text-to-text distance",
 		"o          order of the blocks of text",
-		"g          go to page",
+		"g G        go to page or previous page",
 		"/ ?        search forward or backward",
 		"n p        next or previous search match",
 		"s          show current mode and page",
@@ -2416,6 +2444,7 @@ int search(int c, struct cairoui *cairoui) {
 	static int res;
 	static int pos = 0;
 	static int nsearched;
+	static struct position starting;
 
 	char *prompt = "find: ";
 	int page;
@@ -2467,6 +2496,7 @@ int search(int c, struct cairoui *cairoui) {
 		outcome = "searching";
 		nsearched = 0;
 		iterating = TRUE;
+		copyposition(&starting, position);
 	}
 
 	if (c == KEY_FINISH) {
@@ -2488,6 +2518,7 @@ int search(int c, struct cairoui *cairoui) {
 
 	page = gotomatch(position, output, nsearched, nsearched == 0);
 	if (page == -1) {
+		copyposition(PREVIOUS(cairoui), &starting);
 		cairoui_printlabel(cairoui, output->help,
 			2000, "n=next matches p=previous matches");
 		return WINDOW_DOCUMENT;
@@ -2597,6 +2628,7 @@ int gotopage(int c, struct cairoui *cairoui) {
 	switch (res) {
 	case CAIROUI_DONE:
 		if (position->npage != pageuitopdf(output, n)) {
+			copyposition(PREVIOUS(cairoui), position);
 			position->npage = pageuitopdf(output, n);
 			readpage(position, output);
 			firsttextbox(position, output);
@@ -3193,6 +3225,7 @@ void reloadpdf(struct cairoui *cairoui) {
 	}
 	free(position);
 	((struct callback *) cairoui->cb)->position = new;
+	copyposition(PREVIOUS(cairoui), new);
 }
 
 /*
@@ -3610,6 +3643,8 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 		exit(EXIT_FAILURE);
 	initposition(callback.position);
 	initpage(callback.position, pageuitopdf(&output, 1));
+	callback.previous = malloc(sizeof(struct position));
+	copyposition(callback.previous, callback.position);
 
 				/* open output device as cairo */
 
