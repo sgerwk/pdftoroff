@@ -82,3 +82,11 @@ example `1.0.0`:
 - create the package: `dpkg-deb -b somewhere/pkg .`
 - install: `sudo dpkg -i pdftoroff...deb`
 
+## what's new
+
+- optionally show the current time (Sept. 2022)
+- select only the visible part of the current textbox (Sept. 2022)
+- night mode: show pdf in reverse colors (Apr. 2023)
+- key 'G': move back to the position prior to jumping or searching (Apr. 2023)
+- cache position and search string (Apr. 2023)
+
