@@ -498,6 +498,7 @@ struct output {
 
 	/* search */
 	char search[100];
+	char prevsearch[100];
 	gboolean forward;
 	GList *found;
 	int current;
@@ -572,6 +573,53 @@ void swapposition(struct position *one, struct position *two) {
 	copyposition(&swap, one);
 	copyposition(one, two);
 	copyposition(two, &swap);
+}
+
+/*
+ * open the cache file
+ */
+FILE *opencachefile(gchar *id, char *mode) {
+	char filename[4096];
+	char *home;
+
+	home = getenv("HOME");
+	sprintf(filename, "%s/.cache/hovacui/%.32s", home, id);
+	return fopen(filename, mode);
+}
+
+/*
+ * read the cache file
+ */
+int readcachefile(struct output *output, struct position *position) {
+	FILE *cachefile;
+
+	cachefile = opencachefile(position->permanent_id, "r");
+	if (cachefile == NULL)
+		return -1;
+	fscanf(cachefile, "%d %d %lg %lg\n",
+		&position->npage, &position->box,
+		&position->scrollx, &position->scrolly);
+	fgets(output->prevsearch, 100, cachefile);
+	output->prevsearch[strcspn(output->prevsearch, "\n")] = '\0';
+	fclose(cachefile);
+	return 0;
+}
+
+/*
+ * write the cache file
+ */
+int writecachefile(struct output *output, struct position *position) {
+	FILE *cachefile;
+
+	cachefile = opencachefile(position->permanent_id, "w");
+	if (cachefile == NULL)
+		return -1;
+	fprintf(cachefile, "%d %d %lg %lg\n",
+		position->npage, position->box,
+		position->scrollx, position->scrolly);
+	fputs(output->prevsearch, cachefile);
+	fclose(cachefile);
+	return 0;
 }
 
 /*
@@ -2438,7 +2486,7 @@ int search(int c, struct cairoui *cairoui) {
 	struct position *position = POSITION(cairoui);
 	struct output *output = OUTPUT(cairoui);
 
-	static char searchstring[100] = "", prevstring[100] = "";
+	static char searchstring[100] = "";
 	static char *outcome = NULL;
 	static gboolean iterating = FALSE;
 	static int res;
@@ -2461,7 +2509,7 @@ int search(int c, struct cairoui *cairoui) {
 		if (c == KEY_FINISH) {
 			strcpy(output->search, "");
 			pagematch(position, output);
-			strcpy(prevstring, searchstring);
+			strcpy(output->prevsearch, searchstring);
 			searchstring[0] = '\0';
 			pos = 0;
 			outcome = NULL;
@@ -2472,7 +2520,7 @@ int search(int c, struct cairoui *cairoui) {
 			outcome = NULL;
 
 		if (c == KEY_UP) {
-			strcpy(searchstring, prevstring);
+			strcpy(searchstring, output->prevsearch);
 			pos = strlen(searchstring);
 			c = KEY_NONE;
 		}
@@ -2501,7 +2549,7 @@ int search(int c, struct cairoui *cairoui) {
 
 	if (c == KEY_FINISH) {
 		gotomatch(position, output, -1, FALSE);
-		strcpy(prevstring, searchstring);
+		strcpy(output->prevsearch, searchstring);
 		searchstring[0] = '\0';
 		pos = 0;
 		iterating = FALSE;
@@ -3199,32 +3247,27 @@ void reloadpdf(struct cairoui *cairoui) {
 	struct position *position = POSITION(cairoui);
 	struct output *output = OUTPUT(cairoui);
 	struct position *new;
+	int over;
 
 	new = openpdf(position->filename);
 	if (new == NULL)
 		return;
 	initposition(new);
+	over = position->npage >= new->totpages;
 
-	if (position->npage >= new->totpages) {
-		new->npage = new->totpages - 1;
-		readpage(new, output);
-		lasttextbox(new, output);
-		free(position);
-		((struct callback *) cairoui->cb)->position = new;
-		return;
-	}
-	new->npage = position->npage;
+	new->npage = over ? new->totpages - 1 : position->npage;
 	readpage(new, output);
 
-	if (position->box >= new->textarea->num)
+	if (over || position->box >= new->textarea->num)
 		new->box = new->textarea->num - 1;
 	else {
 		new->box = position->box;
 		new->scrollx = position->scrollx;
 		new->scrolly = position->scrolly;
 	}
+
 	free(position);
-	((struct callback *) cairoui->cb)->position = new;
+	POSITION(cairoui) = new;
 	copyposition(PREVIOUS(cairoui), new);
 }
 
@@ -3405,6 +3448,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	output.reload = &cairoui.reload;
 	output.drawbox = TRUE;
 	output.pagelabel = TRUE;
+	output.prevsearch[0] = '\0';
 	output.current = CURRENT_UNUSED;
 	output.pdfout = "selection-%d.pdf";
 	output.postsave = NULL;
@@ -3642,9 +3686,10 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	if (callback.position == NULL)
 		exit(EXIT_FAILURE);
 	initposition(callback.position);
-	initpage(callback.position, pageuitopdf(&output, 1));
-	callback.previous = malloc(sizeof(struct position));
-	copyposition(callback.previous, callback.position);
+	if (readcachefile(callback.output, callback.position))
+		initpage(callback.position, pageuitopdf(&output, 1));
+	else
+		initpage(callback.position, callback.position->npage);
 
 				/* open output device as cairo */
 
@@ -3673,7 +3718,15 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 		cairoui_printlabel(&cairoui, output.help,
 			2000, "press 'h' for help");
 
+				/* read starting page */
+
 	readpage(callback.position, &output);
+	if (callback.position->box >= callback.position->textarea->num)
+		callback.position->box = callback.position->textarea->num - 1;
+
+	callback.previous = malloc(sizeof(struct position));
+	copyposition(callback.previous, callback.position);
+
 	if (checkannotations(callback.position))
 		output.pagenumber = TRUE;
 
@@ -3681,6 +3734,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 
 	cairoui_main(&cairoui, firstwindow);
 
+	writecachefile(callback.output, callback.position);
 	closepdf(callback.position);
 	if (keepopen != -1)
 		close(keepopen);
