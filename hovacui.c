@@ -604,6 +604,8 @@ int readcachefile(struct output *output, struct position *position) {
 		&position->scrollx, &position->scrolly);
 	fgets(output->prevsearch, 100, cachefile);
 	output->prevsearch[strcspn(output->prevsearch, "\n")] = '\0';
+	// previous update_id
+	// previous filename
 	fclose(cachefile);
 	return 0;
 }
@@ -621,6 +623,8 @@ int writecachefile(struct output *output, struct position *position) {
 		position->npage, position->box,
 		position->scrollx, position->scrolly);
 	fprintf(cachefile, "%s\n", output->prevsearch);
+	fprintf(cachefile, "%s\n", position->update_id);
+	fprintf(cachefile, "%s\n", position->filename);
 	fclose(cachefile);
 	return 0;
 }
