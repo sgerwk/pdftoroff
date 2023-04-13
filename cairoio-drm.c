@@ -182,6 +182,7 @@ int cairoinput_drm(struct cairodevice *cairodevice, int timeout,
 	int max, ret;
 	struct timeval tv;
 	int c, l, r;
+	int different;
 
 	(void) cairodevice;
 
@@ -215,14 +216,17 @@ int cairoinput_drm(struct cairodevice *cairodevice, int timeout,
 		return KEY_SIGNAL;
 
 	if (FD_ISSET(STDIN_FILENO, &fds)) {
+		different = 0;
 		for (l = getch(), r = 0;
 		     l != ERR && r < command->max - 1;
 		     l = getch()) {
 			command->command[r++] = l;
+			if (c != l && r > 1)
+				different = 1;
 			c = l;
 		}
 		command->command[r] = '\0';
-		return r < 4 ? c : KEY_PASTE;
+		return r < 4 || ! different ? c : KEY_PASTE;
 	}
 
 	return KEY_TIMEOUT;
