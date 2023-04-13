@@ -627,7 +627,7 @@ int writecachefile(struct output *output, struct position *position) {
 		position->npage, position->box,
 		position->scrollx, position->scrolly);
 	fprintf(cachefile, "%s\n", output->prevsearch);
-	fprintf(cachefile, "%s\n", position->update_id);
+	fprintf(cachefile, "%.32s\n", position->update_id);
 	fprintf(cachefile, "%s\n", position->filename);
 	fclose(cachefile);
 	return 0;
