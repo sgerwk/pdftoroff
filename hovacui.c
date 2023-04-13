@@ -411,6 +411,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 #include <string.h>
 #include <ctype.h>
 #include <poppler.h>
@@ -583,6 +584,8 @@ FILE *opencachefile(gchar *id, char *mode) {
 	char *home;
 
 	home = getenv("HOME");
+	sprintf(filename, "%s/.cache/hovacui", home);
+	mkdir(filename, S_IRWXU);
 	sprintf(filename, "%s/.cache/hovacui/%.32s", home, id);
 	return fopen(filename, mode);
 }
