@@ -582,12 +582,16 @@ void swapposition(struct position *one, struct position *two) {
 FILE *opencachefile(gchar *id, char *mode) {
 	char filename[4096];
 	char *home;
+	FILE *cachefile;
 
 	home = getenv("HOME");
 	sprintf(filename, "%s/.cache/hovacui", home);
 	mkdir(filename, S_IRWXU);
 	sprintf(filename, "%s/.cache/hovacui/%.32s", home, id);
-	return fopen(filename, mode);
+	cachefile = fopen(filename, mode);
+	if (cachefile != NULL)
+		fchmod(fileno(cachefile), S_IRUSR | S_IWUSR);
+	return cachefile;
 }
 
 /*
