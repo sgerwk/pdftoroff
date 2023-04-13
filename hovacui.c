@@ -2827,7 +2827,7 @@ int rectangle(int c, struct cairoui *cairoui) {
 			iterating = FALSE;
 		return WINDOW_DOCUMENT;
 	}
-	if (res == CAIROUI_REFRESH || c == 'd')
+	if (res == CAIROUI_REFRESH)
 		return CAIROUI_REFRESH;
 	if (res == CAIROUI_UNCHANGED && -1 != keyscript(cairoui, c, TRUE)) {
 		showhelp = FALSE;

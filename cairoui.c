@@ -296,13 +296,44 @@ time_t _interval_equal(int c) {
 }
 
 /*
+ * draw the rectangle
+ */
+int _draw_rectangle(struct cairoui *cairoui, cairo_rectangle_t *rect,
+		double *x, double *y, int color) {
+	cairo_identity_matrix(cairoui->cr);
+	if (color)
+		cairo_set_source_rgb(cairoui->cr, 1.0, 0.0, 0.0);
+	else
+		cairo_set_source_rgb(cairoui->cr, 1.0, 1.0, 1.0);
+	cairo_rectangle(cairoui->cr, *x - 5, *y - 5, 10, 10);
+	cairo_fill(cairoui->cr);
+	cairo_rectangle(cairoui->cr,
+		rect->x, rect->y, rect->width, rect->height);
+	cairo_stroke(cairoui->cr);
+	cairoui->flush = TRUE;
+	return CAIROUI_CHANGED;
+}
+
+/*
  * a changeable rectangle
  */
 int cairoui_rectangle(int c, struct cairoui *cairoui, int corner,
 		cairo_rectangle_t *rect) {
 	double x1, y1, x2, y2;
-	double *x, *y;
+	double *x, *y, *lx, *ly;
 	int step;
+	struct timespec t;
+	static long int last = 0;
+	long int now, elapsed;
+	static int move, lastcorner, slow = FALSE;
+	int redraw;
+
+	clock_gettime(CLOCK_REALTIME, &t);
+	now = t.tv_sec * 1000 + t.tv_nsec * 1000 / 1000000000;
+	elapsed = now - last;
+	last = now;
+	if (move && elapsed > 500)
+		slow = TRUE;
 
 	x1 = rect->x;
 	y1 = rect->y;
@@ -313,16 +344,20 @@ int cairoui_rectangle(int c, struct cairoui *cairoui, int corner,
 	y = corner == 0 ? &y1 : &y2;
 
 	if (c == KEY_INIT || c == KEY_REFRESH) {
-		cairo_identity_matrix(cairoui->cr);
-		cairo_set_source_rgb(cairoui->cr, 1.0, 0.0, 0.0);
-		cairo_rectangle(cairoui->cr, *x - 5, *y - 5, 10, 10);
-		cairo_fill(cairoui->cr);
-		cairo_rectangle(cairoui->cr,
-			rect->x, rect->y, rect->width, rect->height);
-		cairo_stroke(cairoui->cr);
-		cairoui->flush = TRUE;
-		return CAIROUI_CHANGED;
+		move = FALSE;
+		lastcorner = corner;
+		return _draw_rectangle(cairoui, rect, x, y, TRUE);
 	}
+
+	lx = lastcorner == 0 ? &x1 : &x2;
+	ly = lastcorner == 0 ? &y1 : &y2;
+
+	move = c == KEY_RIGHT || c == KEY_LEFT || c == KEY_UP || c == KEY_DOWN;
+	redraw = move || corner != lastcorner;
+	lastcorner = corner;
+
+	if (redraw && slow)
+		_draw_rectangle(cairoui, rect, lx, ly, FALSE);
 
 	step = _interval_equal(c) < 200 ? 25 : 10;
 
@@ -339,8 +374,6 @@ int cairoui_rectangle(int c, struct cairoui *cairoui, int corner,
 	case KEY_DOWN:
 		*y += step;
 		break;
-	case 'c':
-		break;
 	case '\033':
 	case KEY_EXIT:
 	case KEY_FINISH:
@@ -349,7 +382,6 @@ int cairoui_rectangle(int c, struct cairoui *cairoui, int corner,
 	case '\n':
 		return CAIROUI_DONE;
 	default:
-		return CAIROUI_UNCHANGED;
 	}
 
 	if (*x < cairoui->dest.x)
@@ -365,6 +397,9 @@ int cairoui_rectangle(int c, struct cairoui *cairoui, int corner,
 	rect->y = y1;
 	rect->width = x2 - x1;
 	rect->height = y2 - y1;
+
+	if (redraw && slow)
+		return _draw_rectangle(cairoui, rect, x, y, TRUE);
 
 	cairoui->redraw = TRUE;
 	return CAIROUI_REFRESH;
