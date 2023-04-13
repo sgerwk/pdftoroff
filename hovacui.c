@@ -603,7 +603,7 @@ int readcachefile(struct output *output, struct position *position) {
 	cachefile = opencachefile(position->permanent_id, "r");
 	if (cachefile == NULL)
 		return -1;
-	fscanf(cachefile, "%d %d %lg %lg\n",
+	fscanf(cachefile, "%d %d %lg %lg",
 		&position->npage, &position->box,
 		&position->scrollx, &position->scrolly);
 	fgets(output->prevsearch, 100, cachefile);
