@@ -281,18 +281,17 @@ int _cairoui_out(int res) {
 }
 
 /*
- * time between equal keys
+ * milliseconds from last call, -1 on the first
  */
-time_t _interval_equal(int c) {
-	static time_t prev = -1;
-	static int d = KEY_NONE;
-	time_t curr, diff;
+long int _elapsed(long int *then) {
+	struct timespec t;
+	long int now, interval;
 
-	curr = time(NULL);
-	diff = c == d ? curr - prev : 10000;
-	prev = curr;
-	d = c;
-	return diff;
+	clock_gettime(CLOCK_REALTIME, &t);
+	now = t.tv_sec * 1000 + t.tv_nsec * 1000 / 1000000000;
+	interval = (*then == -1) ? -1 : now - *then;
+	*then = now;
+	return interval;
 }
 
 /*
@@ -322,17 +321,12 @@ int cairoui_rectangle(int c, struct cairoui *cairoui, int corner,
 	double x1, y1, x2, y2;
 	double *x, *y, *lx, *ly;
 	int step;
-	struct timespec t;
-	static long int last = 0;
-	long int now, elapsed;
+	static long int lastcall = -1, lastequalkey = -1;
+	static int d = KEY_NONE;
 	static int move, lastcorner, slow = FALSE;
 	int redraw;
 
-	clock_gettime(CLOCK_REALTIME, &t);
-	now = t.tv_sec * 1000 + t.tv_nsec * 1000 / 1000000000;
-	elapsed = now - last;
-	last = now;
-	if (move && elapsed > 500)
+	if (_elapsed(&lastcall) > 500 && move)
 		slow = TRUE;
 
 	x1 = rect->x;
@@ -359,7 +353,8 @@ int cairoui_rectangle(int c, struct cairoui *cairoui, int corner,
 	if (redraw && slow)
 		_draw_rectangle(cairoui, rect, lx, ly, FALSE);
 
-	step = _interval_equal(c) < 200 ? 25 : 10;
+	step = c == d && _elapsed(&lastequalkey) < 200 ? 25 : 10;
+	d = c;
 
 	switch (c) {
 	case KEY_RIGHT:
