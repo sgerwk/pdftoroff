@@ -3252,6 +3252,18 @@ struct position *openpdf(char *filename) {
 }
 
 /*
+ * close a pdf file
+ */
+void closepdf(struct position *position) {
+	g_free(position->permanent_id);
+	g_free(position->update_id);
+	g_assert_finalize_object(position->page);
+	g_assert_finalize_object(position->doc);
+	free(position->filename);
+	free(position);
+}
+
+/*
  * reload a pdf file
  */
 void reloadpdf(struct cairoui *cairoui) {
@@ -3277,21 +3289,9 @@ void reloadpdf(struct cairoui *cairoui) {
 		new->scrolly = position->scrolly;
 	}
 
-	free(position);
+	closepdf(position);
 	POSITION(cairoui) = new;
 	copyposition(PREVIOUS(cairoui), new);
-}
-
-/*
- * close a pdf file
- */
-void closepdf(struct position *position) {
-	g_free(position->permanent_id);
-	g_free(position->update_id);
-	g_assert_finalize_object(position->page);
-	g_assert_finalize_object(position->doc);
-	free(position->filename);
-	free(position);
 }
 
 /*
