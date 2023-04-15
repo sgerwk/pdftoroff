@@ -711,9 +711,9 @@ int pagematch(struct position *position, struct output *output) {
  * read the current page without its textarea
  */
 int readpageraw(struct position *position, struct output *output) {
-	g_set_object(&position->page,
-		poppler_document_get_page(position->doc, position->npage));
-	g_object_unref(position->page); // otherwise, it would be 2 now
+	g_clear_object(&position->page);
+	position->page =
+		poppler_document_get_page(position->doc, position->npage);
 	pagematch(position, output);
 	freeglistrectangles(output->selection);
 	output->selection = NULL;
