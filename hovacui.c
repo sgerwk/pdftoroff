@@ -3286,6 +3286,10 @@ void reloadpdf(struct cairoui *cairoui) {
  * close a pdf file
  */
 void closepdf(struct position *position) {
+	g_free(position->permanent_id);
+	g_free(position->update_id);
+	g_assert_finalize_object(position->page);
+	g_assert_finalize_object(position->doc);
 	free(position->filename);
 	free(position);
 }
@@ -3744,6 +3748,8 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 				/* event loop */
 
 	cairoui_main(&cairoui, firstwindow);
+
+				/* finish */
 
 	writecachefile(callback.output, callback.position);
 	closepdf(callback.position);
