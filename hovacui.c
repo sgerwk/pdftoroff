@@ -599,6 +599,8 @@ FILE *opencachefile(gchar *id, char *mode) {
  */
 int readcachefile(struct output *output, struct position *position) {
 	FILE *cachefile;
+	char update_id[32], filename[FILENAME_MAX];
+	time_t closetime;
 
 	cachefile = opencachefile(position->permanent_id, "r");
 	if (cachefile == NULL)
@@ -608,8 +610,14 @@ int readcachefile(struct output *output, struct position *position) {
 		&position->scrollx, &position->scrolly);
 	fgets(output->prevsearch, 100, cachefile);
 	output->prevsearch[strcspn(output->prevsearch, "\n")] = '\0';
-	// previous update_id
-	// previous filename
+	fscanf(cachefile, "%32s\n", update_id);
+	fscanf(cachefile, "%s\n", filename);
+	fscanf(cachefile, "%d ", &output->viewmode);
+	fscanf(cachefile, "%d ", &output->fit);
+	fscanf(cachefile, "%d ", &output->order);
+	fscanf(cachefile, "%d ", &output->distance);
+	fscanf(cachefile, "%d\n", &output->minwidth);
+	fscanf(cachefile, "%ld\n", &closetime);
 	fclose(cachefile);
 	return 0;
 }
@@ -629,6 +637,12 @@ int writecachefile(struct output *output, struct position *position) {
 	fprintf(cachefile, "%s\n", output->prevsearch);
 	fprintf(cachefile, "%.32s\n", position->update_id);
 	fprintf(cachefile, "%s\n", position->filename);
+	fprintf(cachefile, "%d", output->viewmode);
+	fprintf(cachefile, " %d", output->fit);
+	fprintf(cachefile, " %d", output->order);
+	fprintf(cachefile, " %d", output->distance);
+	fprintf(cachefile, " %d\n", output->minwidth);
+	fprintf(cachefile, "%ld\n", time(NULL));
 	fclose(cachefile);
 	return 0;
 }
