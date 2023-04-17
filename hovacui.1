@@ -779,10 +779,13 @@ The first option \fIpdfhscript\fP is the name of the script. The second option
 entries:
 
 .IP "  * " 4
-pressing 'l' at page 9 (out of 20) of \fIfile.pdf\fP causes the execution of:
+pressing 'l' at page 9 (out of 20) of \fIfile.pdf\fP of permanent ID
+.I
+3445abf345dc345687ab5ccd45672345
+causes the execution of:
 
 .I
-pdfhscript l "file.pdf" 9 20 [10,10,100,200] [0,0,345,245] []
+pdfhscript l 3445abf345dc345687ab5ccd45672345 "file.pdf" 9 20 [10,10,100,200] [0,0,345,245] []
 
 the three rectangles are the current textbox, the visible part of the page and
 the rectangle being drawn by keystroke `d', if any
@@ -793,7 +796,7 @@ keystroke 'e'; it contains two entries: \fIlinks\fP and \fIsave document\fP;
 the first is equivalent to keystroke 'l'; the second fires the execution of:
 
 .I
-pdfhscript s "file.pdf" 9 20 [10,10,100,200] [0,0,345,245] []
+pdfhscript s 3445abf345dc345687ab5ccd45672345 "file.pdf" 9 20 [10,10,100,200] [0,0,345,245] []
 
 .P
 
@@ -804,6 +807,14 @@ keys.
 If no \fIscript\fP is in the configuration file, the menu is not shown.
 
 The script is executed in foreground; \fIhovacui\fP blocks until it ends.
+
+The permanent ID of the pdf file identifies the cache file. It contains various
+internal data such as the page number and position within. The external script
+can change it.
+See
+.I
+CACHE FILE
+below for details.
 
 Only one script can be specified. It is supposed to perform different actions
 depending on its first argument. The included script \fIpdfhscript\fP has the
@@ -824,6 +835,39 @@ selects its input
 edit filename-notes.txt, if a note for the current page exists (edit notes)
 .IP "  A "
 edit filename-notes.txt (add notes)
+
+.
+.
+.
+.SH THE CACHE FILES
+
+When closing, \fBhovacui\fP saves internal data to
+\fI$HOME/.cache/hovacui/permanent_id\fP. The last part is the permanent ID of
+the pdf file. This data is read back when the pdf file is opened again. The
+content of the cache file is:
+
+.nf
+.I
+page box x y
+.I
+update_id
+.I
+filename
+.I
+viewmode fit order distance minwidth
+.I
+timestamp
+.I
+rectangle
+.fi
+
+In details: page number, index of the textbox within the page, position within
+the textbox, update ID of the pdf file, filename, visualization parameters,
+timestamp at the moment of closing, rectangle currently being drawn (in
+response to keystroke `d`) or \fI[]\fP if none.
+
+The file is also written and read back across a call to the external script,
+which can change it.
 
 .
 .

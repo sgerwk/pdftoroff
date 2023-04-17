@@ -16,13 +16,14 @@ then
 	echo "5: >>>$5<<<" >> hovacui-out.txt
 	echo "6: >>>$6<<<" >> hovacui-out.txt
 	echo "7: >>>$7<<<" >> hovacui-out.txt
+	echo "8: >>>$8<<<" >> hovacui-out.txt
 fi
 
 # links in page
 
 if [ "$1" = 'l' ];
 then
-	pdfannot -w -d "$2" $3 > hovacui-out.html
+	pdfannot -w -d "$3" $4 > hovacui-out.html
 	[ $? = 0 ] && rm hovacui-out.html && echo -n "no links in page" && exit
 
 	if [ "$DISPLAY" = "" ];
@@ -55,7 +56,7 @@ then
 		I=$((I+1))
 	done
 
-	cp "$2" selection-$I.pdf
+	cp "$3" selection-$I.pdf
 	echo -n "saved as selection-$I.pdf"
 fi
 
@@ -63,16 +64,16 @@ fi
 
 if [ "$1" = 'y' ];
 then
-	if [ "$7" != "[]" ];
+	if [ "$8" != "[]" ];
 	then
-		BOX="-b $7"
+		BOX="-b $8"
 	else
-		T=$(echo $5 | tr - , | tr -d '[]')
+		T=$(echo $6 | tr - , | tr -d '[]')
 		TX1=$(echo $T | cut -d, -f1 | cut -d. -f1)
 		TY1=$(echo $T | cut -d, -f2 | cut -d. -f1)
 		TX2=$(echo $T | cut -d, -f3 | cut -d. -f1)
 		TY2=$(echo $T | cut -d, -f4 | cut -d. -f1)
-		D=$(echo $6 | tr - , | tr -d '[]')
+		D=$(echo $7 | tr - , | tr -d '[]')
 		DX1=$(echo $D | cut -d, -f1 | cut -d. -f1)
 		DY1=$(echo $D | cut -d, -f2 | cut -d. -f1)
 		DX2=$(echo $D | cut -d, -f3 | cut -d. -f1)
@@ -83,9 +84,9 @@ then
 		BOX=$BOX$([ $TX2 -lt $DX2 ] && echo $TX2 || echo $DX2),
 		BOX=$BOX$([ $TY2 -lt $DY2 ] && echo $TY2 || echo $DY2)]
 	fi
-	# pdftoroff -t -i $3:$3 $BOX "$2" | sed '/./,$ ! d' >> hovacui-out.txt
+	# pdftoroff -t -i $4:$4 $BOX "$3" | sed '/./,$ ! d' >> hovacui-out.txt
 	{
-		pdftoroff -t -i $3:$3 $BOX "$2" | \
+		pdftoroff -t -i $4:$4 $BOX "$3" | \
 		sed '/./,$ ! d' | $COPIER 2>&1;
 		[ "$?" = 0 ] && echo -n "text copied";
 	} | tr '\n' ' '
@@ -95,7 +96,7 @@ fi
 
 if [ "$1" = 'A' ] || [ "$1" = 'N' ] || [ "$1" = 'E' ];
 then
-	BASE=$(echo "$2" | sed -e 's,.pdf,,' -e 's,$,-notes.txt,')
+	BASE=$(echo "$3" | sed -e 's,.pdf,,' -e 's,$,-notes.txt,')
 
 	[ "$1" = 'N' ] && CHECK=true
 	[ "$1" = 'E' ] && CHECK=true
@@ -110,9 +111,9 @@ then
 			exit 1
 		fi
 		if $CHECK false && \
-		   grep -A2 "^## Page $3$" "$BASE" | tail -2 | grep -q "^##";
+		   grep -A2 "^## Page $4$" "$BASE" | tail -2 | grep -q "^##";
 		then
-			echo -n "no notes for page $3, next: "
+			echo -n "no notes for page $4, next: "
 			sed '
 			: begin
 				/\n##/	{ P; D; b }
@@ -120,7 +121,7 @@ then
 					N
 					b begin
 			' "$BASE"					| \
-			sed -n "/^## Page $3 /,$ p"			| \
+			sed -n "/^## Page $4 /,$ p"			| \
 			{ grep -m1 '## Page [0-9]* .' || echo '  none'; } | \
 			cut -d' ' -f3					| \
 			tr -d '\n'
@@ -129,12 +130,12 @@ then
 	else
 		if $CHECK false;
 		then
-			echo -n "no notes for page $3"
+			echo -n "no notes for page $4"
 			exit 1
 		fi
-		echo "# $(basename "$2")" > "$BASE"
+		echo "# $(basename "$3")" > "$BASE"
 		echo >> "$BASE"
-		for P in $(seq 1 $4);
+		for P in $(seq 1 $5);
 		do
 			echo "## Page $P" >> "$BASE"
 			echo >> "$BASE"
@@ -144,10 +145,10 @@ then
 
 	if $EDIT false;
 	then
-		vi +"/## Page $3$" "$BASE" < /dev/tty > /dev/tty 2> /dev/tty
+		vi +"/## Page $4$" "$BASE" < /dev/tty > /dev/tty 2> /dev/tty
 		setterm --cursor off > /dev/tty
 	else
-		echo -n "notes for page $3"
+		echo -n "notes for page $4"
 	fi
 fi
 

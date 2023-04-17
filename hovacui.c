@@ -577,77 +577,6 @@ void swapposition(struct position *one, struct position *two) {
 }
 
 /*
- * open the cache file
- */
-FILE *opencachefile(gchar *id, char *mode) {
-	char filename[4096];
-	char *home;
-	FILE *cachefile;
-
-	home = getenv("HOME");
-	sprintf(filename, "%s/.cache/hovacui", home);
-	mkdir(filename, S_IRWXU);
-	sprintf(filename, "%s/.cache/hovacui/%.32s", home, id);
-	cachefile = fopen(filename, mode);
-	if (cachefile != NULL)
-		fchmod(fileno(cachefile), S_IRUSR | S_IWUSR);
-	return cachefile;
-}
-
-/*
- * read the cache file
- */
-int readcachefile(struct output *output, struct position *position) {
-	FILE *cachefile;
-	char update_id[32], filename[FILENAME_MAX];
-	time_t closetime;
-
-	cachefile = opencachefile(position->permanent_id, "r");
-	if (cachefile == NULL)
-		return -1;
-	fscanf(cachefile, "%d %d %lg %lg",
-		&position->npage, &position->box,
-		&position->scrollx, &position->scrolly);
-	fgets(output->prevsearch, 100, cachefile);
-	output->prevsearch[strcspn(output->prevsearch, "\n")] = '\0';
-	fscanf(cachefile, "%32s\n", update_id);
-	fscanf(cachefile, "%s\n", filename);
-	fscanf(cachefile, "%d ", &output->viewmode);
-	fscanf(cachefile, "%d ", &output->fit);
-	fscanf(cachefile, "%d ", &output->order);
-	fscanf(cachefile, "%d ", &output->distance);
-	fscanf(cachefile, "%d\n", &output->minwidth);
-	fscanf(cachefile, "%ld\n", &closetime);
-	fclose(cachefile);
-	return 0;
-}
-
-/*
- * write the cache file
- */
-int writecachefile(struct output *output, struct position *position) {
-	FILE *cachefile;
-
-	cachefile = opencachefile(position->permanent_id, "w");
-	if (cachefile == NULL)
-		return -1;
-	fprintf(cachefile, "%d %d %lg %lg\n",
-		position->npage, position->box,
-		position->scrollx, position->scrolly);
-	fprintf(cachefile, "%s\n", output->prevsearch);
-	fprintf(cachefile, "%.32s\n", position->update_id);
-	fprintf(cachefile, "%s\n", position->filename);
-	fprintf(cachefile, "%d", output->viewmode);
-	fprintf(cachefile, " %d", output->fit);
-	fprintf(cachefile, " %d", output->order);
-	fprintf(cachefile, " %d", output->distance);
-	fprintf(cachefile, " %d\n", output->minwidth);
-	fprintf(cachefile, "%ld\n", time(NULL));
-	fclose(cachefile);
-	return 0;
-}
-
-/*
  * current match
  */
 #define CURRENT_UNUSED (-2)
@@ -1757,6 +1686,96 @@ int savecurrentbox(struct cairoui *cairoui, int visible) {
 }
 
 /*
+ * save a cairo rectangle to a file
+ */
+void saverectangle(struct output *output, struct position *position,
+		FILE *fd, cairo_rectangle_t *r) {
+	PopplerRectangle s, d;
+	if (r == NULL)
+		fprintf(fd, "[]");
+	else {
+		cairorectangletopoppler(&s, r);
+		moveto(position, output);
+		rscreentodoc(output, &d, &s);
+		fprintf(fd, "[%g,%g-%g,%g]", d.x1, d.y1, d.x2, d.y2);
+	}
+}
+
+/*
+ * open the cache file
+ */
+FILE *opencachefile(gchar *id, char *mode) {
+	char filename[4096];
+	char *home;
+	FILE *cachefile;
+
+	home = getenv("HOME");
+	sprintf(filename, "%s/.cache/hovacui", home);
+	mkdir(filename, S_IRWXU);
+	sprintf(filename, "%s/.cache/hovacui/%.32s", home, id);
+	cachefile = fopen(filename, mode);
+	if (cachefile != NULL)
+		fchmod(fileno(cachefile), S_IRUSR | S_IWUSR);
+	return cachefile;
+}
+
+/*
+ * read the cache file
+ */
+int readcachefile(struct output *output, struct position *position) {
+	FILE *cachefile;
+	char update_id[32], filename[FILENAME_MAX], rectangle[40];
+	time_t closetime;
+
+	cachefile = opencachefile(position->permanent_id, "r");
+	if (cachefile == NULL)
+		return -1;
+	fscanf(cachefile, "%d %d %lg %lg",
+		&position->npage, &position->box,
+		&position->scrollx, &position->scrolly);
+	fgets(output->prevsearch, 100, cachefile);
+	output->prevsearch[strcspn(output->prevsearch, "\n")] = '\0';
+	fscanf(cachefile, "%32s\n", update_id);
+	fscanf(cachefile, "%s\n", filename);
+	fscanf(cachefile, "%d ", &output->viewmode);
+	fscanf(cachefile, "%d ", &output->fit);
+	fscanf(cachefile, "%d ", &output->order);
+	fscanf(cachefile, "%d ", &output->distance);
+	fscanf(cachefile, "%d\n", &output->minwidth);
+	fscanf(cachefile, "%ld\n", &closetime);
+	fscanf(cachefile, "%39s\n", rectangle);
+	fclose(cachefile);
+	return 0;
+}
+
+/*
+ * write the cache file
+ */
+int writecachefile(struct output *output, struct position *position) {
+	FILE *cachefile;
+
+	cachefile = opencachefile(position->permanent_id, "w");
+	if (cachefile == NULL)
+		return -1;
+	fprintf(cachefile, "%d %d %lg %lg\n",
+		position->npage, position->box,
+		position->scrollx, position->scrolly);
+	fprintf(cachefile, "%s\n", output->prevsearch);
+	fprintf(cachefile, "%.32s\n", position->update_id);
+	fprintf(cachefile, "%s\n", position->filename);
+	fprintf(cachefile, "%d", output->viewmode);
+	fprintf(cachefile, " %d", output->fit);
+	fprintf(cachefile, " %d", output->order);
+	fprintf(cachefile, " %d", output->distance);
+	fprintf(cachefile, " %d\n", output->minwidth);
+	fprintf(cachefile, "%ld\n", time(NULL));
+	saverectangle(output, position, cachefile, output->rectangle);
+	fclose(cachefile);
+	return 0;
+}
+
+
+/*
  * find or scan the external script key string
  */
 int findentry(char *config, char f, char *key, char **entry) {
@@ -1835,16 +1854,19 @@ int keyscript(struct cairoui *cairoui, char c, gboolean unescaped) {
 
 	len = strlen(output->script) + strlen(position->filename) + 620;
 	line = malloc(len);
-	sprintf(line, "%s %c \"%s\" %d %d %s %s %s",
+	sprintf(line, "%s %c %.32s \"%s\" %d %d %s %s %s",
 	        output->script, c,
+		position->permanent_id,
 		position->filename,
 		position->npage + 1, position->totpages,
 		textbox, dest, rectangle);
+	writecachefile(output, position);
 	pipe = popen(line, "r");
 	if (pipe == NULL)
 		return -1;
 	res = fread(out, 1, 80, pipe);
 	pclose(pipe);
+	readcachefile(output, position);
 	if (res < 0)
 		cairoui_printlabel(cairoui, output->help, 2000,
 			"executed: %s", line);
