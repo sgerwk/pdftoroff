@@ -3162,6 +3162,7 @@ int changedpdf(struct position *position) {
 			&position->permanent_id, &position->update_id)) {
 		position->permanent_id = permanent_id;
 		position->update_id = update_id;
+		return FALSE;
 	}
 
 	res = update_id == NULL ? FALSE :
