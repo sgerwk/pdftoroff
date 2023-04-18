@@ -2821,7 +2821,9 @@ int rectangle(int c, struct cairoui *cairoui) {
 			corner = FALSE;
 			output->rectangle = &r;
 		}
-		if (c == 'c' || c == 'd')
+		if (c == 'd')
+			c = 'c';
+		if (c == 'c')
 			corner = ! corner;
 
 		res = cairoui_rectangle(c, cairoui, corner, &r);

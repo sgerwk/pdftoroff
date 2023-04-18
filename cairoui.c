@@ -369,6 +369,8 @@ int cairoui_rectangle(int c, struct cairoui *cairoui, int corner,
 	case KEY_DOWN:
 		*y += step;
 		break;
+	case 'c':
+		break;
 	case '\033':
 	case KEY_EXIT:
 	case KEY_FINISH:
@@ -377,6 +379,7 @@ int cairoui_rectangle(int c, struct cairoui *cairoui, int corner,
 	case '\n':
 		return CAIROUI_DONE;
 	default:
+		return CAIROUI_UNCHANGED;
 	}
 
 	if (*x < cairoui->dest.x)
