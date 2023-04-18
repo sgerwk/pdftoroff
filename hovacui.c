@@ -3158,8 +3158,11 @@ int changedpdf(struct position *position) {
 	permanent_id = position->permanent_id;
 	update_id = position->update_id;
 
-	poppler_document_get_id(position->doc,
-		&position->permanent_id, &position->update_id);
+	if (! poppler_document_get_id(position->doc,
+			&position->permanent_id, &position->update_id)) {
+		position->permanent_id = permanent_id;
+		position->update_id = update_id;
+	}
 
 	res = update_id == NULL ? FALSE :
 		! ! memcmp(update_id, position->update_id, 32);
@@ -3249,6 +3252,27 @@ void resize(struct cairoui *cairoui) {
 }
 
 /*
+ * fake an ID for a file lacking it
+ */
+gchar *fakeid(char *filename) {
+	gchar *id;
+	int c, e, i;
+
+	id = g_malloc(32);
+
+	c = 0x43;
+	e = 0;
+	for (i = 0; i < 16; i++) {
+		c = (c + (e ? 11 : filename[i])) % 256;
+		if (filename[i] == '\0')
+			e = 1;
+		sprintf(id + 2 * i, "%02x", c);
+	}
+
+	return id;
+}
+
+/*
  * open a pdf file
  */
 struct position *openpdf(char *filename) {
@@ -3279,8 +3303,11 @@ struct position *openpdf(char *filename) {
 		return NULL;
 	}
 
-	poppler_document_get_id(position->doc,
-		&position->permanent_id, &position->update_id);
+	if (! poppler_document_get_id(position->doc,
+			&position->permanent_id, &position->update_id)) {
+		position->permanent_id = fakeid(position->filename);
+		position->update_id = fakeid(position->filename);
+	}
 
 	position->page = NULL;
 
