@@ -1686,22 +1686,6 @@ int savecurrentbox(struct cairoui *cairoui, int visible) {
 }
 
 /*
- * save a cairo rectangle to a file
- */
-void saverectangle(struct output *output, struct position *position,
-		FILE *fd, cairo_rectangle_t *r) {
-	PopplerRectangle s, d;
-	if (r == NULL)
-		fprintf(fd, "[]");
-	else {
-		cairorectangletopoppler(&s, r);
-		moveto(position, output);
-		rscreentodoc(output, &d, &s);
-		fprintf(fd, "[%g,%g-%g,%g]", d.x1, d.y1, d.x2, d.y2);
-	}
-}
-
-/*
  * open the cache file
  */
 FILE *opencachefile(gchar *id, char *mode) {
@@ -1753,6 +1737,7 @@ int readcachefile(struct output *output, struct position *position) {
  */
 int writecachefile(struct output *output, struct position *position) {
 	FILE *cachefile;
+	PopplerRectangle d, s;
 
 	cachefile = opencachefile(position->permanent_id, "w");
 	if (cachefile == NULL)
@@ -1769,11 +1754,17 @@ int writecachefile(struct output *output, struct position *position) {
 	fprintf(cachefile, " %d", output->distance);
 	fprintf(cachefile, " %d\n", output->minwidth);
 	fprintf(cachefile, "%ld\n", time(NULL));
-	saverectangle(output, position, cachefile, output->rectangle);
+	if (output->rectangle == NULL)
+		fprintf(cachefile, "[]\n");
+	else {
+		cairorectangletopoppler(&s, output->rectangle);
+		moveto(position, output);
+		rscreentodoc(output, &d, &s);
+		fprintf(cachefile, "[%g,%g-%g,%g]\n", d.x1, d.y1, d.x2, d.y2);
+	}
 	fclose(cachefile);
 	return 0;
 }
-
 
 /*
  * find or scan the external script key string
