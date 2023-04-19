@@ -316,14 +316,14 @@ int _draw_rectangle(struct cairoui *cairoui, cairo_rectangle_t *rect,
 /*
  * a changeable rectangle
  */
-int cairoui_rectangle(int c, struct cairoui *cairoui, int corner,
+int cairoui_rectangle(int c, struct cairoui *cairoui, int *corner,
 		cairo_rectangle_t *rect) {
 	double x1, y1, x2, y2;
-	double *x, *y, *lx, *ly;
+	double *x, *y;
 	int step;
 	static long int lastcall = -1, lastequalkey = -1;
 	static int d = KEY_NONE;
-	static int move, lastcorner, slow = FALSE;
+	static int move, slow = FALSE;
 	int redraw;
 
 	if (_elapsed(&lastcall) > 500 && move)
@@ -334,24 +334,19 @@ int cairoui_rectangle(int c, struct cairoui *cairoui, int corner,
 	x2 = rect->x + rect->width;
 	y2 = rect->y + rect->height;
 
-	x = corner == 0 ? &x1 : &x2;
-	y = corner == 0 ? &y1 : &y2;
+	x = *corner == FALSE ? &x1 : &x2;
+	y = *corner == FALSE ? &y1 : &y2;
 
 	if (c == KEY_INIT || c == KEY_REFRESH) {
 		move = FALSE;
-		lastcorner = corner;
 		return _draw_rectangle(cairoui, rect, x, y, TRUE);
 	}
 
-	lx = lastcorner == 0 ? &x1 : &x2;
-	ly = lastcorner == 0 ? &y1 : &y2;
-
 	move = c == KEY_RIGHT || c == KEY_LEFT || c == KEY_UP || c == KEY_DOWN;
-	redraw = move || corner != lastcorner;
-	lastcorner = corner;
+	redraw = move || c == 'c';
 
 	if (redraw && slow)
-		_draw_rectangle(cairoui, rect, lx, ly, FALSE);
+		_draw_rectangle(cairoui, rect, x, y, FALSE);
 
 	step = c == d && _elapsed(&lastequalkey) < 200 ? 25 : 10;
 	d = c;
@@ -370,6 +365,9 @@ int cairoui_rectangle(int c, struct cairoui *cairoui, int corner,
 		*y += step;
 		break;
 	case 'c':
+		*corner = ! *corner;
+		x = *corner == FALSE ? &x1 : &x2;
+		y = *corner == FALSE ? &y1 : &y2;
 		break;
 	case '\033':
 	case KEY_EXIT:
