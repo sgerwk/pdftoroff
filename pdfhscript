@@ -19,6 +19,14 @@ then
 	echo "8: >>>$8<<<" >> hovacui-out.txt
 fi
 
+# composite commands
+
+[ "$1" = 'A' ] && EDIT=true
+[ "$1" = 'N' ] && EDIT=true
+[ "$1" = 'E' ] && EDIT=true
+$EDIT false && [ "$8" != "[]" ] && YANK=true
+[ "$1" = 'y' ] && YANK=true && COPIED=true
+
 # links in page
 
 if [ "$1" = 'l' ];
@@ -62,7 +70,7 @@ fi
 
 # copy text in page or rectangle for pasting
 
-if [ "$1" = 'y' ];
+if $YANK false;
 then
 	if [ "$8" != "[]" ];
 	then
@@ -88,13 +96,13 @@ then
 	{
 		pdftoroff -t -i $4:$4 $BOX "$3" | \
 		sed '/./,$ ! d' | $COPIER 2>&1;
-		[ "$?" = 0 ] && echo -n "text copied";
+		[ "$?" = 0 ] && $COPIED && echo -n "text copied";
 	} | tr '\n' ' '
 fi
 
 # edit the notes of the pdf file
 
-if [ "$1" = 'A' ] || [ "$1" = 'N' ] || [ "$1" = 'E' ];
+if $EDIT false;
 then
 	BASE=$(echo "$3" | sed -e 's,.pdf,,' -e 's,$,-notes.txt,')
 
