@@ -1,0 +1,14 @@
+aspect 4:3
+minwidth 560
+notutorial
+noinitlabels
+totalpages
+clock
+postsave pdftoroff -t selection-%d.pdf > selection-%d.txt
+script pdfhscript 'l[links]_s[save document]y[yank text]N[view notes]A[add notes]E[check notes]0[test]'
+# nopagelabel
+# immediate
+# order quick
+# presentation
+# fifo fifoname
+# outfile boxes.txt
