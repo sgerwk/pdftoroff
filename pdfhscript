@@ -27,12 +27,16 @@ fi
 $EDIT false && [ "$8" != "[]" ] && YANK=true
 [ "$1" = 'y' ] && YANK=true && COPIED=true
 
+# common variables
+
+CACHEFILE="$HOME/.cache/hovacui/$2"
+TEMPFILE="$HOME/.cache/hovacui/temp"
+
 # test
 
 if [ "$1" = '0' ];
 then
 	echo -n "test: "
-	CACHEFILE="$HOME/.cache/hovacui/$2"
 	if [ ! -f $CACHEFILE ];
 	then
 		echo -n "no cache file"
@@ -42,11 +46,11 @@ then
 
 	P=$(head -1 $CACHEFILE)
 	N=$(echo $P | cut -d' ' -f1)
-	echo "$((N+1)) 0 0 0" > temp
-	# echo "$((N-1)) 0 0 0" > temp
-	# echo "0 -100 0 0" > temp
-	tail +2 $CACHEFILE >> temp
-	mv temp $CACHEFILE
+	echo "$((N+1)) 0 0 0"    > $TEMPFILE
+	# echo "$((N-1)) 0 0 0"  > $TEMPFILE
+	# echo "0 -100 0 0"      > $TEMPFILE
+	tail +2 $CACHEFILE      >> $TEMPFILE
+	mv $TEMPFILE $CACHEFILE
 	echo -n "done"
 fi
 
@@ -176,8 +180,25 @@ then
 
 	if $EDIT false;
 	then
+		LINEFILE=$HOME/.cache/hovacui/line
+		rm -f $FILEFILE
 		vi +"/## Page $4$" "$BASE" < /dev/tty > /dev/tty 2> /dev/tty
 		setterm --cursor off > /dev/tty
+		if [ -f $LINEFILE ];
+		then
+			# requires, in .vimrc:
+			# autocmd BufUnload *-notes.txt execute ''
+			#   \| execute '!echo ' . line('.') . ' >
+			#      $HOME/.cache/hovacui/line'
+			L=$(<$LINEFILE)
+			N=$(head -$L "$BASE" | grep '^## Page [0-9][0-9]*' | \
+			    tail -1 | cut -d' ' -f3)
+			echo -n $((N-1))    > $TEMPFILE
+			tail +2 $CACHEFILE >> $TEMPFILE
+			mv $TEMPFILE $CACHEFILE
+			rm $LINEFILE
+		fi
+
 	else
 		echo -n "notes for page $4"
 	fi
