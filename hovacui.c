@@ -14,15 +14,9 @@
  * - merge narrow textarea boxes with others, minimizing size increase
  * - merge boxes with the same (or very similar) horizontal coordinates
  * - bookmarks, with field() for creating and list() for going to
- * - save last position(s) to $HOME/.pdfpositions
- * - commandline option for initial position: -p page,box,scrollx,scrolly any
- *   part can be empty, even page; every one implies a default for the
- *   following ones; if this option is given, the final position is printed in
- *   the same format at exit; make separate functions for parsing and printing
- *   a struct position; the function for parsing takes care of illegal values:
- *   for example, a page number too large is reduced to the last, and
- *   consequently the box is the last of the page; extract and complete this
- *   part of the code from reloadpdf()
+ * - commandline option for initial position: -p page,box,scrollx,scrolly;
+ *   any part can be empty, even page; separate functions for parsing and
+ *   printing a struct position, from readcachefile
  * - maintain the position when changing mode: choose a character that is close
  *   to the center of the screen before changing mode; afterward, select the
  *   box that contains it, set scrollx,scrolly so that the character is in the
