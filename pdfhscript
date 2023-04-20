@@ -27,6 +27,29 @@ fi
 $EDIT false && [ "$8" != "[]" ] && YANK=true
 [ "$1" = 'y' ] && YANK=true && COPIED=true
 
+# test
+
+if [ "$1" = '0' ];
+then
+	echo -n "test: "
+	CACHEFILE="$HOME/.cache/hovacui/$2"
+	if [ ! -f $CACHEFILE ];
+	then
+		echo -n "no cache file"
+		exit
+	fi
+	cat $CACHEFILE >> hovacui-out.txt
+
+	P=$(head -1 $CACHEFILE)
+	N=$(echo $P | cut -d' ' -f1)
+	echo "$((N+1)) 0 0 0" > temp
+	# echo "$((N-1)) 0 0 0" > temp
+	# echo "0 -100 0 0" > temp
+	tail +2 $CACHEFILE >> temp
+	mv temp $CACHEFILE
+	echo -n "done"
+fi
+
 # links in page
 
 if [ "$1" = 'l' ];
