@@ -1815,6 +1815,7 @@ int keyscript(struct cairoui *cairoui, char c, gboolean unescaped) {
 	char *line, out[100], textbox[200], dest[200], rectangle[200];
 	int len, res;
 	FILE *pipe;
+	int npage;
 
 	if (output->script == NULL || output->keys == NULL)
 		return -1;
@@ -1851,7 +1852,20 @@ int keyscript(struct cairoui *cairoui, char c, gboolean unescaped) {
 		return -1;
 	res = fread(out, 1, 80, pipe);
 	pclose(pipe);
-	readcachefile(output, position);
+	npage = position->npage;
+	if (! readcachefile(output, position)) {
+		initpage(position, position->npage);
+		if (position->npage != npage)
+			readpage(position, output);
+		if (position->npage > npage)
+			firsttextbox(position, output);
+		if (position->npage < npage)
+			lasttextbox(position, output);
+		if (position->box < 0)
+			firsttextbox(position, output);
+		if (position->box >= position->textarea->num)
+			lasttextbox(position, output);
+	}
 	if (res < 0)
 		cairoui_printlabel(cairoui, output->help, 2000,
 			"executed: %s", line);
