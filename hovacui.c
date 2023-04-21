@@ -550,6 +550,20 @@ struct callback {
 #define OUTPUT(cairoui)   (((struct callback *) (cairoui)->cb)->output)
 
 /*
+ * initialize a position
+ */
+void initposition(struct position *position) {
+	position->npage = 0;
+	position->page = NULL;
+	position->boundingbox = NULL;
+	position->textarea = NULL;
+	position->box = 0;
+	position->viewbox = NULL;
+	position->scrollx = 0;
+	position->scrolly = 0;
+}
+
+/*
  * copy a position
  */
 void copyposition(struct position *destination, struct position *source) {
@@ -588,20 +602,6 @@ int pagepdftoui(struct output *output, int page) {
 }
 int pageuitopdf(struct output *output, int page) {
 	return page + output->offset - 2;
-}
-
-/*
- * initialize position
- */
-void initposition(struct position *position) {
-	position->npage = 0;
-	position->page = NULL;
-	position->boundingbox = NULL;
-	position->textarea = NULL;
-	position->box = 0;
-	position->viewbox = NULL;
-	position->scrollx = 0;
-	position->scrolly = 0;
 }
 
 /*
