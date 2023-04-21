@@ -1702,27 +1702,46 @@ FILE *opencachefile(gchar *id, char *mode) {
  */
 int readcachefile(struct output *output, struct position *position) {
 	FILE *cachefile;
+	struct output readoutput;
+	struct position readposition;
 	char update_id[32], filename[FILENAME_MAX], rectangle[40];
 	time_t closetime;
 
+	readposition = *position;
+	readoutput = *output;
+
 	cachefile = opencachefile(position->permanent_id, "r");
 	if (cachefile == NULL)
-		return -1;
-	fscanf(cachefile, "%d %d %lg %lg",
-		&position->npage, &position->box,
-		&position->scrollx, &position->scrolly);
-	fgets(output->prevsearch, 100, cachefile);
-	output->prevsearch[strcspn(output->prevsearch, "\n")] = '\0';
-	fscanf(cachefile, "%32s\n", update_id);
-	fscanf(cachefile, "%s\n", filename);
-	fscanf(cachefile, "%d ", &output->viewmode);
-	fscanf(cachefile, "%d ", &output->fit);
-	fscanf(cachefile, "%d ", &output->order);
-	fscanf(cachefile, "%d ", &output->distance);
-	fscanf(cachefile, "%d\n", &output->minwidth);
-	fscanf(cachefile, "%ld\n", &closetime);
-	fscanf(cachefile, "%39s\n", rectangle);
+		return ENOENT;
+	if (4 != fscanf(cachefile, "%d %d %lg %lg",
+			&readposition.npage, &readposition.box,
+			&readposition.scrollx, &readposition.scrolly))
+		return EINVAL;
+	if (NULL == fgets(readoutput.prevsearch, 100, cachefile))
+		return EINVAL;
+	readoutput.prevsearch[strcspn(readoutput.prevsearch, "\n")] = '\0';
+	if (1 != fscanf(cachefile, "%32s\n", update_id))
+		return EINVAL;
+	if (1 != fscanf(cachefile, "%s\n", filename))
+		return EINVAL;
+	if (6 != fscanf(cachefile, "%d %d %d %d %d %ld\n",
+			&readoutput.viewmode, &readoutput.fit, &readoutput.order,
+			&readoutput.distance, &readoutput.minwidth, &closetime))
+		return EINVAL;
+	if (1 != fscanf(cachefile, "%39s\n", rectangle))
+		return EINVAL;
 	fclose(cachefile);
+
+	if (readoutput.viewmode < 0 || readoutput.viewmode > 3)
+		return EINVAL;
+	if (readoutput.fit < 0 || readoutput.fit > 3)
+		return EINVAL;
+	if (readoutput.order < 0 || readoutput.order > 2)
+		return EINVAL;
+
+	*position = readposition;
+	*output = readoutput;
+
 	return 0;
 }
 

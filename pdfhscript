@@ -193,9 +193,8 @@ then
 			L=$(<$LINEFILE)
 			N=$(head -$L "$BASE" | grep '^## Page [0-9][0-9]*' | \
 			    tail -1 | cut -d' ' -f3)
-			echo -n $((N-1))    > $TEMPFILE
-			tail +2 $CACHEFILE >> $TEMPFILE
-			mv $TEMPFILE $CACHEFILE
+			[ "$N" = '' ] && N=1
+			sed -i "1 s,^[0-9]* ,$((N-1)) ," $CACHEFILE
 			rm $LINEFILE
 		fi
 
