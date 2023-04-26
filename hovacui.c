@@ -1713,7 +1713,7 @@ int readcachefile(struct output *output, struct position *position) {
 	cachefile = opencachefile(position->permanent_id, "r");
 	if (cachefile == NULL)
 		return ENOENT;
-	if (4 != fscanf(cachefile, "%d %d %lg %lg",
+	if (4 != fscanf(cachefile, "%d %d %lg %lg\n",
 			&readposition.npage, &readposition.box,
 			&readposition.scrollx, &readposition.scrolly))
 		return EINVAL;
