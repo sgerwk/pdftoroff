@@ -511,6 +511,9 @@ struct output {
 	char *keys;
 	char *script;
 	cairo_rectangle_t *rectangle;
+
+	/* cache file */
+	gboolean nocachefile;
 };
 
 /*
@@ -1707,6 +1710,9 @@ int readcachefile(struct output *output, struct position *position) {
 	char update_id[32], filename[FILENAME_MAX], rectangle[40];
 	time_t closetime;
 
+	if (output->nocachefile)
+		return EPERM;
+
 	readposition = *position;
 	readoutput = *output;
 
@@ -1751,6 +1757,9 @@ int readcachefile(struct output *output, struct position *position) {
 int writecachefile(struct output *output, struct position *position) {
 	FILE *cachefile;
 	PopplerRectangle d, s;
+
+	if (output->nocachefile)
+		return EPERM;
 
 	cachefile = opencachefile(position->permanent_id, "w");
 	if (cachefile == NULL)
@@ -3554,6 +3563,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	output.last = -1;
 	output.screenaspect = -1;
 	output.rectangle = NULL;
+	output.nocachefile = FALSE;
 
 	firstwindow = WINDOW_TUTORIAL;
 	outdev = NULL;
@@ -3677,6 +3687,8 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 				doublebuffering = 0;
 			if (! strcmp(s, "navigatematches"))
 				output.current = CURRENT_NONE;
+			if (! strcmp(s, "nocachefile"))
+				output.nocachefile = TRUE;
 		}
 	}
 	if (config != NULL)
