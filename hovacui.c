@@ -1707,7 +1707,7 @@ int readcachefile(struct output *output, struct position *position) {
 	FILE *cachefile;
 	struct output readoutput;
 	struct position readposition;
-	char update_id[32], filename[FILENAME_MAX], rectangle[40];
+	char update_id[32], filename[FILENAME_MAX], rectangle[40], c;
 	time_t closetime;
 
 	if (output->nocachefile)
@@ -1719,9 +1719,11 @@ int readcachefile(struct output *output, struct position *position) {
 	cachefile = opencachefile(position->permanent_id, "r");
 	if (cachefile == NULL)
 		return ENOENT;
-	if (4 != fscanf(cachefile, "%d %d %lg %lg\n",
+	if (5 != fscanf(cachefile, "%d %d %lg %lg%c",
 			&readposition.npage, &readposition.box,
-			&readposition.scrollx, &readposition.scrolly))
+			&readposition.scrollx, &readposition.scrolly,
+			&c) ||
+	    c != '\n')
 		return EINVAL;
 	if (NULL == fgets(readoutput.prevsearch, 100, cachefile))
 		return EINVAL;
@@ -3553,7 +3555,6 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	output.reload = &cairoui.reload;
 	output.drawbox = TRUE;
 	output.pagelabel = TRUE;
-	output.prevsearch[0] = '\0';
 	output.current = CURRENT_UNUSED;
 	output.pdfout = "selection-%d.pdf";
 	output.postsave = NULL;
@@ -3788,6 +3789,18 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	}
 	filename = argv[optind];
 
+				/* initialize output */
+
+	output.search[0] = '\0';
+	output.prevsearch[0] = '\0';
+	output.found = NULL;
+	output.selection = NULL;
+	output.texfudge = 0; // 24;
+	output.help[0] = '\0';
+	output.help[79] = '\0';
+	if (output.minwidth == -1)
+		output.minwidth = 400;
+
 				/* open input file */
 
 	callback.position = openpdf(filename);
@@ -3809,16 +3822,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	}
 	free(allopts);
 
-				/* initialize output */
-
-	strcpy(output.search, "");
-	output.found = NULL;
-	output.selection = NULL;
-	output.texfudge = 0; // 24;
-	output.help[0] = '\0';
-	output.help[79] = '\0';
-	if (output.minwidth == -1)
-		output.minwidth = 400;
+				/* initial help */
 
 	if (noinitlabels)
 		cairoui_initlabels(&cairoui);
