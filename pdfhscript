@@ -2,8 +2,12 @@
 #
 # external script for hovacui
 #
-# l: show annotation and actions in the current page in a browser
-# s: save the document
+# l:	show annotation and actions in the current page in a browser
+# s:	save the document
+# A,N,E: add, edit or check notes in filename-notes.txt
+#	A: add a note for the current page
+#	N: edit the notes for the current page if some exist
+#	E: check the existence of notes for the current page
 
 # save parameters
 
