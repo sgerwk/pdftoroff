@@ -4,10 +4,9 @@
 #
 # l:	show annotation and actions in the current page in a browser
 # s:	save the document
-# A,N,E: add, edit or check notes in filename-notes.txt
+# A,N:	add or edit notes in filename-notes.txt
 #	A: add a note for the current page
 #	N: edit the notes for the current page if some exist
-#	E: check the existence of notes for the current page
 
 # save parameters
 
@@ -27,7 +26,6 @@ fi
 
 [ "$1" = 'A' ] && EDIT=true
 [ "$1" = 'N' ] && EDIT=true
-[ "$1" = 'E' ] && EDIT=true
 $EDIT false && [ "$8" != "[]" ] && YANK=true
 [ "$1" = 'y' ] && YANK=true && COPIED=true
 
@@ -138,7 +136,6 @@ then
 	BASE=$(echo "$3" | sed -e 's,.pdf,,' -e 's,$,-notes.txt,')
 
 	[ "$1" = 'N' ] && CHECK=true
-	[ "$1" = 'E' ] && CHECK=true
 
 	if [ -e "$BASE" ];
 	then
