@@ -135,8 +135,6 @@ then
 
 	[ "$1" = 'N' ] && CHECK=true
 	[ "$1" = 'E' ] && CHECK=true
-	[ "$1" = 'N' ] && EDIT=true
-	[ "$1" = 'A' ] && EDIT=true
 
 	if [ -e "$BASE" ];
 	then
