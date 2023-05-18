@@ -298,14 +298,23 @@ long int _elapsed(long int *then) {
  * draw the rectangle
  */
 int _draw_rectangle(struct cairoui *cairoui, cairo_rectangle_t *rect,
-		double *x, double *y, int color) {
+		double *x, double *y, int color, int cross) {
 	cairo_identity_matrix(cairoui->cr);
 	if (color)
 		cairo_set_source_rgb(cairoui->cr, 1.0, 0.0, 0.0);
 	else
 		cairo_set_source_rgb(cairoui->cr, 1.0, 1.0, 1.0);
-	cairo_rectangle(cairoui->cr, *x - 5, *y - 5, 10, 10);
-	cairo_fill(cairoui->cr);
+	if (cross) {
+		cairo_move_to(cairoui->cr, *x - 5, *y - 5);
+		cairo_line_to(cairoui->cr, *x + 5, *y + 5);
+		cairo_move_to(cairoui->cr, *x - 5, *y + 5);
+		cairo_line_to(cairoui->cr, *x + 5, *y - 5);
+		cairo_stroke(cairoui->cr);
+	}
+	else {
+		cairo_rectangle(cairoui->cr, *x - 5, *y - 5, 10, 10);
+		cairo_fill(cairoui->cr);
+	}
 	cairo_rectangle(cairoui->cr,
 		rect->x, rect->y, rect->width, rect->height);
 	cairo_stroke(cairoui->cr);
@@ -317,7 +326,7 @@ int _draw_rectangle(struct cairoui *cairoui, cairo_rectangle_t *rect,
  * a changeable rectangle
  */
 int cairoui_rectangle(int c, struct cairoui *cairoui, int *corner,
-		cairo_rectangle_t *rect) {
+		cairo_rectangle_t *rect, int cross) {
 	double x1, y1, x2, y2;
 	double *x, *y;
 	int step;
@@ -339,14 +348,14 @@ int cairoui_rectangle(int c, struct cairoui *cairoui, int *corner,
 
 	if (c == KEY_INIT || c == KEY_REFRESH) {
 		move = FALSE;
-		return _draw_rectangle(cairoui, rect, x, y, TRUE);
+		return _draw_rectangle(cairoui, rect, x, y, TRUE, cross);
 	}
 
 	move = c == KEY_RIGHT || c == KEY_LEFT || c == KEY_UP || c == KEY_DOWN;
 	redraw = move || c == 'c';
 
 	if (redraw && slow)
-		_draw_rectangle(cairoui, rect, x, y, FALSE);
+		_draw_rectangle(cairoui, rect, x, y, FALSE, cross);
 
 	step = c == d && _elapsed(&lastequalkey) < 200 ? 25 : 10;
 	d = c;
@@ -395,7 +404,7 @@ int cairoui_rectangle(int c, struct cairoui *cairoui, int *corner,
 	rect->height = y2 - y1;
 
 	if (redraw && slow)
-		return _draw_rectangle(cairoui, rect, x, y, TRUE);
+		return _draw_rectangle(cairoui, rect, x, y, TRUE, cross);
 
 	cairoui->redraw = TRUE;
 	return CAIROUI_REFRESH;

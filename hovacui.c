@@ -2879,7 +2879,7 @@ int _figuredraw(int c, struct cairoui *cairoui, gboolean point) {
 			c = 'c';
 		else if (c == 'q')
 			c = KEY_EXIT;
-		res = cairoui_rectangle(c, cairoui, &corner, &r);
+		res = cairoui_rectangle(c, cairoui, &corner, &r, point);
 	}
 	if (c == KEY_FINISH)
 		output->rectangle = NULL;
