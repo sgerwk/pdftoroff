@@ -3625,6 +3625,8 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 
 	optind = 1;
 	config = fopen(configfile, "r");
+	if (config == NULL)
+		config = fopen("/etc/hovacui.conf", "r");
 	res = NULL;
 	while ((config != NULL && (res = fgets(configline, 900, config))) ||
 	       (-1 != (opt = getopt(argn, argv, allopts)))) {
