@@ -106,7 +106,7 @@ then
 		{ echo -n 'no pdfinteractive script'; exit 1; }
 	which pdfdrawover > /dev/null || \
 		{ echo -n 'pdfdrawover not installed'; exit 1; }
-	pdfinteractive "$@" < /dev/tty > /dev/tty 2> /dev/tty
+	pdfinteractive "$@" 3>&1 > /dev/tty
 	exit
 fi
 

@@ -61,24 +61,28 @@ do
 		clip)
 			echo clip to "$BOX"
 			$SIMULATE \
-			pdfcut -o "$OUT" -p "$BOX" "$IN";;
+			pdfcut -o "$OUT" -p "$BOX" "$IN"
+			echo -n "clipped to $OUT" 1>&3;;
 		erase)
 			echo erase "$BOX" of page "$PAGE" of file "$IN"
 			$SIMULATE \
 			pdfdrawover "$IN" output "$OUT" page "$PAGE" \
-				color white filledbox "$BOX";;
+				color white filledbox "$BOX"
+			echo -n "erased in $OUT" 1>&3;;
 		cover)
 			echo cover "$BOX" of page "$PAGE" of file "$IN"
 			$SIMULATE \
 			pdfdrawover "$IN" output "$OUT" page "$PAGE" \
-				filledbox "$BOX";;
+				filledbox "$BOX"
+			echo -n "covered in $OUT" 1>&3;;
 		write)
 			echo write at "$CORNER" in page "$PAGE" of file "$IN"
 			echo -n "string to write: "
 			read S
 			$SIMULATE \
 			pdfdrawover "$IN" output "$OUT" page "$PAGE" \
-				moveto "$CORNER" print "$S";;
+				moveto "$CORNER" print "$S"
+			echo -n "written in $OUT" 1>&3;;
 		exit)
 			echo exit;;
 	esac
