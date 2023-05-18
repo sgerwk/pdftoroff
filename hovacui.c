@@ -2861,6 +2861,8 @@ int rectangle(int c, struct cairoui *cairoui) {
 		}
 		if (c == 'd')
 			c = 'c';
+		else if (c == 'q')
+			c = KEY_EXIT;
 		res = cairoui_rectangle(c, cairoui, &corner, &r);
 	}
 	if (c == KEY_FINISH)
