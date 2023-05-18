@@ -99,7 +99,7 @@ fi
 
 # interactively operate on the selected rectangle
 
-if [ "$1" = 'R' ];
+if [ "$1" = 'E' ];
 then
 	[ "$8" = '[]' ] && echo -n 'no selected point or rectangle' && exit 1
 	which pdfinteractive > /dev/null || \
