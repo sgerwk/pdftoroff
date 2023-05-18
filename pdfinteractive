@@ -12,6 +12,11 @@
 
 clear
 PREVSTTY=$(stty -g)
+onexit() {
+	setterm --cursor off
+	stty $PREVSTTY
+}
+trap onexit EXIT
 stty icrnl onlcr echo icanon
 setterm --cursor on
 
@@ -80,9 +85,5 @@ do
 	break
 done
 
-# restore terminal
-
-setterm --cursor off
-stty $PREVSTTY
 # sleep 5
 
