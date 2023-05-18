@@ -101,7 +101,7 @@ fi
 
 if [ "$1" = 'R' ];
 then
-	[ "$8" = '[]' ] && echo -n 'no selected rectangle' && exit 1
+	[ "$8" = '[]' ] && echo -n 'no selected point or rectangle' && exit 1
 	which pdfinteractive > /dev/null || \
 		{ echo -n 'no pdfinteractive script'; exit 1; }
 	which pdfdrawover > /dev/null || \
