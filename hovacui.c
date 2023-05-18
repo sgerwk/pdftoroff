@@ -1922,6 +1922,7 @@ enum window {
 	WINDOW_FITDIRECTION,
 	WINDOW_ORDER,
 	WINDOW_SCRIPT,
+	WINDOW_POINT,
 	WINDOW_RECTANGLE,
 	WINDOW_MENU,
 	WINDOW_WIDTH,
@@ -1979,6 +1980,8 @@ int document(int c, struct cairoui *cairoui) {
 		return WINDOW_ORDER;
 	case 'e':
 		return WINDOW_SCRIPT;
+	case 'x':
+		return WINDOW_POINT;
 	case 'd':
 		return WINDOW_RECTANGLE;
 	case KEY_FIND:
@@ -2512,6 +2515,7 @@ int menu(int c, struct cairoui *cairoui) {
 		WINDOW_SEARCH,
 		WINDOW_CHOP,
 		WINDOW_RECTANGLE,
+		WINDOW_POINT,
 		WINDOW_SCRIPT,
 		WINDOW_VIEWMODE,
 		WINDOW_FITDIRECTION,
@@ -2832,9 +2836,9 @@ int textdistance(int c, struct cairoui *cairoui) {
 }
 
 /*
- * rectangle drawing by cursor keys
+ * point or rectangle drawing by cursor keys
  */
-int rectangle(int c, struct cairoui *cairoui) {
+int _figuredraw(int c, struct cairoui *cairoui, gboolean point) {
 	static cairo_rectangle_t r;
 	static gboolean corner;
 	static gboolean iterating = FALSE;
@@ -2848,6 +2852,7 @@ int rectangle(int c, struct cairoui *cairoui) {
 	PopplerRectangle s;
 	int currc;
 	int o;
+	char *label;
 
 	if (iterating) {
 		currc = c;
@@ -2858,6 +2863,11 @@ int rectangle(int c, struct cairoui *cairoui) {
 			r = cairoui->dest;
 			corner = FALSE;
 			output->rectangle = &r;
+		}
+		if (point) {
+			corner = FALSE;
+			r.width = 0;
+			r.height = 0;
 		}
 		if (c == 'd')
 			c = 'c';
@@ -2888,7 +2898,7 @@ int rectangle(int c, struct cairoui *cairoui) {
 		o = savepdf(currc, cairoui, first, last, &d,
 			c == 'S', c != 'S');
 		if (! CAIROUI_OUT(o))
-			return WINDOW_RECTANGLE;
+			return point ? WINDOW_POINT : WINDOW_RECTANGLE;
 		if (currc == KEY_FINISH)
 			iterating = FALSE;
 		return WINDOW_DOCUMENT;
@@ -2902,11 +2912,21 @@ int rectangle(int c, struct cairoui *cairoui) {
 	if (res == CAIROUI_UNCHANGED && cairoui->redraw)
 		return CAIROUI_REFRESH;
 
-	if (showhelp)
-		cairoui_printlabel(cairoui, output->help, NO_TIMEOUT,
-			"c/d=opposite corner, enter=save, s/S=save content");
+	if (showhelp) {
+		label = point ? "enter=save position" :
+			"c/d=opposite corner, enter=save, s/S=save content";
+		cairoui_printlabel(cairoui, output->help, NO_TIMEOUT, label);
+	}
 	showhelp = TRUE;
-	return WINDOW_RECTANGLE;
+	return point ? WINDOW_POINT : WINDOW_RECTANGLE;
+}
+
+int point(int c, struct cairoui *cairoui) {
+	return _figuredraw(c, cairoui, TRUE);
+}
+
+int rectangle(int c, struct cairoui *cairoui) {
+	return _figuredraw(c, cairoui, FALSE);
 }
 
 /*
@@ -2924,6 +2944,7 @@ struct windowlist windowlist[] = {
 {	WINDOW_FITDIRECTION,	"FITDIRECTION",	fitdirection	},
 {	WINDOW_ORDER,		"ORDER",	order		},
 {	WINDOW_SCRIPT,		"SCRIPT",	script		},
+{	WINDOW_POINT,		"POINT",	point		},
 {	WINDOW_RECTANGLE,	"RECTANGLE",	rectangle	},
 {	WINDOW_MENU,		"MENU",		menu		},
 {	WINDOW_WIDTH,		"WIDTH",	minwidth	},
