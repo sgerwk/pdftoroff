@@ -15,7 +15,8 @@ all: ${PROGS}
 
 install: all
 	mkdir -p ${DESTDIR}/usr/bin
-	cp hovacui pdfhscript pdftoroff pdftoebook ${DESTDIR}/usr/bin
+	cp hovacui pdfhscript pdfinteractive ${DESTDIR}/usr/bin
+	cp pdftoroff pdftoebook ${DESTDIR}/usr/bin
 	cp pdffit pdfrects pdfrecur pdfannot ${DESTDIR}/usr/bin
 	mkdir -p ${DESTDIR}/usr/share/man/man1
 	cp hovacui.1 pdftoroff.1 ${DESTDIR}/usr/share/man/man1

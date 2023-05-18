@@ -1,0 +1,88 @@
+#!/bin/bash
+#
+# operate on a point or rectangle of a pdf file
+#	clip all pages
+#	erase rectangle (draw in white)
+#	cover rectangle (draw in black)
+#	write something at upper-left corner
+
+#SIMULATE=echo
+
+# tty settings
+
+clear
+PREVSTTY=$(stty -g)
+stty icrnl onlcr echo icanon
+setterm --cursor on
+
+# arguments
+
+IN="$3"
+PAGE="$4"
+BOX="$8"
+X0=$(echo "$BOX" | cut -d, -f1 | cut -d[ -f2)
+Y0=$(echo "$BOX" | cut -d, -f2 | cut -d- -f1)
+X1=$(echo "$BOX" | cut -d- -f2 | cut -d, -f1)
+Y1=$(echo "$BOX" | cut -d, -f3 | cut -d] -f1)
+CORNER="[$X0,$Y0]"
+echo "$@"
+echo "file $FILE"
+echo "page $PAGE"
+echo "box $BOX"
+echo "corner $CORNER"
+
+# output file
+
+EDIT=${IN%%.pdf}-edit-%d.pdf
+I=1
+while [ -f $(printf $EDIT $I) ];
+do
+	I=$((I+1))
+done
+OUT=$(printf $EDIT $I)
+echo $OUT
+
+# commands
+
+COMMANDS='clip erase cover exit'
+[ $X0 = $X1 ] && [ $Y0 = $Y1 ] && COMMANDS='write exit'
+
+# operate on file, page and rectangle
+
+PS3="choose command [1-5]: "
+select COMMAND in $COMMANDS;
+do
+	case $COMMAND in
+		clip)
+			echo clip to "$BOX"
+			$SIMULATE \
+			pdfcut -o "$OUT" -p "$BOX" "$IN";;
+		erase)
+			echo erase "$BOX" of page "$PAGE" of file "$IN"
+			$SIMULATE \
+			pdfdrawover "$IN" output "$OUT" page "$PAGE" \
+				color white filledbox "$BOX";;
+		cover)
+			echo cover "$BOX" of page "$PAGE" of file "$IN"
+			$SIMULATE \
+			pdfdrawover "$IN" output "$OUT" page "$PAGE" \
+				filledbox "$BOX";;
+		write)
+			echo write at "$CORNER" in page "$PAGE" of file "$IN"
+			echo -n "string to write: "
+			read S
+			$SIMULATE \
+			pdfdrawover "$IN" output "$OUT" page "$PAGE" \
+				moveto "$CORNER" print "$S";;
+		exit)
+			echo exit;;
+	esac
+	break
+done
+
+# restore terminal
+
+setterm --cursor off
+stty $PREVSTTY
+# sleep 5
+

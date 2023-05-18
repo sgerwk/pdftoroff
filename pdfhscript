@@ -97,6 +97,19 @@ then
 	echo -n "saved as selection-$I.pdf"
 fi
 
+# interactively operate on the selected rectangle
+
+if [ "$1" = 'R' ];
+then
+	[ "$8" = '[]' ] && echo -n 'no selected rectangle' && exit 1
+	which pdfinteractive > /dev/null || \
+		{ echo -n 'no pdfinteractive script'; exit 1; }
+	which pdfdrawover > /dev/null || \
+		{ echo -n 'pdfdrawover not installed'; exit 1; }
+	pdfinteractive "$@" < /dev/tty > /dev/tty 2> /dev/tty
+	exit
+fi
+
 # copy text in page or rectangle for pasting
 
 if $YANK false;
