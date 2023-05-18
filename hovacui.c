@@ -2909,6 +2909,9 @@ int rectangle(int c, struct cairoui *cairoui) {
 	return WINDOW_RECTANGLE;
 }
 
+/*
+ * list of window names and functions
+ */
 struct windowlist windowlist[] = {
 {	WINDOW_DOCUMENT,	"DOCUMENT",	document	},
 {	WINDOW_HELP,		"HELP",		help		},
