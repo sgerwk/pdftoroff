@@ -89,4 +89,6 @@ example `1.0.0`:
 - night mode: show pdf in reverse colors (Apr. 2023)
 - key 'G': move back to the position prior to jumping or searching (Apr. 2023)
 - cache position and search string (Apr. 2023)
+- key 'x' to position a cursor on the page
+- some editing via an external script
 
