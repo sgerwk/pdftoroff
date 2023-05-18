@@ -1642,17 +1642,23 @@ void cairorectangletopoppler(PopplerRectangle *p, cairo_rectangle_t *c) {
 /*
  * append the coordindates of a box to a file
  */
-int savebox(struct cairoui *cairoui, PopplerRectangle *r) {
+int savebox(struct cairoui *cairoui, PopplerRectangle *r, gboolean point) {
 	struct output *output = OUTPUT(cairoui);
 	char line[70];
 	char *result;
 
-	snprintf(line, 70, "%g %g %g %g", r->x1, r->y1, r->x2, r->y2);
+	if (point)
+		snprintf(line, 70, "%g %g", r->x1, r->y1);
+	else
+		snprintf(line, 70, "%g %g %g %g", r->x1, r->y1, r->x2, r->y2);
 
 	if (ensureoutputfile(cairoui))
 		result = "- error opening output file";
 	else {
-		rectangle_print(cairoui->outfile, r);
+		if (point)
+			fprintf(cairoui->outfile, "%g %g", r->x1, r->y1);
+		else
+			rectangle_print(cairoui->outfile, r);
 		fputs("\n", cairoui->outfile);
 		fflush(cairoui->outfile);
 		result = "- saved to";
@@ -1679,7 +1685,7 @@ int savecurrentbox(struct cairoui *cairoui, int visible) {
 			&position->textarea->rect[position->box]);
 	}
 
-	return savebox(cairoui, &r);
+	return savebox(cairoui, &r, FALSE);
 }
 
 /*
@@ -2885,7 +2891,7 @@ int _figuredraw(int c, struct cairoui *cairoui, gboolean point) {
 			cairorectangletopoppler(&s, &r);
 			moveto(position, output);
 			rscreentodoc(output, &d, &s);
-			savebox(cairoui, &d);
+			savebox(cairoui, &d, point);
 			if (res == CAIROUI_DONE)
 				return WINDOW_DOCUMENT;
 			first = c == 'S' ? 0 : position->npage;
