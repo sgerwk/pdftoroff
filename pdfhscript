@@ -20,8 +20,8 @@ SCROLLX="$6"
 SCROLLY="$7"
 TOTPAGES="$8"
 TEXTBOX="$9"
-DEST="$10"
-RECT="$11"
+DEST="${10}"
+RECT="${11}"
 
 # composite commands
 
