@@ -15,10 +15,13 @@ KEY="$1"
 ID="$2"
 FILE="$3"
 PAGE="$4"
-TOTPAGES="$5"
-TEXTBOX="$6"
-DEST="$7"
-RECT="$8"
+BOXNUMBER="$5"
+SCROLLX="$6"
+SCROLLY="$7"
+TOTPAGES="$8"
+TEXTBOX="$9"
+DEST="$10"
+RECT="$11"
 
 # composite commands
 

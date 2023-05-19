@@ -1876,11 +1876,13 @@ int keyscript(struct cairoui *cairoui, char c, gboolean unescaped) {
 
 	len = strlen(output->script) + strlen(position->filename) + 620;
 	line = malloc(len);
-	sprintf(line, "%s %c %.32s \"%s\" %d %d %s %s %s",
+	sprintf(line, "%s %c %.32s \"%s\" %d %d %g %g %d %s %s %s",
 	        output->script, c,
 		position->permanent_id,
 		position->filename,
-		position->npage + 1, position->totpages,
+		position->npage + 1, position->box,
+		position->scrollx, position->scrolly,
+		position->totpages,
 		textbox, dest, rectangle);
 	writecachefile(output, position);
 	pipe = popen(line, "r");
