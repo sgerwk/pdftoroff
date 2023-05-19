@@ -7,6 +7,7 @@
 # A,N:	add or edit notes in filename-notes.txt
 #	A: add a note for the current page
 #	N: edit the notes for the current page if some exist
+# E:	create a modified document
 
 # save parameters
 
