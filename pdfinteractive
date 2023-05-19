@@ -64,10 +64,11 @@ echo $OUT
 
 COMMANDS='clip erase cover exit'
 [ $X0 = $X1 ] && [ $Y0 = $Y1 ] && COMMANDS='write exit'
+N=$(echo $COMMANDS | wc -w)
 
 # operate on file, page and rectangle
 
-PS3="choose command [1-5]: "
+PS3="choose command [1-$N]: "
 select COMMAND in $COMMANDS;
 do
 	case $COMMAND in
