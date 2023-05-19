@@ -9,35 +9,32 @@
 #	N: edit the notes for the current page if some exist
 # E:	create a modified document
 
-# save parameters
+# arguments
 
-if false;
-then
-	echo "1: >>>$1<<<" >> hovacui-out.txt
-	echo "2: >>>$2<<<" >> hovacui-out.txt
-	echo "3: >>>$3<<<" >> hovacui-out.txt
-	echo "4: >>>$4<<<" >> hovacui-out.txt
-	echo "5: >>>$5<<<" >> hovacui-out.txt
-	echo "6: >>>$6<<<" >> hovacui-out.txt
-	echo "7: >>>$7<<<" >> hovacui-out.txt
-	echo "8: >>>$8<<<" >> hovacui-out.txt
-fi
+KEY="$1"
+ID="$2"
+FILE="$3"
+PAGE="$4"
+TOTPAGES="$5"
+TEXTBOX="$6"
+DEST="$7"
+RECT="$8"
 
 # composite commands
 
-[ "$1" = 'A' ] && EDIT=true
-[ "$1" = 'N' ] && EDIT=true
-$EDIT false && [ "$8" != "[]" ] && YANK=true
-[ "$1" = 'y' ] && YANK=true && COPIED=true
+[ "$KEY" = 'A' ] && EDIT=true
+[ "$KEY" = 'N' ] && EDIT=true
+$EDIT false && [ "$RECT" != "[]" ] && YANK=true
+[ "$KEY" = 'y' ] && YANK=true && COPIED=true
 
 # common variables
 
-CACHEFILE="$HOME/.cache/hovacui/$2"
+CACHEFILE="$HOME/.cache/hovacui/$ID"
 TEMPFILE="$HOME/.cache/hovacui/temp"
 
 # test
 
-if [ "$1" = '0' ];
+if [ "$KEY" = '0' ];
 then
 	echo -n "test: "
 	if [ ! -f $CACHEFILE ];
@@ -59,9 +56,9 @@ fi
 
 # links in page
 
-if [ "$1" = 'l' ];
+if [ "$KEY" = 'l' ];
 then
-	pdfannot -w -d "$3" $4 > hovacui-out.html
+	pdfannot -w -d "$FILE" $PAGE > hovacui-out.html
 	[ $? = 0 ] && rm hovacui-out.html && echo -n "no links in page" && exit
 
 	if [ "$DISPLAY" = "" ];
@@ -86,7 +83,7 @@ fi
 
 # save a copy of the document
 
-if [ "$1" = 's' ];
+if [ "$KEY" = 's' ];
 then
 	I=1
 	while [ -e selection-$I.pdf ];
@@ -94,15 +91,15 @@ then
 		I=$((I+1))
 	done
 
-	cp "$3" selection-$I.pdf
+	cp "$FILE" selection-$I.pdf
 	echo -n "saved as selection-$I.pdf"
 fi
 
 # interactively operate on the selected rectangle
 
-if [ "$1" = 'E' ];
+if [ "$KEY" = 'E' ];
 then
-	[ "$8" = '[]' ] && echo -n 'no selected point or rectangle' && exit 1
+	[ "$RECT" = '[]' ] && echo -n 'no selected point or rectangle' && exit 1
 	which pdfinteractive > /dev/null || \
 		{ echo -n 'no pdfinteractive script'; exit 1; }
 	which pdfdrawover > /dev/null || \
@@ -117,16 +114,16 @@ fi
 
 if $YANK false;
 then
-	if [ "$8" != "[]" ];
+	if [ "$RECT" != "[]" ];
 	then
-		BOX="-b $8"
+		BOX="-b $RECT"
 	else
-		T=$(echo $6 | tr - , | tr -d '[]')
+		T=$(echo $TEXTBOX | tr - , | tr -d '[]')
 		TX1=$(echo $T | cut -d, -f1 | cut -d. -f1)
 		TY1=$(echo $T | cut -d, -f2 | cut -d. -f1)
 		TX2=$(echo $T | cut -d, -f3 | cut -d. -f1)
 		TY2=$(echo $T | cut -d, -f4 | cut -d. -f1)
-		D=$(echo $7 | tr - , | tr -d '[]')
+		D=$(echo $DEST | tr - , | tr -d '[]')
 		DX1=$(echo $D | cut -d, -f1 | cut -d. -f1)
 		DY1=$(echo $D | cut -d, -f2 | cut -d. -f1)
 		DX2=$(echo $D | cut -d, -f3 | cut -d. -f1)
@@ -137,9 +134,9 @@ then
 		BOX=$BOX$([ $TX2 -lt $DX2 ] && echo $TX2 || echo $DX2),
 		BOX=$BOX$([ $TY2 -lt $DY2 ] && echo $TY2 || echo $DY2)]
 	fi
-	# pdftoroff -t -i $4:$4 $BOX "$3" | sed '/./,$ ! d' >> hovacui-out.txt
+	# pdftoroff -t -i $PAGE:$PAGE $BOX "$FILE" | sed '/./,$ ! d' >> hovacui-out.txt
 	{
-		pdftoroff -t -i $4:$4 $BOX "$3" | \
+		pdftoroff -t -i $PAGE:$PAGE $BOX "$FILE" | \
 		sed '/./,$ ! d' | $COPIER 2>&1;
 		[ "$?" = 0 ] && $COPIED && echo -n "text copied";
 	} | tr '\n' ' '
@@ -149,9 +146,9 @@ fi
 
 if $EDIT false;
 then
-	BASE=$(echo "$3" | sed -e 's,.pdf,,' -e 's,$,-notes.txt,')
+	BASE=$(echo "$FILE" | sed -e 's,.pdf,,' -e 's,$,-notes.txt,')
 
-	[ "$1" = 'N' ] && CHECK=true
+	[ "$KEY" = 'N' ] && CHECK=true
 
 	if [ -e "$BASE" ];
 	then
@@ -161,9 +158,9 @@ then
 			exit 1
 		fi
 		if $CHECK false && \
-		   grep -A2 "^## Page $4$" "$BASE" | tail -2 | grep -q "^##";
+		   grep -A2 "^## Page $PAGE$" "$BASE" | tail -2 | grep -q "^##";
 		then
-			echo -n "no notes for page $4, next: "
+			echo -n "no notes for page $PAGE, next: "
 			sed '
 			: begin
 				/\n##/	{ P; D; b }
@@ -171,7 +168,7 @@ then
 					N
 					b begin
 			' "$BASE"					| \
-			sed -n "/^## Page $4 /,$ p"			| \
+			sed -n "/^## Page $PAGE /,$ p"			| \
 			{ grep -m1 '## Page [0-9]* .' || echo '  none'; } | \
 			cut -d' ' -f3					| \
 			tr -d '\n'
@@ -180,12 +177,12 @@ then
 	else
 		if $CHECK false;
 		then
-			echo -n "no notes for page $4"
+			echo -n "no notes for page $PAGE"
 			exit 1
 		fi
-		echo "# $(basename "$3")" > "$BASE"
+		echo "# $(basename "$FILE")" > "$BASE"
 		echo >> "$BASE"
-		for P in $(seq 1 $5);
+		for P in $(seq 1 $TOTPAGES);
 		do
 			echo "## Page $P" >> "$BASE"
 			echo >> "$BASE"
@@ -197,7 +194,7 @@ then
 	then
 		LINEFILE=$HOME/.cache/hovacui/line
 		rm -f $FILEFILE
-		vi +"/## Page $4$" "$BASE" < /dev/tty > /dev/tty 2> /dev/tty
+		vi +"/## Page $PAGE$" "$BASE" < /dev/tty > /dev/tty 2> /dev/tty
 		setterm --cursor off > /dev/tty
 		if [ -f $LINEFILE ];
 		then
@@ -214,7 +211,7 @@ then
 		fi
 
 	else
-		echo -n "notes for page $4"
+		echo -n "notes for page $PAGE"
 	fi
 fi
 
