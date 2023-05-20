@@ -1692,7 +1692,7 @@ int savecurrentbox(struct cairoui *cairoui, int visible) {
  * open the cache file
  */
 FILE *opencachefile(gchar *id, char *mode) {
-	char filename[4096];
+	char filename[FILENAME_MAX];
 	char *home;
 	FILE *cachefile;
 
@@ -3538,7 +3538,7 @@ void usage(char *additional) {
  */
 int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	char *mainopts = "m:f:w:t:o:d:s:pO:F:e:z:l:c:C:h", *allopts;
-	char configfile[4096], configline[1000], s[1000], r[1000];
+	char configfile[FILENAME_MAX], configline[1000], s[1000], r[1000];
 	FILE *config;
 	int i, n;
 	double d;
@@ -3614,12 +3614,12 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 
 				/* location of the config file */
 
-	snprintf(configfile, 4096, "%s/.config/hovacui/hovacui.conf",
+	snprintf(configfile, FILENAME_MAX, "%s/.config/hovacui/hovacui.conf",
 		getenv("HOME"));
 	optind = 1;
 	while (-1 != (opt = getopt(argn, argv, allopts)))
 		if (opt == 'C') {
-			snprintf(configfile, 4096, "%s", optarg);
+			snprintf(configfile, FILENAME_MAX, "%s", optarg);
 			break;
 		}
 
