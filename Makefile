@@ -14,8 +14,9 @@ xhovacui hovacui cairoui: LDLIBS+=${shell pkg-config --libs x11}
 all: ${PROGS}
 
 install: all
-	mkdir -p ${DESTDIR}/usr/bin
+	mkdir -p ${DESTDIR}/etc
 	cp hovacui.conf ${DESTDIR}/etc
+	mkdir -p ${DESTDIR}/usr/bin
 	cp hovacui pdfhscript pdfinteractive ${DESTDIR}/usr/bin
 	cp pdftoroff pdftoebook ${DESTDIR}/usr/bin
 	cp pdffit pdfrects pdfrecur pdfannot ${DESTDIR}/usr/bin
