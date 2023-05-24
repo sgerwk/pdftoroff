@@ -23,38 +23,25 @@ TEXTBOX="$9"
 DEST="${10}"
 RECT="${11}"
 
-# composite commands
+# actions required by multiple keystrokes
 
 [ "$KEY" = 'A' ] && EDIT=true
 [ "$KEY" = 'N' ] && EDIT=true
 $EDIT false && [ "$RECT" != "[]" ] && YANK=true
 [ "$KEY" = 'y' ] && YANK=true && COPIED=true
 
-# common variables
-
-CACHEFILE="$HOME/.cache/hovacui/$ID"
-TEMPFILE="$HOME/.cache/hovacui/temp"
-
 # test
 
 if [ "$KEY" = '0' ];
 then
-	echo -n "test: "
-	if [ ! -f $CACHEFILE ];
+	if [ $PAGE = $TOTPAGES ];
 	then
-		echo -n "no cache file"
-		exit
+		echo -n "last page"
+		exit 0
+	else
+		echo "$((PAGE+1))"
+		exit 1
 	fi
-	cat $CACHEFILE >> hovacui-out.txt
-
-	P=$(head -1 $CACHEFILE)
-	N=$(echo $P | cut -d' ' -f1)
-	echo "$((N+1)) 0 0 0"    > $TEMPFILE
-	# echo "$((N-1)) 0 0 0"  > $TEMPFILE
-	# echo "0 -100 0 0"      > $TEMPFILE
-	tail +2 $CACHEFILE      >> $TEMPFILE
-	mv $TEMPFILE $CACHEFILE
-	echo -n "done"
 fi
 
 # links in page
@@ -62,7 +49,8 @@ fi
 if [ "$KEY" = 'l' ];
 then
 	pdfannot -w -d "$FILE" $PAGE > hovacui-out.html
-	[ $? = 0 ] && rm hovacui-out.html && echo -n "no links in page" && exit
+	[ $? = 0 ] && rm hovacui-out.html && \
+		echo -n "no links in page" && exit
 
 	if [ "$DISPLAY" = "" ];
 	then
@@ -76,12 +64,13 @@ then
 
 	if [ "$BROWSER" != "" ];
 	then
-		$BROWSER hovacui-out.html
+		$BROWSER hovacui-out.html &
 		echo -n "passed links to $BROWSER"
 		exit
 	fi
 
 	echo -n "no browser available"
+	exit
 fi
 
 # save a copy of the document
@@ -96,20 +85,24 @@ then
 
 	cp "$FILE" selection-$I.pdf
 	echo -n "saved as selection-$I.pdf"
+	exit
 fi
 
 # interactively operate on the selected rectangle
 
 if [ "$KEY" = 'E' ];
 then
-	[ "$RECT" = '[]' ] && echo -n 'no selected point or rectangle' && exit 1
+	[ "$RECT" = '[]' ] && echo -n 'no selected point or rectangle' && exit
 	which pdfinteractive > /dev/null || \
-		{ echo -n 'no pdfinteractive script'; exit 1; }
+		{ echo -n 'pdfinteractive not installed'; exit; }
 	which pdfdrawover > /dev/null || \
-		{ echo -n 'pdfdrawover not installed'; exit 1; }
-	[ "$DISPLAY" = '' ] &&
-		pdfinteractive "$@" 3>&1 > /dev/tty ||
+		{ echo -n 'pdfdrawover not installed'; exit; }
+	if [ "$DISPLAY" = '' ];
+	then
+		pdfinteractive "$@" 3>&1 > /dev/tty
+	else
 		xterm -e pdfinteractive "$@" 3>&1
+	fi
 	exit
 fi
 
@@ -137,12 +130,9 @@ then
 		BOX=$BOX$([ $TX2 -lt $DX2 ] && echo $TX2 || echo $DX2),
 		BOX=$BOX$([ $TY2 -lt $DY2 ] && echo $TY2 || echo $DY2)]
 	fi
-	# pdftoroff -t -i $PAGE:$PAGE $BOX "$FILE" | sed '/./,$ ! d' >> hovacui-out.txt
-	{
-		pdftoroff -t -i $PAGE:$PAGE $BOX "$FILE" | \
-		sed '/./,$ ! d' | $COPIER 2>&1;
-		[ "$?" = 0 ] && $COPIED && echo -n "text copied";
-	} | tr '\n' ' '
+	pdftoroff -t -i $PAGE:$PAGE $BOX "$FILE" | \
+	sed '/./,$ ! d' | $COPIER 2>&1 > /dev/null
+	[ "$?" = 0 ] && $COPIED false && echo -n "text copied" && exit;
 fi
 
 # edit the notes of the pdf file
@@ -158,7 +148,7 @@ then
 		if ! [ -f "$BASE" ];
 		then
 			echo -n "$BASE is not a regular file"
-			exit 1
+			exit
 		fi
 		if $CHECK false && \
 		   grep -A2 "^## Page $PAGE$" "$BASE" | tail -2 | grep -q "^##";
@@ -175,13 +165,13 @@ then
 			{ grep -m1 '## Page [0-9]* .' || echo '  none'; } | \
 			cut -d' ' -f3					| \
 			tr -d '\n'
-			exit 1
+			exit
 		fi
 	else
 		if $CHECK false;
 		then
 			echo -n "no notes for page $PAGE"
-			exit 1
+			exit
 		fi
 		echo "# $(basename "$FILE")" > "$BASE"
 		echo >> "$BASE"
@@ -193,28 +183,23 @@ then
 		echo '## End' >> "$BASE"
 	fi
 
-	if $EDIT false;
+	LINEFILE=$HOME/.cache/hovacui/line
+	rm -f $FILEFILE
+	vi +"/## Page $PAGE$" "$BASE" > /dev/tty
+	setterm --cursor off > /dev/tty
+	if [ -f $LINEFILE ];
 	then
-		LINEFILE=$HOME/.cache/hovacui/line
-		rm -f $FILEFILE
-		vi +"/## Page $PAGE$" "$BASE" < /dev/tty > /dev/tty 2> /dev/tty
-		setterm --cursor off > /dev/tty
-		if [ -f $LINEFILE ];
-		then
-			# requires, in .vimrc:
-			# autocmd BufUnload *-notes.txt execute ''
-			#   \| execute '!echo ' . line('.') . ' >
-			#      $HOME/.cache/hovacui/line'
-			L=$(<$LINEFILE)
-			N=$(head -$L "$BASE" | grep '^## Page [0-9][0-9]*' | \
-			    tail -1 | cut -d' ' -f3)
-			[ "$N" = '' ] && N=1
-			sed -i "1 s,^[0-9]* ,$((N-1)) ," $CACHEFILE
-			rm $LINEFILE
-		fi
-
-	else
-		echo -n "notes for page $PAGE"
+		# requires, in .vimrc:
+		# autocmd BufUnload *-notes.txt execute ''
+		#   \| execute '!echo ' . line('.') . ' >
+		#      $HOME/.cache/hovacui/line'
+		L=$(<$LINEFILE)
+		N=$(head -$L "$BASE" | grep '^## Page [0-9][0-9]*' | \
+		    tail -1 | cut -d' ' -f3)
+		[ "$N" = '' ] && N=1
+		echo -n "$N -1 0 0"
+		rm $LINEFILE
+		exit 1
 	fi
 fi
 

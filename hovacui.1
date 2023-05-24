@@ -820,13 +820,17 @@ If no \fIscript\fP is in the configuration file, the menu is not shown.
 
 The script is executed in foreground; \fIhovacui\fP blocks until it ends.
 
-The permanent ID of the pdf file identifies the cache file. It contains various
-internal data such as the page number and position within. The external script
-can change it.
-See
-.I
-CACHE FILE
-below for details.
+The return value tells \fIhovacui\fP what to do when the script returns:
+
+.IP "  0 " 4
+show the script output on screen
+.IP "  1 "
+move to the position given in the script output
+as \fIpage box scrollx scrolly\fP,
+where \fI-1\fP for \fIpage\fP or \fIbox\fP means unchanged
+.IP "  2 "
+print that the script failed
+.P
 
 Only one script can be specified. It is supposed to perform different actions
 depending on its first argument. The included \fIhovacui.conf\fP example
@@ -853,7 +857,7 @@ operate on the point or rectangle being drawn by kestrokes `x` or `d`,
 if the script \fIpdfinteractive\fP is available;
 the included script allows to clip all pages to the rectangle, to erase or
 cover it and to write at the point;
-it requires the additional \fIpdfdrawover(1)\fP program
+it requires \fIpdfdrawover(1)\fP
 
 .
 .

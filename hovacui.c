@@ -1849,9 +1849,10 @@ int keyscript(struct cairoui *cairoui, char c, gboolean unescaped) {
 	char key;
 	PopplerRectangle s, d;
 	char *line, out[100], textbox[200], dest[200], rectangle[200];
-	int len, res;
+	int len, res, ret;
 	FILE *pipe;
-	int npage;
+	int ppage, npage, box;
+	double scrollx, scrolly;
 
 	if (output->script == NULL || output->keys == NULL)
 		return -1;
@@ -1884,35 +1885,57 @@ int keyscript(struct cairoui *cairoui, char c, gboolean unescaped) {
 		position->scrollx, position->scrolly,
 		position->totpages,
 		textbox, dest, rectangle);
-	writecachefile(output, position);
 	pipe = popen(line, "r");
 	if (pipe == NULL)
 		return -1;
-	res = fread(out, 1, 80, pipe);
-	pclose(pipe);
-	npage = position->npage;
-	if (! readcachefile(output, position)) {
-		initpage(position, position->npage);
-		if (position->npage != npage)
-			readpage(position, output);
-		if (position->npage > npage)
-			firsttextbox(position, output);
-		if (position->npage < npage)
-			lasttextbox(position, output);
-		if (position->box < 0)
-			firsttextbox(position, output);
-		if (position->box >= position->textarea->num)
-			lasttextbox(position, output);
-	}
-	if (res < 0)
+	len = fread(out, 1, 80, pipe);
+	out[len] = '\0';
+	ret = pclose(pipe);
+	if (! WIFEXITED(ret)) {
 		cairoui_printlabel(cairoui, output->help, 2000,
-			"executed: %s", line);
-	else {
-		out[res] = '\0';
-		cairoui_printlabel(cairoui, output->help, 2000, out);
+			"error executing script");
+		return 0;
+	}
+	switch (WEXITSTATUS(ret)) {
+	case 0:			// echo
+		if (len != 0)
+			cairoui_printlabel(cairoui, output->help, 2000, out);
+		break;
+	case 1:			// move
+		npage = -1;
+		box = -1;
+		scrollx = 0;
+		scrolly = 0;
+		res = sscanf(out, "%d %d %lg %lg",
+			&npage, &box, &scrollx, &scrolly);
+		if (npage != -1 && npage - 1 != position->npage) {
+			ppage = position->npage;
+			initpage(position, npage - 1);
+			readpage(position, output);
+			if (box == -1) {
+				if (position->npage > ppage)
+					firsttextbox(position, output);
+				if (position->npage < ppage)
+					lasttextbox(position, output);
+			}
+		}
+		if (box != -1) {
+			position->box = box;
+			position->scrollx = scrollx;
+			position->scrolly = scrolly;
+			if (position->box < 0)
+				firsttextbox(position, output);
+			if (position->box >= position->textarea->num)
+				lasttextbox(position, output);
+		}
+		break;
+	case 2:			// shell error
+		cairoui_printlabel(cairoui, output->help, 2000,
+			"error in script");
+		break;
 	}
 	free(line);
-	return res;
+	return 0;
 }
 
 /*

@@ -4,7 +4,7 @@
 #	clip all pages
 #	erase rectangle (draw in white)
 #	cover rectangle (draw in black)
-#	write something at upper-left corner
+#	write text
 
 #SIMULATE=echo
 
@@ -66,14 +66,13 @@ COMMANDS='clip erase cover exit'
 [ $X0 = $X1 ] && [ $Y0 = $Y1 ] && COMMANDS='write exit'
 N=$(echo $COMMANDS | wc -w)
 
-# operate on file, page and rectangle
+# operate on file
 
 PS3="choose command [1-$N]: "
 select COMMAND in $COMMANDS;
 do
 	case $COMMAND in
 		clip)
-			echo clip to "$RECT"
 			$SIMULATE \
 			pdfcut -o "$OUT" -p "$RECT" "$FILE"
 			echo -n "clipped to $OUT" 1>&3;;
@@ -96,9 +95,9 @@ do
 			$SIMULATE \
 			pdfdrawover "$FILE" output "$OUT" page "$PAGE" \
 				moveto "$CORNER" print "$S"
-			echo -n "written in $OUT" 1>&3;;
+			echo -n "written to $OUT" 1>&3;;
 		exit)
-			echo exit;;
+			echo nothing done;;
 	esac
 	break
 done
