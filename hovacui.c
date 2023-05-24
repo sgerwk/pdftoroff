@@ -1853,6 +1853,7 @@ int keyscript(struct cairoui *cairoui, char c, gboolean unescaped) {
 	FILE *pipe;
 	int ppage, npage, box;
 	double scrollx, scrolly;
+	char file[FILENAME_MAX + 1];
 
 	if (output->script == NULL || output->keys == NULL)
 		return -1;
@@ -1901,13 +1902,19 @@ int keyscript(struct cairoui *cairoui, char c, gboolean unescaped) {
 		if (len != 0)
 			cairoui_printlabel(cairoui, output->help, 2000, out);
 		break;
-	case 1:			// move
+	case 1:			// move, possibly reload
 		npage = -1;
 		box = -1;
 		scrollx = 0;
 		scrolly = 0;
-		res = sscanf(out, "%d %d %lg %lg",
-			&npage, &box, &scrollx, &scrolly);
+		res = sscanf(out, "%d %d %lg %lg\n%s",
+			&npage, &box, &scrollx, &scrolly, file);
+		if (res == 5) {
+			position->filename = strdup(file);
+			cairoui->reload = TRUE;
+			cairoui_printlabel(cairoui, output->help,
+				2000, "reloading");
+		}
 		if (npage != -1 && npage - 1 != position->npage) {
 			ppage = position->npage;
 			initpage(position, npage - 1);
@@ -3420,6 +3427,8 @@ void reloadpdf(struct cairoui *cairoui) {
 	struct output *output = OUTPUT(cairoui);
 	struct position *new;
 	int over;
+
+	writecachefile(output, position);
 
 	new = openpdf(position->filename);
 	if (new == NULL)
