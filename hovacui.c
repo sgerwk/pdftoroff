@@ -1914,7 +1914,6 @@ int keyscript(struct cairoui *cairoui, char c, gboolean unescaped) {
 			if (! ! strcmp(position->filename, file)) {
 				free(position->filename);
 				position->filename = strdup(file);
-				readcachefile(output, position);
 			}
 			cairoui->reload = TRUE;
 			cairoui_printlabel(cairoui, output->help,
