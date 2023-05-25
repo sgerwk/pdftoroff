@@ -2540,6 +2540,7 @@ int menu(int c, struct cairoui *cairoui) {
 		"(/) search",
 		"(c) save document or page selection",
 		"(d) draw a rectangle",
+		"(x) draw a point",
 		"(e) external script",
 		"(v) view mode",
 		"(f) fit direction",
