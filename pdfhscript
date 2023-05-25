@@ -42,6 +42,16 @@ then
 		echo "$((PAGE+1))"
 		exit 1
 	fi
+elif [ "$KEY" = '1' ];
+then
+	echo "-1 -1 0 0"
+	if echo "$FILE" | grep -q edit-1.pdf;
+	then
+		echo ${FILE%%-edit-1.pdf}.pdf
+	else
+		echo ${FILE%%.pdf}-edit-1.pdf
+	fi
+	exit 1
 fi
 
 # links in page
