@@ -206,6 +206,7 @@
  * - document(), upon receiving keystroke 'r'
  * - external(), upon receiving the external command "reload"
  * - draw() or textarea() if a file change is detected (see below)
+ * - keyscript(), if the script requests a reload
  *
  * file changes are detected via poppler_document_get_id(), but this only works
  * after trying to render the document; this is why detection is done in draw()
