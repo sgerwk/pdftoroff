@@ -1092,7 +1092,8 @@ void cairoui_main(struct cairoui *cairoui, int firstwindow) {
 				cairoui->redraw = FALSE;
 				cairoui->draw(cairoui);
 			}
-			cairoui_labels(cairoui);
+			if (c != KEY_REDRAW)
+				cairoui_labels(cairoui);
 			if (cairoui->flush) {
 				cairodevice->flush(cairodevice);
 				cairoui->flush = FALSE;
