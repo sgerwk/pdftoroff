@@ -1911,13 +1911,17 @@ int keyscript(struct cairoui *cairoui, char c, gboolean unescaped) {
 		res = sscanf(out, "%d %d %lg %lg\n%s",
 			&npage, &box, &scrollx, &scrolly, file);
 		if (res == 5) {
-			if (! ! strcmp(position->filename, file)) {
+			if (! strcmp(position->filename, file))
+				cairoui_printlabel(cairoui, output->help,
+					2000, "reloaded");
+			else {
 				free(position->filename);
 				position->filename = strdup(file);
+				output->filename = TRUE;
+				cairoui_printlabel(cairoui, output->help,
+					2000, "new file loaded");
 			}
 			cairoui->reload = TRUE;
-			cairoui_printlabel(cairoui, output->help,
-				2000, "reloading");
 		}
 		if (npage != -1 && npage - 1 != position->npage) {
 			ppage = position->npage;
