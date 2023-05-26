@@ -922,6 +922,41 @@ int ensureoutputfile(struct cairoui *cairoui) {
 }
 
 /*
+ * name of keys
+ */
+struct cairoui_keys
+{	int key;		char *name;	}
+cairoui_keys[] = {
+{	KEY_NONE,		"KEY_NONE"	},
+{	KEY_INIT,		"KEY_INIT"	},
+{	KEY_FINISH,		"KEY_FINISH"	},
+{	KEY_REFRESH,		"KEY_REFRESH"	},
+{	KEY_REDRAW,		"KEY_REDRAW"	},
+{	KEY_RESIZE,		"KEY_RESIZE"	},
+{	KEY_TIMEOUT,		"KEY_TIMEOUT"	},
+{	KEY_SUSPEND,		"KEY_SUSPEND"	},
+{	KEY_SIGNAL,		"KEY_SIGNAL"	},
+{	KEY_EXTERNAL,		"KEY_EXTERNAL"	},
+{	KEY_PASTE,		"KEY_PASTE"	},
+{	0,			NULL		}
+};
+char *keytostring(int c) {
+	int i;
+	static char keyname[20];
+
+	for (i = 0; cairoui_keys[i].name != NULL; i++)
+		if (cairoui_keys[i].key == c)
+			return cairoui_keys[i].name;
+
+	if (isprint(c))
+		snprintf(keyname, 8, "%c", c);
+	else
+		snprintf(keyname, 8, "[%d]", c);
+
+	return keyname;
+}
+
+/*
  * return values of windows, other than the next window
  */
 struct cairoui_names
@@ -943,7 +978,7 @@ cairoui_names[] = {
 void cairoui_logstatus(int level, char *prefix, int window,
 		struct cairoui *cairoui, int c) {
 	char *levname, levnum[8];
-	char *keyname, keynum[8];
+	char *keyname;
 	char *winname, winnum[3];
 	int w;
 
@@ -962,43 +997,7 @@ void cairoui_logstatus(int level, char *prefix, int window,
 		snprintf(levname = levnum, 8, "LEVEL%d", level);
 	}
 
-	switch (c) {
-	case KEY_NONE:
-		keyname = "KEY_NONE";
-		break;
-	case KEY_INIT:
-		keyname = "KEY_INIT";
-		break;
-	case KEY_FINISH:
-		keyname = "KEY_FINISH";
-		break;
-	case KEY_REFRESH:
-		keyname = "KEY_REFRESH";
-		break;
-	case KEY_REDRAW:
-		keyname = "KEY_REDRAW";
-		break;
-	case KEY_RESIZE:
-		keyname = "KEY_RESIZE";
-		break;
-	case KEY_TIMEOUT:
-		keyname = "KEY_TIMEOUT";
-		break;
-	case KEY_SUSPEND:
-		keyname = "KEY_SUSPEND";
-		break;
-	case KEY_SIGNAL:
-		keyname = "KEY_SIGNAL";
-		break;
-	case KEY_EXTERNAL:
-		keyname = "KEY_EXTERNAL";
-		break;
-	default:
-		if (isprint(c))
-			snprintf(keyname = keynum, 8, "%c", c);
-		else
-			snprintf(keyname = keynum, 8, "[%d]", c);
-	}
+	keyname = keytostring(c);
 
 	winname = NULL;
 	for (w = 0; cairoui->windowlist[w].name != NULL; w++)
