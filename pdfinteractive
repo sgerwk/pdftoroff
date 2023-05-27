@@ -51,7 +51,9 @@ echo "corner $CORNER"
 
 # output file
 
-EDIT=${FILE%%.pdf}-edit-%d.pdf
+BASE=${FILE%%.pdf}
+BASE=${BASE%%-edit-*}
+EDIT=${BASE}-edit-%d.pdf
 I=1
 while [ -f $(printf $EDIT $I) ];
 do
