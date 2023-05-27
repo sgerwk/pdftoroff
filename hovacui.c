@@ -1849,12 +1849,12 @@ int keyscript(struct cairoui *cairoui, char c, gboolean unescaped) {
 	struct output *output = OUTPUT(cairoui);
 	char key;
 	PopplerRectangle s, d;
-	char *line, out[100], textbox[200], dest[200], rectangle[200];
+	char *line, out[FILENAME_MAX + 100];
+	char textbox[200], dest[200], rectangle[200], file[FILENAME_MAX + 1];
 	int len, res, ret;
 	FILE *pipe;
 	int ppage, npage, box;
 	double scrollx, scrolly;
-	char file[FILENAME_MAX + 1];
 
 	if (output->script == NULL || output->keys == NULL)
 		return -1;
@@ -1890,7 +1890,7 @@ int keyscript(struct cairoui *cairoui, char c, gboolean unescaped) {
 	pipe = popen(line, "r");
 	if (pipe == NULL)
 		return -1;
-	len = fread(out, 1, 80, pipe);
+	len = fread(out, 1, FILENAME_MAX + 100 - 1, pipe);
 	out[len] = '\0';
 	ret = pclose(pipe);
 	if (! WIFEXITED(ret)) {
