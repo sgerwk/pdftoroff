@@ -1851,7 +1851,7 @@ int keyscript(struct cairoui *cairoui, char c, gboolean unescaped) {
 	PopplerRectangle s, d;
 	char *line, out[FILENAME_MAX + 100];
 	char textbox[200], dest[200], rectangle[200], file[FILENAME_MAX + 1];
-	int len, res, ret;
+	int req, len, res, ret;
 	FILE *pipe;
 	int ppage, npage, box;
 	double scrollx, scrolly;
@@ -1890,14 +1890,20 @@ int keyscript(struct cairoui *cairoui, char c, gboolean unescaped) {
 	pipe = popen(line, "r");
 	if (pipe == NULL)
 		return 0;
-	len = fread(out, 1, FILENAME_MAX + 100 - 1, pipe);
-	out[len] = '\0';
+	req = FILENAME_MAX + 100 - 1;
+	len = fread(out, 1, req, pipe);
+	if (len < req && ferror(pipe)) {
+		cairoui_printlabel(cairoui, output->help, 2000,
+			"error executing script");
+		return 0;
+	}
 	ret = pclose(pipe);
 	if (! WIFEXITED(ret)) {
 		cairoui_printlabel(cairoui, output->help, 2000,
 			"error executing script");
 		return 0;
 	}
+	out[len] = '\0';
 	switch (WEXITSTATUS(ret)) {
 	case 0:			// echo
 		if (len != 0)
