@@ -1889,7 +1889,7 @@ int keyscript(struct cairoui *cairoui, char c, gboolean unescaped) {
 		textbox, dest, rectangle);
 	pipe = popen(line, "r");
 	if (pipe == NULL)
-		return -1;
+		return 0;
 	len = fread(out, 1, FILENAME_MAX + 100 - 1, pipe);
 	out[len] = '\0';
 	ret = pclose(pipe);
