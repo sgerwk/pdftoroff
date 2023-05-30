@@ -3447,8 +3447,12 @@ void reloadpdf(struct cairoui *cairoui) {
 	writecachefile(output, position);
 
 	new = openpdf(position->filename);
-	if (new == NULL)
+	if (new == NULL) {
+		cairoui_printlabel(cairoui, output->help,
+			2000, "failed loading %s", position->filename);
+		output->filename = FALSE;
 		return;
+	}
 
 	if (output->cachefilereload) {
 		initposition(new);
