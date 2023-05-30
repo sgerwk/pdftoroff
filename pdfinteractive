@@ -101,7 +101,7 @@ do
 	break
 done
 
-echo "-1 -1 0 0" 1>&3
+echo "$PAGE $BOXNUMBER $SCROLLX $SCROLLY" 1>&3
 echo -n "$OUT" 1>&3
 exit 1
 

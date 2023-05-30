@@ -1853,7 +1853,7 @@ int keyscript(struct cairoui *cairoui, char c, gboolean unescaped) {
 	char textbox[200], dest[200], rectangle[200], file[FILENAME_MAX + 1];
 	int req, len, res, ret;
 	FILE *pipe;
-	int ppage, npage, box;
+	int npage, box;
 	double scrollx, scrolly;
 
 	if (output->script == NULL || output->keys == NULL)
@@ -1910,45 +1910,32 @@ int keyscript(struct cairoui *cairoui, char c, gboolean unescaped) {
 			cairoui_printlabel(cairoui, output->help, 2000, out);
 		break;
 	case 1:			// move, possibly reload
-		npage = -1;
-		box = -1;
-		scrollx = 0;
-		scrolly = 0;
 		res = sscanf(out, "%d %d %lg %lg\n%s",
 			&npage, &box, &scrollx, &scrolly, file);
 		if (res == 5) {
 			if (! strcmp(position->filename, file))
 				cairoui_printlabel(cairoui, output->help,
-					2000, "reloaded");
+					2000, "reloading");
 			else {
 				free(position->filename);
 				position->filename = strdup(file);
 				output->filename = TRUE;
 				cairoui_printlabel(cairoui, output->help,
-					2000, "new file loaded");
+					2000, "loading new file");
 			}
 			cairoui->reload = TRUE;
 		}
-		if (npage != -1 && npage - 1 != position->npage) {
-			ppage = position->npage;
+		else {
 			initpage(position, npage - 1);
 			readpage(position, output);
-			if (box == -1) {
-				if (position->npage > ppage)
-					firsttextbox(position, output);
-				if (position->npage < ppage)
-					lasttextbox(position, output);
-			}
 		}
-		if (box != -1) {
-			position->box = box;
-			position->scrollx = scrollx;
-			position->scrolly = scrolly;
-			if (position->box < 0)
-				firsttextbox(position, output);
-			if (position->box >= position->textarea->num)
-				lasttextbox(position, output);
-		}
+		position->box = box;
+		position->scrollx = scrollx;
+		position->scrolly = scrolly;
+		if (position->box < 0)
+			firsttextbox(position, output);
+		if (position->box >= position->textarea->num)
+			lasttextbox(position, output);
 		break;
 	case 2:			// shell error
 		cairoui_printlabel(cairoui, output->help, 2000,

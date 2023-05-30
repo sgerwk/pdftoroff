@@ -39,12 +39,12 @@ then
 		echo -n "last page"
 		exit 0
 	else
-		echo "$((PAGE+1))"
+		echo "$((PAGE+1)) 0 0 0"
 		exit 1
 	fi
 elif [ "$KEY" = '1' ];
 then
-	echo "-1 -1 0 0"
+	echo "$PAGE $BOXNUMBER $SCROLLX $SCROLLY"
 	if echo "$FILE" | grep -q edit-1.pdf;
 	then
 		echo ${FILE%%-edit-1.pdf}.pdf
@@ -207,7 +207,7 @@ then
 		N=$(head -$L "$BASE" | grep '^## Page [0-9][0-9]*' | \
 		    tail -1 | cut -d' ' -f3)
 		[ "$N" = '' ] && N=1
-		echo -n "$N -1 0 0"
+		echo -n "$N 0 0 0"
 		rm $LINEFILE
 		exit 1
 	fi
