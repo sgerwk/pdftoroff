@@ -3351,14 +3351,15 @@ void resize(struct cairoui *cairoui) {
  */
 gchar *fakeid(char *filename) {
 	gchar *id;
-	int c, e, i;
+	unsigned c, e, i, j;
 
 	id = g_malloc(32);
 
 	c = 0x43;
 	e = 0;
 	for (i = 0; i < 16; i++) {
-		c = (c + (e ? 11 : filename[i])) % 256;
+		for (j = 0; j < strlen(filename); j++)
+			c = (c + (e ? 11 : filename[i])) % 256;
 		if (filename[i] == '\0')
 			e = 1;
 		sprintf(id + 2 * i, "%02x", c);
