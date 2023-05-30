@@ -32,7 +32,7 @@ $EDIT false && [ "$RECT" != "[]" ] && YANK=true
 
 # test
 
-if [ "$KEY" = '0' ];
+if [ "$KEY" = '0' ];		# test echo and move
 then
 	if [ $PAGE = $TOTPAGES ];
 	then
@@ -42,9 +42,14 @@ then
 		echo "$((PAGE+1)) 0 0 0"
 		exit 1
 	fi
-elif [ "$KEY" = '1' ];
+elif [ "$KEY" -le '3' ];	# test reload
 then
-	echo "$PAGE $BOXNUMBER $SCROLLX $SCROLLY"
+	# same position
+	[ "$KEY" = '1' ] && echo "$PAGE $BOXNUMBER $SCROLLX $SCROLLY"
+	# new position
+	[ "$KEY" = '2' ] && echo "2 $BOXNUMBER $SCROLLX $SCROLLY"
+	# read position from cache file, if enabled and existing
+	[ "$KEY" = '3' ] && echo "-1 0 0 0"
 	if echo "$FILE" | grep -q edit-1.pdf;
 	then
 		echo ${FILE%%-edit-1.pdf}.pdf

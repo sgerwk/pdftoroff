@@ -5,7 +5,7 @@ noinitlabels
 totalpages
 clock
 postsave pdftoroff -t selection-%d.pdf > selection-%d.txt
-script pdfhscript 'l[links]_s[save document]y[yank text]N[view notes]A[add notes]E[edit file]0[test]1[test]'
+script pdfhscript 'l[links]_s[save document]y[yank text]N[view notes]A[add notes]E[edit file]0[test]1[test]2[test]3[test]'
 # nopagelabel
 # immediate
 # order quick

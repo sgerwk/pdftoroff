@@ -220,6 +220,12 @@
  * checking POPPLER_IS_PAGE(position->page) is always necessary before
  * accessing the page (reading the textarea or drawing the page); if the page
  * does not exist, output->reload is set
+ *
+ * output->cachefilereload:
+ *	reload the cache file after the next reload; this is always reset to
+ *	FALSE, and is set to TRUE only by keyscript() when the script requests
+ *	loading a file while not providing a position (page=-1), provided that
+ *	cache files are enabled
  */
 
 /*
@@ -513,8 +519,9 @@ struct output {
 	char *script;
 	cairo_rectangle_t *rectangle;
 
-	/* cache file */
-	gboolean nocachefile;
+	/* enable the cache file, read it at the next reload */
+	gboolean cachefile;
+	gboolean cachefilereload;
 };
 
 /*
@@ -1717,7 +1724,7 @@ int readcachefile(struct output *output, struct position *position) {
 	char update_id[32], filename[FILENAME_MAX], rectangle[40], c;
 	time_t closetime;
 
-	if (output->nocachefile)
+	if (! output->cachefile)
 		return EPERM;
 
 	readposition = *position;
@@ -1767,7 +1774,7 @@ int writecachefile(struct output *output, struct position *position) {
 	FILE *cachefile;
 	PopplerRectangle d, s;
 
-	if (output->nocachefile)
+	if (! output->cachefile)
 		return EPERM;
 
 	cachefile = opencachefile(position->permanent_id, "w");
@@ -1924,6 +1931,12 @@ int keyscript(struct cairoui *cairoui, char c, gboolean unescaped) {
 					2000, "loading new file");
 			}
 			cairoui->reload = TRUE;
+			if (npage == -1)
+				output->cachefilereload = output->cachefile;
+			else {
+				initpage(position, npage - 1);
+				readpage(position, output);
+			}
 		}
 		else {
 			initpage(position, npage - 1);
@@ -3436,18 +3449,30 @@ void reloadpdf(struct cairoui *cairoui) {
 	new = openpdf(position->filename);
 	if (new == NULL)
 		return;
-	initposition(new);
-	over = position->npage >= new->totpages;
 
-	new->npage = over ? new->totpages - 1 : position->npage;
-	readpage(new, output);
-
-	if (over || position->box >= new->textarea->num)
-		new->box = new->textarea->num - 1;
+	if (output->cachefilereload) {
+		initposition(new);
+		if (readcachefile(output, new))
+			initpage(new, pageuitopdf(output, 1));
+		else
+			initpage(new, new->npage);
+		output->cachefilereload = FALSE;
+		readpage(new, output);
+	}
 	else {
-		new->box = position->box;
-		new->scrollx = position->scrollx;
-		new->scrolly = position->scrolly;
+		initposition(new);
+		over = position->npage >= new->totpages;
+
+		new->npage = over ? new->totpages - 1 : position->npage;
+		readpage(new, output);
+
+		if (over || position->box >= new->textarea->num)
+			new->box = new->textarea->num - 1;
+		else {
+			new->box = position->box;
+			new->scrollx = position->scrollx;
+			new->scrolly = position->scrolly;
+		}
 	}
 
 	closepdf(position);
@@ -3633,7 +3658,8 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	output.last = -1;
 	output.screenaspect = -1;
 	output.rectangle = NULL;
-	output.nocachefile = FALSE;
+	output.cachefile = TRUE;
+	output.cachefilereload = FALSE;
 
 	firstwindow = WINDOW_TUTORIAL;
 	outdev = NULL;
@@ -3760,7 +3786,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 			if (! strcmp(s, "navigatematches"))
 				output.current = CURRENT_NONE;
 			if (! strcmp(s, "nocachefile"))
-				output.nocachefile = TRUE;
+				output.cachefile = FALSE;
 		}
 	}
 	if (config != NULL)
