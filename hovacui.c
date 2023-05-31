@@ -219,13 +219,13 @@
  * since the newly opened document may have fewer pages than the previous,
  * checking POPPLER_IS_PAGE(position->page) is always necessary before
  * accessing the page (reading the textarea or drawing the page); if the page
- * does not exist, output->reload is set
+ * does not exist, *output->reload is set; it points to cairoui->reload
  *
- * output->cachefilereload:
- *	reload the cache file after the next reload; this is always reset to
- *	FALSE, and is set to TRUE only by keyscript() when the script requests
- *	loading a file while not providing a position (page=-1), provided that
- *	cache files are enabled
+ * output->nextfile
+ *	when the script requests loading another document, it also gives the
+ *	position in there; moving cannot be done before loading; the string
+ *	containing the position is stored by keyscript() in output->nextfile
+ *	and parsed by reloadpdf() after loading
  */
 
 /*
@@ -486,8 +486,11 @@ struct output {
 	/* show the page number when it changes */
 	int pagelabel;
 
-	/* whether the document has to be reloaded */
+	/* reload, or load a new file */
 	int *reload;
+
+	/* position and name of the new file to load */
+	char *nextfile;
 
 	/* labels */
 	gboolean pagenumber;
@@ -519,9 +522,8 @@ struct output {
 	char *script;
 	cairo_rectangle_t *rectangle;
 
-	/* enable the cache file, read it at the next reload */
+	/* enable the cache file */
 	gboolean cachefile;
-	gboolean cachefilereload;
 };
 
 /*
@@ -1916,32 +1918,16 @@ int keyscript(struct cairoui *cairoui, char c, gboolean unescaped) {
 		if (len != 0)
 			cairoui_printlabel(cairoui, output->help, 2000, out);
 		break;
-	case 1:			// move, possibly reload
+	case 1:			// move, possibly reload or load a new file
 		res = sscanf(out, "%d %d %lg %lg\n%s",
 			&npage, &box, &scrollx, &scrolly, file);
 		if (res == 5) {
-			if (! strcmp(position->filename, file))
-				cairoui_printlabel(cairoui, output->help,
-					2000, "reloading");
-			else {
-				free(position->filename);
-				position->filename = strdup(file);
-				output->filename = TRUE;
-				cairoui_printlabel(cairoui, output->help,
-					2000, "loading new file");
-			}
 			cairoui->reload = TRUE;
-			if (npage == -1)
-				output->cachefilereload = output->cachefile;
-			else {
-				initpage(position, npage - 1);
-				readpage(position, output);
-			}
+			output->nextfile = strdup(out);
+			break;
 		}
-		else {
-			initpage(position, npage - 1);
-			readpage(position, output);
-		}
+		initpage(position, npage - 1);
+		readpage(position, output);
 		position->box = box;
 		position->scrollx = scrollx;
 		position->scrolly = scrolly;
@@ -2535,7 +2521,6 @@ int script(int c, struct cairoui *cairoui) {
 		keyscript(cairoui, keys[selected], FALSE);
 
 	return WINDOW_DOCUMENT;
-
 }
 
 /*
@@ -3441,30 +3426,33 @@ void closepdf(struct position *position) {
 void reloadpdf(struct cairoui *cairoui) {
 	struct position *position = POSITION(cairoui);
 	struct output *output = OUTPUT(cairoui);
-	struct position *new;
-	int over;
+	struct position next, *new;
+	char *filename;
+	char newfile[FILENAME_MAX + 1] = "";
+	int res, over;
 
 	writecachefile(output, position);
 
-	new = openpdf(position->filename);
+	if (! output->nextfile)
+		filename = position->filename;
+	else {
+		res = sscanf(output->nextfile, "%d %d %lg %lg\n%s",
+			&next.npage, &next.box, &next.scrollx, &next.scrolly,
+			newfile);
+		filename = res == 4 ? position->filename : newfile;
+		free(output->nextfile);
+		output->nextfile = NULL;
+	}
+
+	new = openpdf(filename);
 	if (new == NULL) {
 		cairoui_printlabel(cairoui, output->help,
 			2000, "failed loading %s", position->filename);
-		output->filename = FALSE;
 		return;
 	}
+	initposition(new);
 
-	if (output->cachefilereload) {
-		initposition(new);
-		if (readcachefile(output, new))
-			initpage(new, pageuitopdf(output, 1));
-		else
-			initpage(new, new->npage);
-		output->cachefilereload = FALSE;
-		readpage(new, output);
-	}
-	else {
-		initposition(new);
+	if (newfile[0] == '\0') {
 		over = position->npage >= new->totpages;
 
 		new->npage = over ? new->totpages - 1 : position->npage;
@@ -3477,6 +3465,22 @@ void reloadpdf(struct cairoui *cairoui) {
 			new->scrollx = position->scrollx;
 			new->scrolly = position->scrolly;
 		}
+	}
+	else {
+		cairoui_printlabel(cairoui, output->help,
+			2000, "loaded %s", new->filename);
+		// output->filename = TRUE;
+		output->pagenumber = TRUE;
+
+		if (next.npage != -1) {
+			next.npage--;
+			copyposition(new, &next);
+		}
+		else if (! readcachefile(output, new))
+			initpage(new, new->npage);
+		else
+			initpage(new, pageuitopdf(output, 1));
+		readpage(new, output);
 	}
 
 	closepdf(position);
@@ -3651,6 +3655,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	output.ui = TRUE;
 	output.immediate = FALSE;
 	output.reload = &cairoui.reload;
+	output.nextfile = NULL;
 	output.drawbox = TRUE;
 	output.pagelabel = TRUE;
 	output.current = CURRENT_UNUSED;
@@ -3663,7 +3668,6 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	output.screenaspect = -1;
 	output.rectangle = NULL;
 	output.cachefile = TRUE;
-	output.cachefilereload = FALSE;
 
 	firstwindow = WINDOW_TUTORIAL;
 	outdev = NULL;
