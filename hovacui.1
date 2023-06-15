@@ -477,8 +477,12 @@ use the given configuration file instead of the default
 .TP
 .BI -l " level
 logging level:
-1 is for debugging the main loop to the output file;
-2 is for pausing each time a page is rendered
+\fI1\fP is for debugging the main loop to the output file;
+\fI2\fP is for pausing each time a page is rendered
+
+the string \fIscript\fP is for debugging the external script;
+the script name, parameters, return value and output are saved to the output
+file
 .TP
 .BI -x " suboption
 use x11; the argument is either \fIdefault\fP or the x11 options \fIdisplay\fP
@@ -673,8 +677,10 @@ for
 .BI log " level
 verbose logging to output file;
 the supported levels are:
-1 for debugging the main loop to the output file;
-2 for pausing each time a page is rendered
+\fI1\fP for debugging the main loop to the output file;
+\fI2\fP for pausing each time a page is rendered;
+\fI"script"\fP for debugging the external script to the output file
+
 
 .
 .

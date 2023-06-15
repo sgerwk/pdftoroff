@@ -1896,6 +1896,8 @@ int keyscript(struct cairoui *cairoui, char c, gboolean unescaped) {
 		position->scrollx, position->scrolly,
 		position->totpages,
 		textbox, dest, rectangle);
+	if (cairoui->log == -1 && ! ensureoutputfile(cairoui))
+		fprintf(cairoui->outfile, "command:\n%s\n", line);
 	pipe = popen(line, "r");
 	if (pipe == NULL)
 		return 0;
@@ -1913,6 +1915,10 @@ int keyscript(struct cairoui *cairoui, char c, gboolean unescaped) {
 		return 0;
 	}
 	out[len] = '\0';
+	if (cairoui->log == -1 && ! ensureoutputfile(cairoui)) {
+		fprintf(cairoui->outfile, "status: %d\n", WEXITSTATUS(ret));
+		fprintf(cairoui->outfile, "output:\n%s\n", out);
+	}
 	switch (WEXITSTATUS(ret)) {
 	case 0:			// echo
 		if (len != 0)
@@ -3794,6 +3800,8 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 				output.current = CURRENT_NONE;
 			if (! strcmp(s, "nocachefile"))
 				output.cachefile = FALSE;
+			if (! strcmp(s, "log script"))
+				cairoui.log = -1;
 		}
 	}
 	if (config != NULL)
@@ -3878,7 +3886,10 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 			cairoui.outname = optarg;
 			break;
 		case 'l':
-			cairoui.log = atoi(optarg);
+			if (! strcmp(optarg, "script"))
+				cairoui.log = -1;
+			else
+				cairoui.log = atoi(optarg);
 			break;
 		case 'h':
 			usage(cairodevice->usage);

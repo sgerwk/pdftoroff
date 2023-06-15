@@ -982,6 +982,9 @@ void cairoui_logstatus(int level, char *prefix, int window,
 	char *winname, winnum[3];
 	int w;
 
+	if (cairoui->log < 0)
+		return;
+
 	if ((level & cairoui->log) == 0)
 		return;
 
