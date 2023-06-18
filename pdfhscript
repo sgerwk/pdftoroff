@@ -42,7 +42,7 @@ then
 		echo "$((PAGE+1)) 0 0 0"
 		exit 1
 	fi
-elif [ "$KEY" -le '3' ];	# test reload
+elif echo "$KEY" | grep -q '^[123]$';	# test reload
 then
 	# same position
 	[ "$KEY" = '1' ] && echo "$PAGE $BOXNUMBER $SCROLLX $SCROLLY"
@@ -118,7 +118,9 @@ then
 	else
 		xterm -e pdfinteractive "$@" 3>&1
 	fi
-	exit
+	A=$(cat pdfinteractive-ret.txt)
+	rm -f pdfinteractive-ret.txt
+	exit $A
 fi
 
 # copy text in page or rectangle for pasting
