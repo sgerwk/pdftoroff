@@ -65,7 +65,7 @@ echo $OUT
 # commands
 
 COMMANDS='clip erase cover exit'
-[ $X0 = $X1 ] && [ $Y0 = $Y1 ] && COMMANDS='write exit'
+[ $X0 = $X1 ] && [ $Y0 = $Y1 ] && COMMANDS='write red exit'
 N=$(echo $COMMANDS | wc -w)
 
 # operate on file
@@ -87,13 +87,14 @@ do
 			$SIMULATE \
 			pdfdrawover "$FILE" output "$OUT" page "$PAGE" \
 				filledbox "$RECT";;
+		red)	COLOR="color [1.0,0.0,0.0]";&
 		write)
 			echo write at "$CORNER" in page "$PAGE" of file "$FILE"
 			echo -n "string to write: "
 			read S
 			$SIMULATE \
 			pdfdrawover "$FILE" output "$OUT" page "$PAGE" \
-				moveto "$CORNER" print "$S";;
+				$COLOR moveto "$CORNER" print "$S";;
 		exit)
 			echo -n "unchanged" 1>&3
 			echo 0 > pdfinteractive-ret.txt
