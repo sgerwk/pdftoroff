@@ -189,11 +189,13 @@ RectangleList *rectanglelist_textarea(PopplerPage *);
 /* area of text in a page, with minimal distance considered a white space */
 RectangleList *rectanglelist_textarea_distance(PopplerPage *, gdouble);
 
-/* bounding box of the page (NULL if no text is in the page) */
+/* bounding box of the page or document (NULL if no text) */
 PopplerRectangle *rectanglelist_boundingbox(PopplerPage *);
-
-/* overall bounding box of the whole document (NULL if no text) */
 PopplerRectangle *rectanglelist_boundingbox_document(PopplerDocument *doc);
+
+/* largest box in a page or document (NULL if no text) */
+PopplerRectangle *rectanglelist_pagelargest(PopplerPage *page);
+PopplerRectangle *rectanglelist_largest_document(PopplerDocument *doc);
 
 /* list of squares of a grid that are painted in a page */
 RectangleList *rectanglelist_painted(PopplerPage *page, int distance);

@@ -27,12 +27,18 @@
  *	lower values lead to finer coverings of the used area
  *
  * PopplerRectangle *rectanglelist_boundingbox(PopplerPage *);
- * 	the overall bounding box of the page: the smallest rectangle that
- * 	covers all text in the page
+ *	the overall bounding box of the page: the smallest rectangle that
+ *	covers all text in the page
  *
  * PopplerRectangle *rectanglelist_boundingbox_document(PopplerDocument *);
- * 	overall bounding box of the whole document: smallest rectangle that
- * 	contains all text in all pages
+ *	overall bounding box of the whole document: smallest rectangle that
+ *	contains all text in all pages
+ *
+ * PopplerRectangle *rectanglelist_pagelargest(PopplerPage *page);
+ *	the largest box in a page
+ *
+ * PopplerRectangle *rectanglelist_largest_document(PopplerDocument *doc);
+ *	union of the largest boxes in the whole document (NULL if no text)
  */
 
 /*
@@ -118,7 +124,7 @@
  *	recurring text from the page
  *
  * void rectanglelist_clip_containing(cairo_t *cr, PopplerPage *page,
- * 		RectangleList *textarea, RectangleList *rm);
+ *		RectangleList *textarea, RectangleList *rm);
  *	clip out from the page all rectangles in the textarea that contains any
  *	of the rectangles in the rm list; this is the second way to remove the
  *	recurring text from the page
@@ -1107,11 +1113,11 @@ RectangleList *rectanglelist_textarea(PopplerPage *page) {
 }
 
 /*
- * bounding box of a page (NULL if no text is in the page)
+ * bounding or largest box of text in a page (NULL if no text in page)
  */
-PopplerRectangle *rectanglelist_boundingbox(PopplerPage *page) {
+PopplerRectangle *rectanglelist_pagebox(PopplerPage *page, int which) {
 	RectangleList *all;
-	PopplerRectangle *boundingbox;
+	PopplerRectangle *box;
 	guint n;
 
 	all = rectanglelist_new(0);
@@ -1121,16 +1127,32 @@ PopplerRectangle *rectanglelist_boundingbox(PopplerPage *page) {
 	all->num = n;
 	all->max = n; // poppler_page_get_text_layout allocated all->rect
 
-	boundingbox = rectanglelist_joinall(all);
+	box = which == 0 ? rectanglelist_largest(all) :
+	      which == 1 ? rectanglelist_joinall(all) :
+	      NULL;
 
 	rectanglelist_free(all);
-	return boundingbox;
+	return box;
 }
 
 /*
- * overall bounding box of the whole document (NULL if no text)
+ * largest box of text in a page (NULL if no text is in the page)
  */
-PopplerRectangle *rectanglelist_boundingbox_document(PopplerDocument *doc) {
+PopplerRectangle *rectanglelist_pagelargest(PopplerPage *page) {
+	return poppler_rectangle_copy(rectanglelist_pagebox(page, 0));
+}
+
+/*
+ * bounding box of a page (NULL if no text is in the page)
+ */
+PopplerRectangle *rectanglelist_boundingbox(PopplerPage *page) {
+	return rectanglelist_pagebox(page, 1);
+}
+
+/*
+ * overall bounding or largest box of the whole document (NULL if no text)
+ */
+PopplerRectangle *rectanglelist_box_document(PopplerDocument *doc, int which) {
 	PopplerPage *page;
 	PopplerRectangle *boundingbox, *pageboundingbox;
 	int npages, n;
@@ -1141,7 +1163,10 @@ PopplerRectangle *rectanglelist_boundingbox_document(PopplerDocument *doc) {
 	boundingbox = NULL;
 	for (n = 0; n < npages; n++) {
 		page = poppler_document_get_page(doc, n);
-		pageboundingbox = rectanglelist_boundingbox(page);
+		pageboundingbox =
+			which == 0 ? rectanglelist_pagelargest(page) :
+			which == 1 ? rectanglelist_boundingbox(page) :
+			NULL;
 		if (pageboundingbox == NULL)
 			continue;
 		if (boundingbox == NULL)
@@ -1153,6 +1178,20 @@ PopplerRectangle *rectanglelist_boundingbox_document(PopplerDocument *doc) {
 	}
 
 	return boundingbox;
+}
+
+/*
+ * union of the largest boxes in the whole document (NULL if no text)
+ */
+PopplerRectangle *rectanglelist_largest_document(PopplerDocument *doc) {
+	return rectanglelist_box_document(doc, 0);
+}
+
+/*
+ * overall bounding box of the whole document (NULL if no text)
+ */
+PopplerRectangle *rectanglelist_boundingbox_document(PopplerDocument *doc) {
+	return rectanglelist_box_document(doc, 1);
 }
 
 /*
