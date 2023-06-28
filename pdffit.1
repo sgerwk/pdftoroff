@@ -64,6 +64,10 @@ scale each page separately;
 the default is to scale all pages the same
 .TP
 .B
+-c
+try to exclude headers and footers
+.TP
+.B
 -e
 skip empty pages
 .TP
@@ -184,6 +188,6 @@ but of course the bounding box and the destination box should coincide.
 The bounding box only includes text; it should also include images.
 
 The page could be clipped to its bounding box when copying it to the cairo
-surface. This could only matters when only part of the page is actually copied,
+surface. This could only matter when only part of the page is actually copied,
 not its entire bounding box.
 

@@ -22,7 +22,7 @@ int main(int argc, char *argv[]) {
 	char *infile, *uri, *outfile = NULL;
 	gboolean usage = FALSE, opterror = FALSE;
 	gboolean landscape = FALSE, ratio = TRUE, individual = FALSE;
-	gboolean wholepage = FALSE, emptypages = FALSE;
+	gboolean largest = FALSE, wholepage = FALSE, emptypages = FALSE;
 	gboolean givendest = FALSE, givenmargin = FALSE;
 	gboolean orig = FALSE, frame = FALSE, drawbb = FALSE, debug = FALSE;
 	gdouble w, h;
@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
 
 				/* arguments */
 
-	while ((opt = getopt(argc, argv, "hiewfskbrldm:p:g:o:")) != -1)
+	while ((opt = getopt(argc, argv, "hicewfskbrldm:p:g:o:")) != -1)
 		switch(opt) {
 		case 'l':
 			landscape = TRUE;
@@ -53,6 +53,9 @@ int main(int argc, char *argv[]) {
 			break;
 		case 'i':
 			individual = TRUE;
+			break;
+		case 'c':
+			largest = TRUE;
 			break;
 		case 'e':
 			emptypages = TRUE;
@@ -136,6 +139,7 @@ int main(int argc, char *argv[]) {
 		printf("\tpdffit [options] file.pdf\n");
 		printf("\t\t-l\t\tlandscape\n");
 		printf("\t\t-i\t\tscale each page individually\n");
+		printf("\t\t-c\t\ttry to exclude headers and footers\n");
 		printf("\t\t-e\t\tskip empty pages\n");
 		printf("\t\t-r\t\tdo not maintain aspect ratio\n");
 		printf("\t\t-p paper\tpaper size (a4, letter, 500,500...)\n");
@@ -223,7 +227,9 @@ int main(int argc, char *argv[]) {
 				/* bounding box of all pages */
 
 	if (! individual && ! wholepage)
-		boundingbox = rectanglelist_boundingbox_document(doc);
+		boundingbox = largest ?
+			rectanglelist_largest_document(doc) :
+			rectanglelist_boundingbox_document(doc);
 
 				/* copy each page to destination */
 
