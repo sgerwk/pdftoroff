@@ -41,6 +41,7 @@ int main(int argc, char *argv[]) {
 	gboolean numbers = FALSE;
 	gboolean inside = FALSE;
 	gboolean bb = FALSE;
+	gboolean largest = FALSE;
 	enum extents_e extents = none;
 	gboolean painted = FALSE;
 	gboolean tabular = FALSE;
@@ -55,7 +56,7 @@ int main(int argc, char *argv[]) {
 	PopplerPage *page;
 	int npages, n;
 	RectangleList *textarea = NULL, *ve, *singlechars;
-	PopplerRectangle *boundingbox = NULL;
+	PopplerRectangle *box = NULL;
 	PopplerRectangle wholepage = {0.0, 0.0, 0.0, 0.0};
 	void (*order[])(RectangleList *, PopplerPage *) = {
 		rectanglelist_quicksort,
@@ -71,7 +72,7 @@ int main(int argc, char *argv[]) {
 
 				/* arguments */
 
-	while ((opt = getopt(argc, argv, "f:l:nipts:be:d:r:ah")) != -1)
+	while ((opt = getopt(argc, argv, "f:l:nipts:bme:d:r:ah")) != -1)
 		switch(opt) {
 		case 'f':
 			first = atoi(optarg);
@@ -97,6 +98,9 @@ int main(int argc, char *argv[]) {
 			break;
 		case 'b':
 			bb = TRUE;
+			break;
+		case 'm':
+			largest = TRUE;
 			break;
 		case 'e':
 			if (! strcmp(optarg, "none"))
@@ -131,12 +135,13 @@ int main(int argc, char *argv[]) {
 	if (usage) {
 		printf("usage:\n");
 		printf("\tpdfrects [-f page] [-l page] ");
-		printf("[-b] [-e direction] [-d distance]\n");
+		printf("[-b|-m] [-e direction] [-d distance]\n");
 		printf("\t         [-p|-t] [-n [-s n]] [-a] [-r level] [-h] ");
 		printf("file.pdf\n");
 		printf("\t\t-f page\t\tfirst page\n");
 		printf("\t\t-l page\t\tlast page\n");
 		printf("\t\t-b\t\tbounding box instead of textarea\n");
+		printf("\t\t-m\t\tonly the largest block of text\n");
 		printf("\t\t-e direction\thorizontal or vertical extents\n");
 		printf("\t\t-d distance\tminimal distance of text boxes\n");
 		printf("\t\t-n\t\tnumber boxes\n");
@@ -197,14 +202,18 @@ int main(int argc, char *argv[]) {
 		poppler_page_get_size(page, &width, &height);
 		cairo_pdf_surface_set_size(surface, width, height);
 
-		if (bb) {
-			boundingbox = painted ?
-				rectanglelist_boundingbox_painted(page,
+		if (bb || largest) {
+			box =
+				painted ?
+					rectanglelist_boundingbox_painted(page,
 					distance) :
-				rectanglelist_boundingbox(page);
-			printf("    boundingbox:\n");
+				largest ?
+					rectanglelist_pagelargest(page) :
+					rectanglelist_boundingbox(page);
+			printf("    %s:\n",
+				largest ? "largest" : "boundingbox");
 			rectangle_printyaml(stdout,
-				"        ", "        ", boundingbox);
+				"        ", "        ", box);
 		}
 		else {
 			textarea = tabular ?
@@ -240,8 +249,8 @@ int main(int argc, char *argv[]) {
 
 		cr = cairo_create(surface);
 		poppler_page_render_for_printing(page, cr);
-		if (bb)
-			rectangle_draw(cr, boundingbox, TRUE, FALSE, FALSE);
+		if (bb || largest)
+			rectangle_draw(cr, box, TRUE, FALSE, FALSE);
 		else
 			rectanglelist_draw(cr, textarea,
 				FALSE, FALSE, numbers, inside);
@@ -251,7 +260,7 @@ int main(int argc, char *argv[]) {
 		cairo_surface_show_page(surface);
 
 		rectanglelist_free(textarea);
-		poppler_rectangle_free(boundingbox);
+		poppler_rectangle_free(box);
 
 		g_object_unref(page);
 	}
