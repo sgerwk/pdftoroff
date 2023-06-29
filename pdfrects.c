@@ -1113,9 +1113,22 @@ RectangleList *rectanglelist_textarea(PopplerPage *page) {
 }
 
 /*
- * bounding or largest box of text in a page (NULL if no text in page)
+ * largest block of text in a page (NULL if no text is in the page)
  */
-PopplerRectangle *rectanglelist_pagebox(PopplerPage *page, int which) {
+PopplerRectangle *rectanglelist_pagelargest(PopplerPage *page) {
+	RectangleList *text;
+	PopplerRectangle *box;
+
+	text = rectanglelist_textarea(page);
+	box = poppler_rectangle_copy(rectanglelist_largest(text));
+	rectanglelist_free(text);
+	return box;
+}
+
+/*
+ * bounding box of a page (NULL if no text is in the page)
+ */
+PopplerRectangle *rectanglelist_boundingbox(PopplerPage *page) {
 	RectangleList *all;
 	PopplerRectangle *box;
 	guint n;
@@ -1127,30 +1140,14 @@ PopplerRectangle *rectanglelist_pagebox(PopplerPage *page, int which) {
 	all->num = n;
 	all->max = n; // poppler_page_get_text_layout allocated all->rect
 
-	box = which == 0 ? rectanglelist_largest(all) :
-	      which == 1 ? rectanglelist_joinall(all) :
-	      NULL;
+	box = rectanglelist_joinall(all);
 
 	rectanglelist_free(all);
 	return box;
 }
 
 /*
- * largest box of text in a page (NULL if no text is in the page)
- */
-PopplerRectangle *rectanglelist_pagelargest(PopplerPage *page) {
-	return poppler_rectangle_copy(rectanglelist_pagebox(page, 0));
-}
-
-/*
- * bounding box of a page (NULL if no text is in the page)
- */
-PopplerRectangle *rectanglelist_boundingbox(PopplerPage *page) {
-	return rectanglelist_pagebox(page, 1);
-}
-
-/*
- * overall bounding or largest box of the whole document (NULL if no text)
+ * overall bounding or largest block of the whole document (NULL if no text)
  */
 PopplerRectangle *rectanglelist_box_document(PopplerDocument *doc, int which) {
 	PopplerPage *page;
@@ -1181,7 +1178,7 @@ PopplerRectangle *rectanglelist_box_document(PopplerDocument *doc, int which) {
 }
 
 /*
- * union of the largest boxes in the whole document (NULL if no text)
+ * union of the largest blocks of text in the whole document (NULL if no text)
  */
 PopplerRectangle *rectanglelist_largest_document(PopplerDocument *doc) {
 	return rectanglelist_box_document(doc, 0);
