@@ -89,6 +89,7 @@ example `1.0.0`:
 - night mode: show pdf in reverse colors (Apr. 2023)
 - key 'G': move back to the position prior to jumping or searching (Apr. 2023)
 - cache position and search string (Apr. 2023)
-- key 'x' to position a cursor on the page
-- some editing via an external script
+- key 'x' to position a cursor on the page (May 2023)
+- some editing via an external script (May 2023)
+- pdffit can try to ignore headers and footers (June 2023)
 
