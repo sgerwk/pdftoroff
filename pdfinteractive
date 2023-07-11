@@ -1,6 +1,7 @@
 #!/bin/bash
 #
 # operate on a point or rectangle of a pdf file
+#	emphasize
 #	clip all pages
 #	erase rectangle (draw in white)
 #	cover rectangle (draw in black)
@@ -65,7 +66,7 @@ echo $OUT
 
 # commands
 
-COMMANDS='clip erase cover exit'
+COMMANDS='emphasize clip erase cover exit'
 [ $X0 = $X1 ] && [ $Y0 = $Y1 ] && COMMANDS='write red exit'
 N=$(echo $COMMANDS | wc -w)
 
@@ -75,6 +76,11 @@ PS3="choose command [1-$N]: "
 select COMMAND in $COMMANDS;
 do
 	case $COMMAND in
+		emphasize)
+			echo emphasize "$RECT" of page "$PAGE" of file "$FILE"
+			$SIMULATE \
+			pdfdrawover "$FILE" output "$OUT" page "$PAGE" \
+				color [1.0,0.0,0.0,0.5] filledbox "$RECT";;
 		clip)
 			$SIMULATE \
 			pdfcut -o "$OUT" -p "$RECT" "$FILE";;
