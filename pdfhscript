@@ -107,7 +107,6 @@ fi
 
 if [ "$KEY" = 'E' ];
 then
-	[ "$RECT" = '[]' ] && echo -n 'no selected point or rectangle' && exit
 	which pdfinteractive > /dev/null || \
 		{ echo -n 'pdfinteractive not installed'; exit; }
 	which pdfdrawover > /dev/null || \

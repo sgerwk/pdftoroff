@@ -35,6 +35,7 @@ TEXTBOX="$9"
 DEST="${10}"
 RECT="${11}"
 
+[ $RECT = '[]' ] && RECT="$TEXTBOX"
 echo $RECT
 
 # coordinates
