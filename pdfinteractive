@@ -37,7 +37,7 @@ RECT="${11}"
 
 echo $RECT
 
-# arguments
+# coordinates
 
 X0=$(echo "$RECT" | cut -d, -f1 | cut -d[ -f2)
 Y0=$(echo "$RECT" | cut -d, -f2 | cut -d- -f1)
