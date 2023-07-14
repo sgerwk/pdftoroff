@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
 	gboolean usage = FALSE, opterror = FALSE;
 	gboolean landscape = FALSE, ratio = TRUE, individual = FALSE;
 	gboolean largest = FALSE, wholepage = FALSE, emptypages = FALSE;
-	gboolean givendest = FALSE, givenmargin = FALSE;
+	gboolean givendest = FALSE, givenmargin = FALSE, givenbox = FALSE;
 	gboolean orig = FALSE, frame = FALSE, drawbb = FALSE, debug = FALSE;
 	gdouble w, h;
 	char *paper = NULL;
@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
 
 				/* arguments */
 
-	while ((opt = getopt(argc, argv, "hicewfskbrldm:p:g:o:")) != -1)
+	while ((opt = getopt(argc, argv, "hicewfskbrldm:x:p:g:o:")) != -1)
 		switch(opt) {
 		case 'l':
 			landscape = TRUE;
@@ -79,6 +79,20 @@ int main(int argc, char *argv[]) {
 			marginy1 = atof(optarg);
 			marginx2 = atof(optarg);
 			marginy2 = atof(optarg);
+			break;
+		case 'x':
+			givenbox = TRUE;
+			boundingbox = poppler_rectangle_new();
+			if (4 == sscanf(optarg, "%lg,%lg,%lg,%lg",
+				&boundingbox->x1, &boundingbox->y1,
+				&boundingbox->x2, &boundingbox->y2))
+				break;
+			if (4 == sscanf(optarg, "[%lg,%lg-%lg,%lg]",
+				&boundingbox->x1, &boundingbox->y1,
+				&boundingbox->x2, &boundingbox->y2))
+				break;
+			printf("cannot parse box: %s\n", optarg);
+			exit(EXIT_FAILURE);
 			break;
 		case 'o':
 			outfile = optarg;
@@ -226,7 +240,7 @@ int main(int argc, char *argv[]) {
 
 				/* bounding box of all pages */
 
-	if (! individual && ! wholepage)
+	if (! individual && ! wholepage && ! givenbox)
 		boundingbox = largest ?
 			rectanglelist_largest_document(doc) :
 			rectanglelist_boundingbox_document(doc);
@@ -243,7 +257,7 @@ int main(int argc, char *argv[]) {
 			continue;
 		}
 
-		if (individual && ! wholepage)
+		if (individual && ! wholepage && ! givenbox)
 			boundingbox = pageboundingbox;
 
 		rectangle_print(stdout, wholepage ? &psize : boundingbox);
@@ -272,7 +286,7 @@ int main(int argc, char *argv[]) {
 		cairo_destroy(cr);
 		cairo_surface_show_page(surface);
 
-		if (individual && ! wholepage)
+		if (individual && ! wholepage && ! givenbox)
 			poppler_rectangle_free(boundingbox);
 
 		g_object_unref(page);
