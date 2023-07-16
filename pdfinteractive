@@ -82,8 +82,10 @@ do
 			pdfdrawover "$FILE" output "$OUT" page "$PAGE" \
 				color [1.0,0.0,0.0,0.5] filledbox "$RECT";;
 		clip)
+			echo clip "$RECT" of page "$PAGE" of file "$FILE"
 			$SIMULATE \
-			pdfcut -o "$OUT" -p "$RECT" "$FILE";;
+			pdfdrawover "$FILE" output "$OUT" page "$PAGE" \
+				emptypage clip "$RECT" paste;;
 		erase)
 			echo erase "$RECT" of page "$PAGE" of file "$FILE"
 			$SIMULATE \
