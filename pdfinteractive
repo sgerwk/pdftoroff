@@ -62,11 +62,12 @@ do
 	I=$((I+1))
 done
 OUT=$(printf $EDIT $I)
+TEMP=$(printf "${BASE}-temp-%d.pdf" $I)
 echo $OUT
 
 # commands
 
-COMMANDS='emphasize clip_page clip erase cover exit'
+COMMANDS='emphasize clip_page clip fit erase cover exit'
 [ $X0 = $X1 ] && [ $Y0 = $Y1 ] && COMMANDS='write red exit'
 N=$(echo $COMMANDS | wc -w)
 
@@ -91,6 +92,14 @@ do
 			$SIMULATE \
 			pdfdrawover "$FILE" output "$OUT" \
 				emptypage clip "$RECT" paste;;
+		fit)
+			echo fit "$RECT" of file "$FILE"
+			$SIMULATE \
+			pdfdrawover "$FILE" output "$TEMP" \
+				emptypage clip "$RECT" paste
+			$SIMULATE \
+			pdffit -o "$OUT" -x "$RECT" "$TEMP"
+			rm -f "$TEMP";;
 		erase)
 			echo erase "$RECT" of page "$PAGE" of file "$FILE"
 			$SIMULATE \
