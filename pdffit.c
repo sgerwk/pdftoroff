@@ -160,6 +160,7 @@ int main(int argc, char *argv[]) {
 		printf("\t\t-w\t\tresize the whole page, without margins\n");
 		printf("\t\t-m margin\tminimal distance from border of page ");
 		printf(          "to text\n");
+		printf("\t\t-x box\t\tthe box that is fit into the page\n");
 		printf("\t\t-g box\t\tdestination box\n");
 		printf("\t\t-k\t\tadapt to ebook viewing\n");
 		printf("\t\t-f\t\tdraw the border of the destination page\n");
