@@ -212,9 +212,10 @@ then
 		L=$(<$LINEFILE)
 		N=$(head -$L "$BASE" | grep '^## Page [0-9][0-9]*' | \
 		    tail -1 | cut -d' ' -f3)
+		[ "$N" = "$PAGE" ] && exit 0
 		[ "$N" = '' ] && N=1
 		echo -n "$N 0 0 0"
-		rm $LINEFILE
+		rm -f $LINEFILE
 		exit 1
 	fi
 fi
