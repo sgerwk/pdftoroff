@@ -1851,7 +1851,7 @@ int findentry(char *config, char f, char *key, char **entry) {
 }
 
 /*
- * call the external script
+ * call the external script: -1=error, 0=ok, 1=document moved or changed
  */
 int keyscript(struct cairoui *cairoui, char c, gboolean unescaped) {
 	struct position *position = POSITION(cairoui);
@@ -1925,6 +1925,7 @@ int keyscript(struct cairoui *cairoui, char c, gboolean unescaped) {
 			cairoui_printlabel(cairoui, output->help, 2000, out);
 		break;
 	case 1:			// move, possibly reload or load a new file
+	case 3:			// same, but document content is similar
 		res = sscanf(out, "%d %d %lg %lg\n%s",
 			&npage, &box, &scrollx, &scrolly, file);
 		if (res == 5) {
@@ -1948,7 +1949,7 @@ int keyscript(struct cairoui *cairoui, char c, gboolean unescaped) {
 		break;
 	}
 	free(line);
-	return 0;
+	return WEXITSTATUS(ret) == 1 ? 1 : 0;
 }
 
 /*
@@ -2897,6 +2898,7 @@ int _figuredraw(int c, struct cairoui *cairoui, gboolean point) {
 	int currc;
 	int o;
 	char *label;
+	int k;
 
 	if (iterating) {
 		currc = c;
@@ -2949,9 +2951,12 @@ int _figuredraw(int c, struct cairoui *cairoui, gboolean point) {
 	}
 	if (res == CAIROUI_REFRESH)
 		return CAIROUI_REFRESH;
-	if (res == CAIROUI_UNCHANGED && -1 != keyscript(cairoui, c, TRUE)) {
-		showhelp = FALSE;
-		return CAIROUI_REFRESH;
+	if (res == CAIROUI_UNCHANGED) {
+		k = keyscript(cairoui, c, TRUE);
+		if (k != -1) {
+			showhelp = FALSE;
+			return k == 1 ? WINDOW_DOCUMENT : CAIROUI_REFRESH;
+		}
 	}
 	if (res == CAIROUI_UNCHANGED && cairoui->redraw)
 		return CAIROUI_REFRESH;
