@@ -200,7 +200,7 @@ then
 	fi
 
 	LINEFILE=$HOME/.cache/hovacui/line
-	rm -f $FILEFILE
+	rm -f $FILELINE
 	vi +"/## Page $PAGE$" "$BASE" > /dev/tty
 	setterm --cursor off > /dev/tty
 	if [ -f $LINEFILE ];
@@ -210,7 +210,8 @@ then
 		#   \| execute '!echo ' . line('.') . ' >
 		#      $HOME/.cache/hovacui/line'
 		L=$(<$LINEFILE)
-		N=$(head -$L "$BASE" | grep '^## Page [0-9][0-9]*' | \
+		[ "$L" = "" ] && rm -f $LINEFILE && exit 0
+		N=$(head -n "$L" "$BASE" | grep '^## Page [0-9][0-9]*' | \
 		    tail -1 | cut -d' ' -f3)
 		[ "$N" = "$PAGE" ] && exit 0
 		[ "$N" = '' ] && N=1
