@@ -209,7 +209,7 @@ then
 		# autocmd BufUnload *-notes.txt execute ''
 		#   \| execute '!echo ' . line('.') . ' >
 		#      $HOME/.cache/hovacui/line'
-		L=$(<$LINEFILE)
+		L=$(cat $LINEFILE)
 		[ "$L" = "" ] && rm -f $LINEFILE && exit 0
 		N=$(head -n "$L" "$BASE" | grep '^## Page [0-9][0-9]*' | \
 		    tail -1 | cut -d' ' -f3)
