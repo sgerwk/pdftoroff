@@ -145,6 +145,24 @@ int printannotationmarkup(PopplerAnnotMarkup *markup) {
 }
 
 /*
+ * print content in a rectangle
+ */
+int printcontent(PopplerPage *dpage, PopplerRectangle r, char *indent) {
+	char *d;
+
+	d = poppler_page_get_selected_text(dpage, POPPLER_SELECTION_LINE, &r);
+	if (outformat == text)
+		printf("%sdestination: ", indent);
+	else if (outformat == html)
+		printf("\n<blockquote>\n");
+	printf("%s", d);
+	if (outformat == html)
+		printf("</blockquote>\n");
+	free(d);
+	return 0;
+}
+
+/*
  * print the annotations in a page
  */
 int printannotations(PopplerPage *page) {
@@ -152,6 +170,7 @@ int printannotations(PopplerPage *page) {
 	int present = FALSE;
 	PopplerAnnotMapping *m;
 	int type;
+	PopplerRectangle r;
 
 	if (! POPPLER_IS_PAGE(page))
 		return FALSE;
@@ -166,6 +185,8 @@ int printannotations(PopplerPage *page) {
 			printheader("ANNOTATIONS", page);
 			present = TRUE;
 		}
+
+		r = m->area;
 
 		switch (type) {
 		case POPPLER_ANNOT_LINK:
@@ -195,6 +216,8 @@ int printannotations(PopplerPage *page) {
 		printfree("\tname: ", poppler_annot_get_name(m->annot), "\n");
 		printfree("\tcontent: ",
 			poppler_annot_get_contents(m->annot), "\n");
+
+		printcontent(page, r, "	");
 	}
 
 	poppler_page_free_annot_mapping(annots);
@@ -219,7 +242,7 @@ int printlinks(PopplerDocument *doc, PopplerPage *page, int flags) {
 	PopplerActionNamed *named;
 	PopplerDest *dest, *inter;
 	PopplerPage *dpage;
-	char *t, *d;
+	char *t;
 
 	poppler_page_get_size(page, &width, &height);
 	links = poppler_page_get_link_mapping(page);
@@ -295,20 +318,8 @@ int printlinks(PopplerDocument *doc, PopplerPage *page, int flags) {
 			if (flags & DESTCONTENT) {
 				dpage = poppler_document_get_page(doc,
 					dest->page_num - 1);
-				if (dpage != NULL) {
-					d = poppler_page_get_selected_text(
-						dpage,
-						POPPLER_SELECTION_LINE, &r);
-					if (outformat == text)
-						printf("\ndestination: ");
-					else if (outformat == html)
-						printf("\n<blockquote>\n");
-					printf("%s", d);
-					if (outformat == html)
-						printf("</blockquote>\n");
-					free(d);
-					g_object_unref(dpage);
-				}
+				if (dpage != NULL)
+					printcontent(dpage, r, "\n");
 			}
 			if (dest != linkdest->dest)
 				poppler_dest_free(dest);
