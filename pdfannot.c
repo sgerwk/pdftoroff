@@ -19,6 +19,7 @@ gboolean headers;
  */
 struct outformat {
 	char *newline;
+	char *separator;
 	char *startpar;
 	char *endpar;
 	char *startheader;
@@ -28,6 +29,7 @@ struct outformat {
 } *outformat;
 struct outformat textformat = {
 	"\n",
+	"\n=================\n",
 	"",
 	"\n-------\n",
 	"==================",
@@ -37,6 +39,7 @@ struct outformat textformat = {
 };
 struct outformat htmlformat = {
 	"<br />\n",
+	"\n<hr />\n",
 	"<p>\n",
 	"</p>\n",
 	"<h2>\n",
@@ -221,11 +224,14 @@ int printannotations(PopplerPage *page) {
 			printf("annotation (%d)\n", type);
 		}
 
-		printfree("\tname: ", poppler_annot_get_name(m->annot), "\n");
+		printfree("\tname: ", poppler_annot_get_name(m->annot),
+		                      outformat->newline);
 		printfree("\tcontent: ",
-			poppler_annot_get_contents(m->annot), "\n");
+			poppler_annot_get_contents(m->annot),
+			              outformat->newline);
 
 		printcontent(page, r, "	");
+		fputs(outformat->separator, stdout);
 	}
 
 	poppler_page_free_annot_mapping(annots);
