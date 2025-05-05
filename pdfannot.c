@@ -15,19 +15,35 @@
 gboolean headers;
 
 /*
- * output format
- */
-enum format {
-	text,
-	html
-} outformat;
-
-/*
  * formatting elements
  */
-#define NEWLINE (outformat == text ? "\n" : "<br />\n")
-#define STARTPAR (outformat == text ? "" : "<p>\n")
-#define ENDPAR (outformat == text ? "\n-------\n" : "</p>\n")
+struct outformat {
+	char *newline;
+	char *startpar;
+	char *endpar;
+	char *startheader;
+	char *endheader;
+	char *startdestination;
+	char *enddestination;
+} *outformat;
+struct outformat textformat = {
+	"\n",
+	"",
+	"\n-------\n",
+	"==================",
+	"",
+	"%sdestination: ",
+	""
+};
+struct outformat htmlformat = {
+	"<br />\n",
+	"<p>\n",
+	"</p>\n",
+	"<h2>\n",
+	"</h2>\n",
+	"\n<blockquote>\n",
+	"</blockquote>\n",
+};
 
 /*
  * print a string and free it
@@ -48,13 +64,9 @@ void printfree(gchar *prefix, gchar *s, gchar *suffix) {
 void printheader(gchar *title, PopplerPage *page) {
 	if (! headers)
 		return;
-	if (outformat == text)
-		printf("================== ");
-	else
-		printf("<h2>");
-	printf("%s ON PAGE %d", title, poppler_page_get_index(page) + 1);
-	if (outformat == html)
-		printf("</h2>");
+	fputs(outformat->startheader, stdout);
+	printf(" %s ON PAGE %d", title, poppler_page_get_index(page) + 1);
+	fputs(outformat->endheader, stdout);
 	printf("\n");
 }
 
@@ -101,13 +113,13 @@ void printannotationname(PopplerAnnot *annot) {
 			printf("file attachment:");
 			break;
 		case POPPLER_ANNOT_STAMP:
-			printf("stamp:%s", NEWLINE);
+			printf("stamp:%s", outformat->newline);
 			break;
 		case POPPLER_ANNOT_CARET:
-			printf("caret:%s", NEWLINE);
+			printf("caret:%s", outformat->newline);
 			break;
 		case POPPLER_ANNOT_WIDGET:
-			printf("widget (unsupported)%s", NEWLINE);
+			printf("widget (unsupported)%s", outformat->newline);
 			break;
 		default:
 			printf("annotation (%d):", type);
@@ -135,12 +147,12 @@ int printannotationmarkup(PopplerAnnotMarkup *markup) {
 	}
 
 	if (! poppler_annot_markup_has_popup(markup)) {
-		printf("%s", NEWLINE);
+		printf("%s", outformat->newline);
 		return 0;
 	}
 	poppler_annot_markup_get_popup_rectangle(markup, &rect);
 	printf(" %g,%g-%g,%g", rect.x1, rect.y1, rect.x2, rect.y2);
-	printf("%s", NEWLINE);
+	printf("%s", outformat->newline);
 	return 0;
 }
 
@@ -151,13 +163,9 @@ int printcontent(PopplerPage *dpage, PopplerRectangle r, char *indent) {
 	char *d;
 
 	d = poppler_page_get_selected_text(dpage, POPPLER_SELECTION_LINE, &r);
-	if (outformat == text)
-		printf("%sdestination: ", indent);
-	else if (outformat == html)
-		printf("\n<blockquote>\n");
+	printf(outformat->startdestination, indent);
 	printf("%s", d);
-	if (outformat == html)
-		printf("</blockquote>\n");
+	printf(outformat->enddestination, indent);
 	free(d);
 	return 0;
 }
@@ -266,9 +274,9 @@ int printlinks(PopplerDocument *doc, PopplerPage *page, int flags) {
 		t = poppler_page_get_selected_text(page,
 			POPPLER_SELECTION_LINE, &r);
 
-		fputs(STARTPAR, stdout);
-		if (outformat != html || a->type != POPPLER_ACTION_URI)
-			printf("%s%s", t, NEWLINE);
+		fputs(outformat->startpar, stdout);
+		if (outformat != &htmlformat || a->type != POPPLER_ACTION_URI)
+			printf("%s%s", t, outformat->newline);
 
 		switch (a->type) {
 		case POPPLER_ACTION_NONE:
@@ -331,7 +339,7 @@ int printlinks(PopplerDocument *doc, PopplerPage *page, int flags) {
 		/* POPPLER_ACTION_LAUNCH does not make sense */
 		case POPPLER_ACTION_URI:
 			uri = (PopplerActionUri *) a;
-			if (outformat == text)
+			if (outformat == &textformat)
 				printf("uri: %s", uri->uri);
 			else
 				printf("<p><a href=\"%s\">%s</a></p>",
@@ -353,7 +361,7 @@ int printlinks(PopplerDocument *doc, PopplerPage *page, int flags) {
 			printf("action (%d)", a->type);
 		}
 
-		fputs(ENDPAR, stdout);
+		fputs(outformat->endpar, stdout);
 		g_free(t);
 	}
 
@@ -441,7 +449,7 @@ int main(int argn, char *argv[]) {
 
 	usage = 0;
 	headers = TRUE;
-	outformat = text;
+	outformat = &textformat;
 	annotations = TRUE;
 	links = TRUE;
 	first = 0;
@@ -451,10 +459,10 @@ int main(int argn, char *argv[]) {
 	while (-1 != (opt = getopt(argn, argv, "wtaldh")))
 		switch (opt) {
 		case 't':
-			outformat = text;
+			outformat = &textformat;
 			break;
 		case 'w':
-			outformat = html;
+			outformat = &htmlformat;
 			break;
 		case 'a':
 			links = FALSE;
