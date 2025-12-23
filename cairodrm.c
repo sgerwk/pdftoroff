@@ -577,6 +577,11 @@ struct cairodrm *cairodrm_init(char *devname,
 				/* check availability */
 
 	res = drmAvailable();
+	if (! ! strcmp(devname, "/dev/dri/card0")) {
+		res = 1;
+		printf("WARNING: working around a bug in libdrm: ");
+		printf("cannot check DRM availablity with no card0 \n");
+	}
 	if (res != 1) {
 		printf("drm not available\n");
 		return NULL;
