@@ -1973,7 +1973,8 @@ enum window {
 	WINDOW_RECTANGLE,
 	WINDOW_MENU,
 	WINDOW_WIDTH,
-	WINDOW_DISTANCE
+	WINDOW_DISTANCE,
+	WINDOW_OFFSET,
 };
 
 /*
@@ -2025,6 +2026,8 @@ int document(int c, struct cairoui *cairoui) {
 		return WINDOW_DISTANCE;
 	case 'o':
 		return WINDOW_ORDER;
+	case 'O':
+		return WINDOW_OFFSET;
 	case 'e':
 		return WINDOW_SCRIPT;
 	case 'x':
@@ -2533,6 +2536,21 @@ int script(int c, struct cairoui *cairoui) {
 }
 
 /*
+ * set page offset
+ */
+int offset(int c, struct cairoui *cairoui) {
+	struct position *position = POSITION(cairoui);
+	struct output *output = OUTPUT(cairoui);
+
+	if (c == KEY_FINISH) {
+		cairoui_printlabel(cairoui, output->help, 2000, "set page 1");
+		output->offset = position->npage + 1;
+		output->pagenumber = TRUE;
+	}
+	return WINDOW_DOCUMENT;
+}
+
+/*
  * main menu
  */
 int menu(int c, struct cairoui *cairoui) {
@@ -2551,11 +2569,12 @@ int menu(int c, struct cairoui *cairoui) {
 		"(w) minimal width",
 		"(t) text distance",
 		"(o) block order",
+		"(O) set page offset",
 		"(h) help",
 		"(q) quit",
 		NULL
 	};
-	static char *shortcuts = "g/cdxevfwtohq", *s;
+	static char *shortcuts = "g/cdxevfwtoOhq", *s;
 	static int menunext[] = {
 		WINDOW_MENU,
 		WINDOW_GOTOPAGE,
@@ -2569,6 +2588,7 @@ int menu(int c, struct cairoui *cairoui) {
 		WINDOW_WIDTH,
 		WINDOW_DISTANCE,
 		WINDOW_ORDER,
+		WINDOW_OFFSET,
 		WINDOW_HELP,
 		CAIROUI_EXIT,
 		-1,
@@ -3000,6 +3020,7 @@ struct windowlist windowlist[] = {
 {	WINDOW_MENU,		"MENU",		menu		},
 {	WINDOW_WIDTH,		"WIDTH",	minwidth	},
 {	WINDOW_DISTANCE,	"DISTANCE",	textdistance	},
+{	WINDOW_OFFSET,		"OFFSET",	offset		},
 {	0,			NULL,		NULL		}
 };
 
