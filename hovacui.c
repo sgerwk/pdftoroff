@@ -1754,6 +1754,7 @@ int readcachefile(struct output *output, struct position *position) {
 		return EINVAL;
 	if (1 != fscanf(cachefile, "%39s\n", rectangle))
 		return EINVAL;
+	fscanf(cachefile, "%d", &readoutput.offset);
 	fclose(cachefile);
 
 	if (readoutput.viewmode < 0 || readoutput.viewmode > 3)
@@ -1802,6 +1803,7 @@ int writecachefile(struct output *output, struct position *position) {
 		rscreentodoc(output, &d, &s);
 		fprintf(cachefile, "[%g,%g-%g,%g]\n", d.x1, d.y1, d.x2, d.y2);
 	}
+	fprintf(cachefile, "%d\n", output->offset);
 	fclose(cachefile);
 	return 0;
 }
