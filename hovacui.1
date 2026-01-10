@@ -359,6 +359,10 @@ change the block order
 (see \fIBlock order\fP, above)
 .TP
 .B
+O
+set this as page one; same as \fI-O thispage\fP
+.TP
+.B
 r
 reload the document (see also \fIDOCUMENT RELOAD\fP, below)
 .TP
@@ -892,12 +896,14 @@ viewmode fit order distance minwidth
 timestamp
 .I
 rectangle
+.I
+offset
 .fi
 
 In details: page number, index of the textbox within the page, position within
 the textbox, update ID of the pdf file, filename, visualization parameters,
 timestamp at the moment of closing, rectangle currently being drawn (in
-response to keystroke `d`) or \fI[]\fP if none.
+response to keystroke `d`) or \fI[]\fP if none, the page offset.
 
 The file is also written and read back across a call to the external script,
 which can change it.
