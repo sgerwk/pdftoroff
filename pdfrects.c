@@ -1843,21 +1843,29 @@ char *filenametouri(char *filename) {
 }
 
 /*
+ * add suffix and change extension
+ */
+char *suffixextension(char *in, char *suffix, char *ext) {
+	char *base, *pos, *out;
+
+	base = strdup(in);
+	pos = strrchr(base, '.');
+	if (pos != NULL)
+		*pos = '\0';
+
+	out = malloc(strlen(in) + strlen(suffix) + strlen(ext) + 1);
+	strcpy(out, base);
+	strcat(out, suffix);
+	strcat(out, ext);
+
+	free(base);
+	return out;
+}
+
+/*
  * add suffix to a pdf filename
  */
 char *pdfaddsuffix(char *infile, char *suffix) {
-	char *outfile;
-	char *pos;
-
-	outfile = malloc(strlen(infile) + strlen(suffix) + 10);
-	strcpy(outfile, basename(infile));
-	pos = strrchr(outfile, '.');
-	if (pos != NULL && (! strcmp(pos, ".pdf") || ! strcmp(pos, ".PDF")))
-		*pos = '\0';
-
-	strcat(outfile, "-");
-	strcat(outfile, suffix);
-	strcat(outfile, ".pdf");
-	return outfile;
+	return suffixextension(infile, "", suffix);
 }
 

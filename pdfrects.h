@@ -289,9 +289,12 @@ PopplerRectangle *get_papersize(char *name);
 char *defaultpapersize();
 
 /* from file name to uri */
-char *filenametouri(char *);
+char *filenametouri(char *filename);
 
-/* turn file.pdf into file-suffix.pdf */
+/* add suffix and change extension */
+char *suffixextension(char *in, char *suffix, char *ext);
+
+/* add suffix to a pdf filename */
 char *pdfaddsuffix(char *infile, char *suffix);
 
 #endif
