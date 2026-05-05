@@ -15,6 +15,11 @@
 gboolean headers;
 
 /*
+ * verbose output
+ */
+gboolean verbose = FALSE;
+
+/*
  * formatting elements
  */
 struct outformat {
@@ -187,6 +192,9 @@ int printannotations(PopplerPage *page) {
 		return FALSE;
 
 	annots = poppler_page_get_annot_mapping(page);
+	if (verbose && annots == NULL)
+		printf("no annotations in page %d\n",
+			poppler_page_get_index(page) + 1);
 
 	for (s = annots; s != NULL; s = s->next) {
 		m = (PopplerAnnotMapping *) s->data;
@@ -263,6 +271,10 @@ int printlinks(PopplerDocument *doc, PopplerPage *page, int flags) {
 
 	for (; links != NULL && links->next != NULL; links = links->next) {
 	}
+
+	if (verbose && links == NULL)
+		printf("no links in page %d\n",
+			poppler_page_get_index(page) + 1);
 
 	for (l = links; l != NULL; l = l->prev) {
 		if (! present) {
@@ -462,7 +474,7 @@ int main(int argn, char *argv[]) {
 	last = -1;
 	flags = 0;
 
-	while (-1 != (opt = getopt(argn, argv, "wtaldh")))
+	while (-1 != (opt = getopt(argn, argv, "wtaldvh")))
 		switch (opt) {
 		case 't':
 			outformat = &textformat;
@@ -478,6 +490,9 @@ int main(int argn, char *argv[]) {
 			break;
 		case 'd':
 			flags |= DESTCONTENT;
+			break;
+		case 'v':
+			verbose = TRUE;
 			break;
 		case 'h':
 			usage = 1;
@@ -499,6 +514,7 @@ int main(int argn, char *argv[]) {
 		printf("\t\t-a\tonly output annotations\n");
 		printf("\t\t-a\tonly output links\n");
 		printf("\t\t-d\tprint text at destination of inner links\n");
+		printf("\t\t-v\tprint pages without links or annotations\n");
 		printf("\t\t-h\tthis help\n");
 		exit(usage == 1 ? EXIT_SUCCESS : EXIT_FAILURE);
 	}
