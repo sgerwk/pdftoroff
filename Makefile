@@ -21,7 +21,7 @@ install: all
 	cp pdftoroff pdftoebook ${DESTDIR}/usr/bin
 	cp pdffit pdfrects pdfrecur pdfannot ${DESTDIR}/usr/bin
 	mkdir -p ${DESTDIR}/usr/share/man/man1
-	cp hovacui.1 pdftoroff.1 ${DESTDIR}/usr/share/man/man1
+	cp hovacui.1 pdftoroff.1 pdfannot.1 ${DESTDIR}/usr/share/man/man1
 	cp pdffit.1 pdfrects.1 pdfrecur.1 ${DESTDIR}/usr/share/man/man1
 
 pdftoroff: pdftext.o
