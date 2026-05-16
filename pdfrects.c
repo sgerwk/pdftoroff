@@ -1866,6 +1866,8 @@ char *suffixextension(char *in, char *suffix, char *ext) {
  * add suffix to a pdf filename
  */
 char *pdfaddsuffix(char *infile, char *suffix) {
-	return suffixextension(infile, "", suffix);
+	char *ext;
+	ext = (ext = strrchr(infile, '.')) ? ext : "";
+	return suffixextension(infile, suffix, ext);
 }
 
