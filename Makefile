@@ -1,4 +1,4 @@
-PROGS=pdftoroff pdffit pdfrects pdfrecur pdfannot \
+PROGS=pdftoroff pdffit pdfrects pdfrecur pdfannot pdfaddannotation \
 hovacui fbhovacui drmhovacui xhovacui cairoui
 
 CFLAGS+=-g -Wall -Wextra -Wformat -Wformat-security
@@ -19,12 +19,15 @@ install: all
 	mkdir -p ${DESTDIR}/usr/bin
 	cp hovacui pdfhscript pdfinteractive ${DESTDIR}/usr/bin
 	cp pdftoroff pdftoebook ${DESTDIR}/usr/bin
-	cp pdffit pdfrects pdfrecur pdfannot ${DESTDIR}/usr/bin
+	cp pdffit pdfrects pdfrecur ${DESTDIR}/usr/bin
+	cp pdfannot pdfaddannotation ${DESTDIR}/usr/bin
 	mkdir -p ${DESTDIR}/usr/share/man/man1
-	cp hovacui.1 pdftoroff.1 pdfannot.1 ${DESTDIR}/usr/share/man/man1
+	cp hovacui.1 pdftoroff.1 ${DESTDIR}/usr/share/man/man1
+	cp pdfannot.1 pdfaddannotation.1 ${DESTDIR}/usr/share/man/man1
 	cp pdffit.1 pdfrects.1 pdfrecur.1 ${DESTDIR}/usr/share/man/man1
 
 pdftoroff: pdftext.o
+pdfaddannotation: pdfname.o
 pdfrects: pdfrects-main.o
 pdftoroff pdffit pdfrects pdfrecur: pdfrects.o
 hovacui fbhovacui drmhovacui xhovacui: pdfrects.o
