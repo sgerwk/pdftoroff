@@ -172,6 +172,8 @@ int printcontent(PopplerPage *dpage, PopplerRectangle r, char *indent) {
 
 	d = poppler_page_get_selected_text(dpage, POPPLER_SELECTION_LINE, &r);
 	printf(outformat->startdestination, indent);
+	if (verbose)
+		printf("[%.f,%.f-%.f,%.f] ", r.x1, r.y1, r.x2, r.y2);
 	printf("%s", d);
 	printf(outformat->enddestination, indent);
 	free(d);
