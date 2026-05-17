@@ -189,9 +189,12 @@ int printannotations(PopplerPage *page) {
 	PopplerAnnotMapping *m;
 	int type;
 	PopplerRectangle r;
+	double width, height;
 
 	if (! POPPLER_IS_PAGE(page))
 		return FALSE;
+
+	poppler_page_get_size(page, &width, &height);
 
 	annots = poppler_page_get_annot_mapping(page);
 	if (verbose && annots == NULL)
@@ -207,7 +210,10 @@ int printannotations(PopplerPage *page) {
 			present = TRUE;
 		}
 
-		r = m->area;
+		r.x1 = m->area.x1;
+		r.y1 = height - m->area.y2;
+		r.x2 = m->area.x2;
+		r.y2 = height - m->area.y1;
 
 		switch (type) {
 		case POPPLER_ANNOT_LINK:
