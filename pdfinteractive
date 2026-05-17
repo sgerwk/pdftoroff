@@ -68,7 +68,7 @@ echo $OUT
 # commands
 
 COMMANDS='emphasize clip_page clip fit erase cover exit'
-[ $X0 = $X1 ] && [ $Y0 = $Y1 ] && COMMANDS='write red exit'
+[ $X0 = $X1 ] && [ $Y0 = $Y1 ] && COMMANDS='write red annotate exit'
 N=$(echo $COMMANDS | wc -w)
 
 # operate on file
@@ -118,6 +118,12 @@ do
 			$SIMULATE \
 			pdfdrawover "$FILE" output "$OUT" page "$PAGE" \
 				$COLOR moveto "$CORNER" print "$S";;
+		annotate)
+			echo annotate at "$CORNER" in page "$PAGE" of file "$FILE"
+			echo -n "string to add: "
+			read S
+			$SIMULATE \
+			pdfaddannotation -o "$OUT" "$FILE" "$PAGE" "$S" $X0 $Y0;;
 		exit)
 			echo -n "unchanged" 1>&3
 			echo 0 > pdfinteractive-ret.txt
@@ -125,6 +131,8 @@ do
 	esac
 	break
 done
+
+$SIMULATE false > /dev/null && sleep 5
 
 echo "$PAGE $BOXNUMBER $SCROLLX $SCROLLY" 1>&3
 echo -n "$OUT" 1>&3
