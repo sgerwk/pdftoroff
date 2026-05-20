@@ -20,6 +20,7 @@
 #define INVERT(y) (height - (y))
 #define REVERSE(y) { (y) = height - (y); }
 
+int verbose = FALSE;
 #define dprintf if (verbose) printf
 
 /*
@@ -39,13 +40,47 @@ void printtextannotation(PopplerPage *page, PopplerAnnotMapping *mapping) {
 }
 
 /*
+ * add a text annotation
+ */
+void addtextannotation(PopplerDocument *doc, PopplerPage *page,
+                       gchar *text, PopplerRectangle *area) {
+	PopplerAnnot *annot;
+	PopplerAnnotText *ta;
+
+	annot = poppler_annot_text_new(doc, area);
+	ta = (PopplerAnnotText *) annot;
+	poppler_annot_set_contents(annot, text);
+	poppler_annot_text_set_icon(ta, POPPLER_ANNOT_TEXT_ICON_NOTE);
+	poppler_page_add_annot(page, annot);
+	g_object_unref(annot);
+}
+
+/*
+ * save pdf file
+ */
+int savepdf(PopplerDocument *doc, char *infile, char *outfile) {
+	int res;
+	char *saveuri;
+
+	if (outfile == NULL)
+		outfile = pdfaddsuffix(infile, "-annot");
+	dprintf("outfile: %s\n", outfile);
+
+	saveuri = filenametouri(outfile);
+	res = poppler_document_save(doc, saveuri, NULL);
+	if (! res)
+		printf("error saving file %s\n", outfile);
+	return res;
+}
+
+/*
  * main
  */
 int main(int argc, char *argv[]) {
 	int opt;
 	gboolean usage = FALSE;
-	gboolean verbose = FALSE;
-	char *infile, *outfile = NULL, *saveuri;
+	char *infile, *outfile = NULL;
+	gboolean remove = FALSE;
 	int pageno;
 	char *text = NULL;
 	char *search = NULL;
@@ -63,13 +98,16 @@ int main(int argc, char *argv[]) {
 
 				/* arguments */
 
-	while ((opt = getopt(argc, argv, "o:a:vh")) != -1)
+	while ((opt = getopt(argc, argv, "o:a:rvh")) != -1)
 		switch(opt) {
 		case 'o':
 			outfile = optarg;
 			break;
 		case 'a':
 			text = optarg;
+			break;
+		case 'r':
+			remove = TRUE;
 			break;
 		case 'v':
 			verbose = TRUE;
@@ -89,11 +127,13 @@ int main(int argc, char *argv[]) {
 	}
 	if (usage) {
 		printf("usage:\n");
-		printf("\tpdfannotation [-o outfile.pdf] [-a text] [-h]\n");
-		printf("\t              file.pdf page [x y|search]\n");
+		printf("\tpdfannotation [-o outfile.pdf] [-a text] [-r]\n");
+		printf("\t              [-v] [-h] ");
+		printf("file.pdf page [x y|search]\n");
 		printf("\t\t-h\t\tthis help\n");
 		printf("\t\t-o outfile.pdf\toutput file\n");
 		printf("\t\t-a text\t\tadd text annotation\n");
+		printf("\t\t-r\t\tremove or change annotation\n");
 		printf("\t\tfile.pdf\tinput file\n");
 		printf("\t\tpage\t\tpage number\n");
 		printf("\t\tx y\t\tcoordinates\n");
@@ -139,7 +179,7 @@ int main(int argc, char *argv[]) {
 
 				/* add annotation */
 
-	if (text != NULL) {
+	if (text && ! remove) {
 		dprintf("position: %.f,%.f\n", area.x1, INVERT(area.y1));
 		annot = poppler_annot_text_new(doc, &area);
 		ta = (PopplerAnnotText *) annot;
@@ -149,17 +189,11 @@ int main(int argc, char *argv[]) {
 		g_object_unref(annot);
 
 		g_object_unref(page);
-
-		if (outfile == NULL)
-			outfile = pdfaddsuffix(argv[optind], "-annot");
-		dprintf("outfile: %s\n", outfile);
-		saveuri = filenametouri(outfile);
-		if (! poppler_document_save(doc, saveuri, NULL))
-			printf("error saving file %s\n", outfile);
+		savepdf(doc, argv[optind], outfile);
 		return EXIT_SUCCESS;
 	}
 
-				/* view annotations */
+				/* view or remove annotations */
 
 	list = poppler_page_get_annot_mapping(page);
 	if (search == NULL)
@@ -185,6 +219,18 @@ int main(int argc, char *argv[]) {
 			}
 		}
 		printtextannotation(page, closest);
+		if (remove) {
+			annot = closest->annot;
+			if (! text) {
+				dprintf("remove annotation\n");
+				poppler_page_remove_annot(page, annot);
+			}
+			else {
+				dprintf("change annotation\n");
+				poppler_annot_set_contents(annot, text);
+			}
+			savepdf(doc, argv[optind], outfile);
+		}
 	}
 	poppler_page_free_annot_mapping(list);
 	return EXIT_SUCCESS;

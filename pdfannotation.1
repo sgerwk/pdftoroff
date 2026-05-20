@@ -13,7 +13,7 @@ pdfannotation - view or add text annotations
 .SH SYNOPSIS
 
 .TP 14
-.B pdfannotation [\fI-o output.pdf\fP] [\fI-a text\fP] [\fI-v\fP] [\fI-h\fP]
+.B pdfannotation [\fI-o output.pdf\fP] [\fI-a text\fP] [\fI-r\fP] [\fI-v\fP] [\fI-h\fP]
 .I file.pdf
 .I page
 [\fIx y\fP|\fIsearch\fP]
@@ -21,7 +21,7 @@ pdfannotation - view or add text annotations
 .
 .
 .
-.SH OPTIONS
+.SH OPTIONS AND ARGUMENTS
 
 .TP
 .BI -o " output.pdf
@@ -33,6 +33,10 @@ output file; defaults to
 add a text annotation
 
 .TP
+.B -r
+remove or change annotation
+
+.TP
 .B -v
 verbose
 
@@ -40,12 +44,25 @@ verbose
 .B -h
 help
 
+.TP
+.I file.pdf
+input file
+
+.TP
+.I page
+page number
+
+.TP
+.BI "" x " " y | search
+position
+
+
 .
 .
 .
 .SH DESCRIPTION
 
-View or add text annotations.
+View, add or change text annotations.
 
 With no arguments, all text annotations in the page are printed. With option
 \fI-a\fP, a text annotation is added at the top-left corner.
@@ -55,6 +72,8 @@ A position can be given in two alternative ways: either as cooordinates
 or as a text to search for. A new annotation is placed there. Viewing is
 limited to the annotation closest to there.
 
+When \fI-a\fP is given in addition to \fI-r\fP,
+the annotation is not removed but changed.
 
 .
 .
