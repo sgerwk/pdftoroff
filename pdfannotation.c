@@ -206,8 +206,7 @@ int main(int argc, char *argv[]) {
 	else {
 		min = 1000000;
 		pos = area;
-		REVERSE(pos.y1);
-		dprintf("closest to %.f,%.f\n", pos.x1, pos.y1);
+		dprintf("closest to %.f,%.f\n", pos.x1, INVERT(pos.y1));
 		for (elem = list; elem; elem = elem->next) {
 			mapping = (PopplerAnnotMapping *) elem->data;
 			ta = (PopplerAnnotText *) mapping->annot;
