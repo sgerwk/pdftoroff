@@ -1,0 +1,63 @@
+.TH pdfannotation 1 "May 17, 2026"
+
+.
+.
+.
+.SH NAME
+
+pdfannotation - view or add text annotations
+
+.
+.
+.
+.SH SYNOPSIS
+
+.B pdfannotation
+[\fI-o output.pdf\fP]
+[\fI-a text\fP]
+[\fI-h\fP]
+.I file.pdf
+.I page
+[\fIx y\fP|\fIsearch\fP]
+
+.
+.
+.
+.SH OPTIONS
+
+.TP
+.BI -o " output.pdf
+output file; defaults to
+.I file-annot.pdf
+
+.TP
+.BI -a " text
+add a text annotation
+
+.TP
+.B -h
+help
+
+.
+.
+.
+.SH DESCRIPTION
+
+View or add text annotations.
+
+With no arguments, all text annotations in the page are printed. With option
+\fI-a\fP, a text annotation is added at the top-left corner.
+
+A position can be given in two alternative ways: either as cooordinates
+.I x y
+or as a text to search for. A new annotation is placed there. Viewing is
+limited to the annotation closest to there.
+
+
+.
+.
+.
+.SH SEE ALSO
+
+.I pdfannot(1)
+
