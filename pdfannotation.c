@@ -20,6 +20,8 @@
 #define INVERT(y) (height - (y))
 #define REVERSE(y) { (y) = height - (y); }
 
+#define dprintf if (verbose) printf
+
 /*
  * print an annotation
  */
@@ -30,9 +32,9 @@ void printtextannotation(PopplerPage *page, PopplerAnnotMapping *mapping) {
 	ta = (PopplerAnnotText *) mapping->annot;
 	area = mapping->area;
 	printf("%d ", poppler_page_get_index(page) + 1);
-	printf("%s ", poppler_annot_get_contents(mapping->annot));
 	printf("[%.f,%.f-%.f,%.f] ", area.x1, area.y1, area.x2, area.y2);
-	printf("%s", poppler_annot_text_get_icon(ta));
+	printf("%s ", poppler_annot_text_get_icon(ta));
+	printf("%s", poppler_annot_get_contents(mapping->annot));
 	printf("\n");
 }
 
@@ -42,6 +44,7 @@ void printtextannotation(PopplerPage *page, PopplerAnnotMapping *mapping) {
 int main(int argc, char *argv[]) {
 	int opt;
 	gboolean usage = FALSE;
+	gboolean verbose = FALSE;
 	char *infile, *outfile = NULL, *saveuri;
 	int pageno;
 	char *text = NULL;
@@ -60,13 +63,16 @@ int main(int argc, char *argv[]) {
 
 				/* arguments */
 
-	while ((opt = getopt(argc, argv, "o:a:h")) != -1)
+	while ((opt = getopt(argc, argv, "o:a:vh")) != -1)
 		switch(opt) {
 		case 'o':
 			outfile = optarg;
 			break;
 		case 'a':
 			text = optarg;
+			break;
+		case 'v':
+			verbose = TRUE;
 			break;
 		case 'h':
 		default:
@@ -118,7 +124,7 @@ int main(int argc, char *argv[]) {
 
 				/* page and position */
 
-	printf("infile: %s\n", argv[optind]);
+	dprintf("infile: %s\n", argv[optind]);
 	page = poppler_document_get_page(doc, pageno);
 	poppler_page_get_size(page, &width, &height);
 	list = search ? poppler_page_find_text(page, search) : NULL;
@@ -134,6 +140,7 @@ int main(int argc, char *argv[]) {
 				/* add annotation */
 
 	if (text != NULL) {
+		dprintf("position: %.f,%.f\n", area.x1, INVERT(area.y1));
 		annot = poppler_annot_text_new(doc, &area);
 		ta = (PopplerAnnotText *) annot;
 		poppler_annot_set_contents(annot, text);
@@ -145,7 +152,7 @@ int main(int argc, char *argv[]) {
 
 		if (outfile == NULL)
 			outfile = pdfaddsuffix(argv[optind], "-annot");
-		printf("outfile: %s\n", outfile);
+		dprintf("outfile: %s\n", outfile);
 		saveuri = filenametouri(outfile);
 		if (! poppler_document_save(doc, saveuri, NULL))
 			printf("error saving file %s\n", outfile);
@@ -166,7 +173,7 @@ int main(int argc, char *argv[]) {
 		min = 1000000;
 		pos = area;
 		REVERSE(pos.y1);
-		printf("closest to %.f,%.f\n", pos.x1, pos.y1);
+		dprintf("closest to %.f,%.f\n", pos.x1, pos.y1);
 		for (elem = list; elem; elem = elem->next) {
 			mapping = (PopplerAnnotMapping *) elem->data;
 			ta = (PopplerAnnotText *) mapping->annot;
