@@ -68,12 +68,14 @@ echo $OUT
 # commands
 
 COMMANDS='emphasize clip_page clip fit erase cover exit'
-[ $X0 = $X1 ] && [ $Y0 = $Y1 ] && COMMANDS='write red annotate reannotate exit'
+[ $X0 = $X1 ] && [ $Y0 = $Y1 ] && \
+COMMANDS='write red annotation annotate reannotate deannotate exit'
 N=$(echo $COMMANDS | wc -w)
 
 # operate on file
 
 PS3="choose command [1-$N]: "
+COLUMNS=1
 select COMMAND in $COMMANDS;
 do
 	case $COMMAND in
@@ -118,18 +120,47 @@ do
 			$SIMULATE \
 			pdfdrawover "$FILE" output "$OUT" page "$PAGE" \
 				$COLOR moveto "$CORNER" print "$S";;
+		annotation)
+			echo annotation closest to "$CORNER"
+			$SIMULATE \
+			pdfannotation "$FILE" "$PAGE" $X0 $Y0
+			echo -n "press enter to continue"
+			read S
+			echo -n "unchanged" 1>&3
+			echo 0 > pdfinteractive-ret.txt
+			exit 0;;
 		annotate)
 			echo annotate at "$CORNER" in page "$PAGE" of file "$FILE"
 			echo -n "text to add: "
 			read S
 			$SIMULATE \
 			pdfannotation -o "$OUT" -a "$S" "$FILE" "$PAGE" $X0 $Y0;;
+		deannotate)
+			echo -n "delete annotation "
+			$SIMULATE \
+			pdfannotation "$FILE" "$PAGE" $X0 $Y0 | tr -d '\n'
+			echo -n "? "
+			read S
+			if [ "$S" != y ];
+			then
+				echo -n "unchanged" 1>&3
+				echo 0 > pdfinteractive-ret.txt
+				exit 0
+			fi
+			$SIMULATE \
+			pdfannotation -o "$OUT" -r "$FILE" "$PAGE" $X0 $Y0;;
 		reannotate)
 			echo reannotate at "$CORNER" in page "$PAGE" of file "$FILE"
 			P=$(pdfannotation "$FILE" "$PAGE" $X0 $Y0 | cut -d' ' -f4-)
 			echo -n "edit note: "
 			read -e -i "$P" S
-			[ "$S" != "$P" ] && $SIMULATE \
+			if [ "$S" == "$P" ];
+			then
+				echo -n "unchanged" 1>&3
+				echo 0 > pdfinteractive-ret.txt
+				exit 0
+			fi
+			$SIMULATE \
 			pdfannotation -o "$OUT" -a "$S" -r "$FILE" "$PAGE" $X0 $Y0;;
 		exit)
 			echo -n "unchanged" 1>&3
