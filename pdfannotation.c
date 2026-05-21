@@ -20,7 +20,7 @@
 #define INVERT(y) (height - (y))
 #define REVERSE(y) { (y) = height - (y); }
 
-int verbose = FALSE;
+gboolean verbose = FALSE;
 #define dprintf if (verbose) printf
 
 /*
@@ -32,9 +32,12 @@ void printtextannotation(PopplerPage *page, PopplerAnnotMapping *mapping) {
 
 	ta = (PopplerAnnotText *) mapping->annot;
 	area = mapping->area;
-	printf("%d ", poppler_page_get_index(page) + 1);
-	printf("[%.f,%.f-%.f,%.f] ", area.x1, area.y1, area.x2, area.y2);
-	printf("%s ", poppler_annot_text_get_icon(ta));
+	if (page) {
+		printf("%d ", poppler_page_get_index(page) + 1);
+		printf("[%.f,%.f", area.x1, area.y1);
+		printf("-%.f,%.f] ", area.x2, area.y2);
+		printf("%s ", poppler_annot_text_get_icon(ta));
+	}
 	printf("%s", poppler_annot_get_contents(mapping->annot));
 	printf("\n");
 }
@@ -80,7 +83,7 @@ int main(int argc, char *argv[]) {
 	int opt;
 	gboolean usage = FALSE;
 	char *infile, *outfile = NULL;
-	gboolean remove = FALSE;
+	gboolean location = FALSE, remove = FALSE;
 	int pageno;
 	char *text = NULL;
 	char *search = NULL;
@@ -98,7 +101,7 @@ int main(int argc, char *argv[]) {
 
 				/* arguments */
 
-	while ((opt = getopt(argc, argv, "o:a:rvh")) != -1)
+	while ((opt = getopt(argc, argv, "o:a:rlvh")) != -1)
 		switch(opt) {
 		case 'o':
 			outfile = optarg;
@@ -108,6 +111,9 @@ int main(int argc, char *argv[]) {
 			break;
 		case 'r':
 			remove = TRUE;
+			break;
+		case 'l':
+			location = TRUE;
 			break;
 		case 'v':
 			verbose = TRUE;
@@ -128,12 +134,14 @@ int main(int argc, char *argv[]) {
 	if (usage) {
 		printf("usage:\n");
 		printf("\tpdfannotation [-o outfile.pdf] [-a text] [-r]\n");
-		printf("\t              [-v] [-h] ");
+		printf("\t              [-l] [-v] [-h] ");
 		printf("file.pdf page [x y|search]\n");
 		printf("\t\t-h\t\tthis help\n");
 		printf("\t\t-o outfile.pdf\toutput file\n");
 		printf("\t\t-a text\t\tadd text annotation\n");
 		printf("\t\t-r\t\tremove or change annotation\n");
+		printf("\t\t-l\t\tprint location and icon of annotations\n");
+		printf("\t\t-v\t\tverbose\n");
 		printf("\t\tfile.pdf\tinput file\n");
 		printf("\t\tpage\t\tpage number\n");
 		printf("\t\tx y\t\tcoordinates\n");
@@ -201,7 +209,7 @@ int main(int argc, char *argv[]) {
 			mapping = (PopplerAnnotMapping *) elem->data;
 			ta = (PopplerAnnotText *) mapping->annot;
 			area = mapping->area;
-			printtextannotation(page, mapping);
+			printtextannotation(location ? page : NULL, mapping);
 		}
 	else {
 		min = 1000000;
@@ -217,7 +225,7 @@ int main(int argc, char *argv[]) {
 				closest = mapping;
 			}
 		}
-		printtextannotation(page, closest);
+		printtextannotation(location ? page : NULL, closest);
 		if (remove) {
 			annot = closest->annot;
 			if (! text) {

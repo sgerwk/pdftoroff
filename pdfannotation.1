@@ -13,10 +13,9 @@ pdfannotation - view or add text annotations
 .SH SYNOPSIS
 
 .TP 14
-.B pdfannotation [\fI-o output.pdf\fP] [\fI-a text\fP] [\fI-r\fP] [\fI-v\fP] [\fI-h\fP]
-.I file.pdf
-.I page
-[\fIx y\fP|\fIsearch\fP]
+.BI pdfannotation " " [ "-o output.pdf" ] " " [ "-a text" ] " " [ "-r" ] \
+" " [ "-l" ] " " [ "-v" ] " " [ "-h" ]
+.BI "" file.pdf " " page " ["x " " y | "search" ]
 
 .
 .
@@ -35,6 +34,10 @@ add a text annotation
 .TP
 .B -r
 remove or change annotation
+
+.TP
+.B -l
+print location and icon of annotations
 
 .TP
 .B -v

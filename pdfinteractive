@@ -151,7 +151,7 @@ do
 			pdfannotation -o "$OUT" -r "$FILE" "$PAGE" $X0 $Y0;;
 		reannotate)
 			echo reannotate at "$CORNER" in page "$PAGE" of file "$FILE"
-			P=$(pdfannotation "$FILE" "$PAGE" $X0 $Y0 | cut -d' ' -f4-)
+			P=$(pdfannotation "$FILE" "$PAGE" $X0 $Y0)
 			echo -n "edit note: "
 			read -e -i "$P" S
 			if [ "$S" == "$P" ];
