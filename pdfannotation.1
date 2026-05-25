@@ -5,7 +5,7 @@
 .
 .SH NAME
 
-pdfannotation - view or add text annotations
+pdfannotation - view, add, change or remove text annotations
 
 .
 .
@@ -14,7 +14,7 @@ pdfannotation - view or add text annotations
 
 .TP 14
 .BI pdfannotation " " [ "-o output.pdf" ] " " [ "-a text" ] " " [ "-r" ] \
-" " [ "-l" ] " " [ "-v" ] " " [ "-h" ]
+" " [ "-l" ] " " [ "-d" ] " " [ "-v" ] " " [ "-h" ]
 .BI "" file.pdf " " page " ["x " " y | "search" ]
 
 .
@@ -29,15 +29,19 @@ output file; defaults to
 
 .TP
 .BI -a " text
-add a text annotation
+the text of the new annotation
 
 .TP
 .B -r
-remove or change annotation
+remove or change an annotation instead of adding a new one
 
 .TP
 .B -l
 print location and icon of annotations
+
+.TP
+.B -d
+print the annotated text
 
 .TP
 .B -v
@@ -65,18 +69,28 @@ position
 .
 .SH DESCRIPTION
 
-View, add or change text annotations.
-
 With no arguments, all text annotations in the page are printed. With option
-\fI-a\fP, a text annotation is added at the top-left corner.
+\fI-a\fP, a text annotation is added at the top-left corner. With option
+\fI-r\fP alone, the annotation is removed. With both, the annotation is
+changed.
 
 A position can be given in two alternative ways: either as cooordinates
 .I x y
-or as a text to search for. A new annotation is placed there. Viewing is
-limited to the annotation closest to there.
+or as a text to search for.
+This position is used when adding, removing,
+changing and viewing annotations:
 
-When \fI-a\fP is given in addition to \fI-r\fP,
-the annotation is not removed but changed.
+.TP
+adding
+the new annotation is placed this exact point
+
+.TP
+changing or removing
+the annotation that is changed or removed is the closest to this point
+
+.TP
+viewing
+only the annotation closest to this point is shown
 
 .
 .
