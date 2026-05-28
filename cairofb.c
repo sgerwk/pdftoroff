@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <errno.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <linux/fb.h>
@@ -33,6 +34,15 @@ struct cairofb *cairofb_init(char *devname, int doublebuffering) {
 	cairofb->dev = open(devname, O_RDWR);
 	if (cairofb->dev == -1) {
 		perror(devname);
+		if (errno == EACCES) {
+			printf("possible solutions:\n");
+			printf("\t* append username to the line video:... ");
+			printf("in /etc/group\n");
+			printf("\t* create file ");
+			printf("/etc/userdb/username:video.membership ");
+			printf("with content {}\n");
+			printf("n");
+		}
 		free(cairofb);
 		return NULL;
 	}
