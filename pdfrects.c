@@ -448,7 +448,7 @@ RectangleList *rectanglelist_new(int n) {
 	res = malloc(sizeof(RectangleList));
 	res->num = 0;
 	res->max = n;
-	res->rect = malloc(res->max * sizeof(PopplerRectangle));
+	res->rect = calloc(res->max, sizeof(PopplerRectangle));
 
 	return res;
 }
@@ -1578,7 +1578,7 @@ void rectanglelist_draw(cairo_t *cr, RectangleList *rl,
 			cairo_move_to(cr,
 				rl->rect[r].x1 + (inside ? 10 : -10.0),
 				rl->rect[r].y1 + 10.0);
-			sprintf(buf, "%d", r);
+			snprintf(buf, sizeof(buf), "%d", r);
 			cairo_show_text(cr, buf);
 		}
 	}
@@ -1792,7 +1792,7 @@ char *filenameescape(char *filename) {
 		if ((unsigned char) filename[i] >= 32 && filename[i] != '%')
 			res[j++] = filename[i];
 		else {
-			sprintf(res + j, "%%%02X", filename[i]);
+			snprintf(res + j, 4, "%%%02X", (unsigned char) filename[i]);
 			j += 3;
 		}
 	res[j] = '\0';
@@ -1832,10 +1832,8 @@ char *filenametouri(char *filename) {
 		free(esc);
 		return NULL;
 	}
-	strcpy(uri, "file:");
-	strcat(uri, dir);
-	strcat(uri, sep);
-	strcat(uri, esc);
+	snprintf(uri, strlen("file:") + strlen(dir) + strlen(sep) + strlen(esc) + 1,
+		"file:%s%s%s", dir, sep, esc);
 
 	free(esc);
 	free(dir);
@@ -1854,9 +1852,8 @@ char *suffixextension(char *in, char *suffix, char *ext) {
 		*pos = '\0';
 
 	out = malloc(strlen(in) + strlen(suffix) + strlen(ext) + 1);
-	strcpy(out, base);
-	strcat(out, suffix);
-	strcat(out, ext);
+	snprintf(out, strlen(base) + strlen(suffix) + strlen(ext) + 1,
+		"%s%s%s", base, suffix, ext);
 
 	free(base);
 	return out;
