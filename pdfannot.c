@@ -183,13 +183,15 @@ int printcontent(PopplerPage *dpage, PopplerRectangle r, char *indent) {
 /*
  * print the annotations in a page
  */
-int printannotations(PopplerPage *page) {
+#define NUMBERS 0x02
+int printannotations(PopplerPage *page, int flags) {
 	GList *annots, *s;
 	int present = FALSE;
 	PopplerAnnotMapping *m;
 	int type;
 	PopplerRectangle r;
 	double width, height;
+	int n;
 
 	if (! POPPLER_IS_PAGE(page))
 		return FALSE;
@@ -201,6 +203,7 @@ int printannotations(PopplerPage *page) {
 		printf("no annotations in page %d\n",
 			poppler_page_get_index(page) + 1);
 
+	n = 0;
 	for (s = annots; s != NULL; s = s->next) {
 		m = (PopplerAnnotMapping *) s->data;
 		type = poppler_annot_get_annot_type(m->annot);
@@ -209,6 +212,9 @@ int printannotations(PopplerPage *page) {
 			printheader("ANNOTATIONS", page);
 			present = TRUE;
 		}
+
+		if (flags & NUMBERS)
+			printf("%d. ", ++n);
 
 		r.x1 = m->area.x1;
 		r.y1 = height - m->area.y2;
@@ -482,7 +488,7 @@ int main(int argn, char *argv[]) {
 	last = -1;
 	flags = 0;
 
-	while (-1 != (opt = getopt(argn, argv, "wtaldvh")))
+	while (-1 != (opt = getopt(argn, argv, "wtaldnvh")))
 		switch (opt) {
 		case 't':
 			outformat = &textformat;
@@ -498,6 +504,9 @@ int main(int argn, char *argv[]) {
 			break;
 		case 'd':
 			flags |= DESTCONTENT;
+			break;
+		case 'n':
+			flags |= NUMBERS;
 			break;
 		case 'v':
 			verbose = TRUE;
@@ -521,6 +530,7 @@ int main(int argn, char *argv[]) {
 		printf("\t\t-w\toutput is html\n");
 		printf("\t\t-a\tonly output annotations\n");
 		printf("\t\t-a\tonly output links\n");
+		printf("\t\t-n\tprint progressive number of annotations\n");
 		printf("\t\t-d\tprint text at destination of inner links\n");
 		printf("\t\t-v\tprint pages without links or annotations\n");
 		printf("\t\t-h\tthis help\n");
@@ -554,7 +564,7 @@ int main(int argn, char *argv[]) {
 	for (n = first; n < (last == -1 ? npages : last); n++) {
 		page = poppler_document_get_page(doc, n);
 		if (annotations)
-			present = present | (printannotations(page) << 0);
+			present = present | (printannotations(page, flags) << 0);
 		if (links)
 			present = present | (printlinks(doc, page, flags) << 1);
 		g_object_unref(page);

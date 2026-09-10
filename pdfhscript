@@ -63,7 +63,7 @@ fi
 
 if [ "$KEY" = 'l' ];
 then
-	pdfannot -w -d "$FILE" $PAGE > hovacui-out.html
+	pdfannot -w -d -n "$FILE" $PAGE > hovacui-out.html
 	[ $? = 0 ] && rm hovacui-out.html && \
 		echo -n "no links in page" && exit
 
