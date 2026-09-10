@@ -500,6 +500,7 @@ int cairoui_list(int c, struct cairoui *cairoui, char *viewtext[],
 		startx, starty, width - marginx * 2, titleheight);
 	cairo_fill(cairoui->cr);
 	cairo_set_source_rgb(cairoui->cr, 0.0, 0.0, 0.0);
+	cairo_set_font_size(cairoui->cr, cairoui->fontsize);
 	cairo_move_to(cairoui->cr,
 		startx + borderx, starty + bordery + cairoui->extents.ascent);
 	cairo_show_text(cairoui->cr, viewtext[0]);
@@ -634,6 +635,7 @@ int cairoui_field(int c, struct cairoui *cairoui,
 	cairo_fill(cairoui->cr);
 
 	cairo_set_source_rgb(cairoui->cr, 0.0, 0.0, 0.0);
+	cairo_set_font_size(cairoui->cr, cairoui->fontsize);
 	cairo_move_to(cairoui->cr,
 		startx + 10.0,
 		starty + 5.0 + cairoui->extents.ascent);
@@ -763,6 +765,7 @@ void cairoui_label(struct cairoui *cairoui, char *string, int bottom) {
 	cairo_fill(cairoui->cr);
 
 	cairo_set_source_rgb(cairoui->cr, 0.8, 0.8, 0.8);
+	cairo_set_font_size(cairoui->cr, cairoui->fontsize);
 	cairo_move_to(cairoui->cr, x, y - 10.0 + cairoui->extents.ascent);
 	cairo_show_text(cairoui->cr, string);
 

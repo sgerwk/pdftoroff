@@ -367,7 +367,7 @@ r
 reload the document (see also \fIDOCUMENT RELOAD\fP, below)
 .TP
 .B
-a
+A
 draw to the rectangle specified by the \fIarea\fP config option;
 press again to return to default mode
 .TP
@@ -384,6 +384,10 @@ same as \fIb\fP, but with the visible part of the current textbox
 s
 show or hide the file name, the current view and fit mode and the current page
 number
+.TP
+.B
+a
+show or hide the annotation numbers
 .TP
 .B
 x
@@ -592,6 +596,10 @@ do not draw the textbox and the page box
 .TP
 .BI nopagelabel
 do not show the page number when it changes; they are still shown by key 's'
+.TP
+.BI noannotations
+do not show the annotation numbers;
+still shown by pressing 'a'
 .TP
 .B night
 night mode: pdf file is shown in reverse colors

@@ -486,6 +486,9 @@ struct output {
 	/* show the page number when it changes */
 	gboolean pagelabel;
 
+	/* show the annotations */
+	gboolean annotations;
+
 	/* reload, or load a new file */
 	int *reload;
 
@@ -2020,6 +2023,9 @@ int document(int c, struct cairoui *cairoui) {
 	case 'C':
 		savecurrenttextbox(cairoui);
 		break;
+	case 'a':
+		output->annotations = ! output->annotations;
+		break;
 	case 'w':
 		return WINDOW_WIDTH;
 	case 't':
@@ -2099,7 +2105,7 @@ int document(int c, struct cairoui *cairoui) {
 		position->scrollx = 0;
 		position->scrolly = 0;
 		break;
-	case 'a':
+	case 'A':
 		cairoui->usearea = ! cairoui->usearea;
 		cairoui_reset(cairoui);
 		break;
@@ -2154,6 +2160,7 @@ int help(int c, struct cairoui *cairoui) {
 		"g G        go to page or previous page",
 		"/ ?        search forward or backward",
 		"n p        next or previous search match",
+		"a          show or hide the annotation numbers",
 		"s          show current mode and page",
 		"b          show and save current box",
 		"r          reload the current document",
@@ -3311,6 +3318,42 @@ void pageborder(struct position *position, struct output *output) {
 }
 
 /*
+ * draw the annotation numbers
+ */
+void annotations(struct cairoui *cairoui) {
+	struct position *position = POSITION(cairoui);
+	struct output *output = OUTPUT(cairoui);
+	double width, height;
+	PopplerAnnotMapping *m;
+	GList *annots, *s;
+	int n;
+	char number[20];
+
+	if (! output->annotations)
+		return;
+
+	poppler_page_get_size(position->page, &width, &height);
+	annots = poppler_page_get_annot_mapping(position->page);
+
+	n = 0;
+	srand(time(NULL));
+	cairo_set_font_size(output->cr, 18);
+	for (s = annots; s != NULL; s = s->next) {
+		m = (PopplerAnnotMapping *) s->data;
+		if (poppler_annot_get_annot_type(m->annot) == POPPLER_ANNOT_LINK)
+			continue;
+		sprintf(number, "%d", ++n);
+		cairo_move_to(output->cr,
+			m->area.x1 + rand() % 25 - 8,
+			height - m->area.y1 + rand() % 30 - 15);
+		cairo_set_source_rgb(output->cr, 0, 0, 1.0);
+		cairo_show_text(output->cr, number);
+	}
+
+	poppler_page_free_annot_mapping(annots);
+}
+
+/*
  * draw the document
  */
 void draw(struct cairoui *cairoui) {
@@ -3324,7 +3367,11 @@ void draw(struct cairoui *cairoui) {
 		return;
 	}
 	cairoui_logstatus(LEVEL_DRAW, NULL, 0, cairoui, KEY_NONE);
-	poppler_page_render(position->page, output->cr);
+	poppler_page_render_full(position->page, output->cr, FALSE,
+		output->annotations ?
+			POPPLER_RENDER_ANNOTS_ALL :
+			POPPLER_RENDER_ANNOTS_LINK);
+	annotations(cairoui);
 
 	if (output->night) {
 		cairo_set_source_rgb(output->cr, 1, 1, 1);
@@ -3347,7 +3394,6 @@ void draw(struct cairoui *cairoui) {
 	}
 	selection(cairoui, output->found, output->current);
 	selection(cairoui, output->selection, -1);
-
 }
 
 /*
@@ -3691,6 +3737,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	output.nextfile = NULL;
 	output.drawbox = TRUE;
 	output.pagelabel = TRUE;
+	output.annotations = TRUE;
 	output.current = CURRENT_UNUSED;
 	output.pdfout = "selection-%d.pdf";
 	output.postsave = NULL;
@@ -3801,6 +3848,8 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 				output.drawbox = FALSE;
 			if (! strcmp(s, "nopagelabel"))
 				output.pagelabel = FALSE;
+			if (! strcmp(s, "noannotations"))
+				output.annotations = FALSE;
 			if (! strcmp(s, "notutorial"))
 				firstwindow = WINDOW_DOCUMENT;
 			if (! strcmp(s, "totalpages"))
