@@ -56,13 +56,21 @@ struct outformat htmlformat = {
 /*
  * print a string and free it
  */
-void printfree(gchar *prefix, gchar *s, gchar *suffix) {
-	char *p;
+void printfree(gchar *prefix, gchar *s, gchar *newline, gchar *suffix) {
+	char *p, *n;
 	if (s == NULL)
 		return;
+	printf("%s", prefix);
 	for (p = strchr(s, '\r'); p != NULL; p = strchr(p + 1, '\r'))
 		*p = '\n';
-	printf("%s%s%s", prefix, s, suffix);
+	for (p = s; n != NULL; p = n + 1) {
+		n = strchr(p, '\n');
+		if (n != NULL)
+			*n = '\0';
+		printf("%s", p);
+		printf("%s", newline);
+	}
+	printf("%s", suffix);
 	g_free(s);
 }
 
@@ -146,12 +154,13 @@ int printannotationmarkup(PopplerAnnotMarkup *markup) {
 	type = poppler_annot_get_annot_type(POPPLER_ANNOT(markup));
 
 	printannotationname(POPPLER_ANNOT(markup));
-	printfree(" ", poppler_annot_markup_get_label(markup), "");
-	printfree(" ", poppler_annot_markup_get_subject(markup), "");
+	printfree(" ", poppler_annot_markup_get_label(markup), "", "");
+	printfree(" ", poppler_annot_markup_get_subject(markup), "", "");
 
 	if (type == POPPLER_ANNOT_FILE_ATTACHMENT) {
 		att = POPPLER_ANNOT_FILE_ATTACHMENT(markup);
-		printfree(" ", poppler_annot_file_attachment_get_name(att), "");
+		printfree(" ", poppler_annot_file_attachment_get_name(att),
+		          "", "");
 	}
 
 	if (! poppler_annot_markup_has_popup(markup)) {
@@ -247,9 +256,11 @@ int printannotations(PopplerPage *page, int flags) {
 		}
 
 		printfree("\tname: ", poppler_annot_get_name(m->annot),
+		                      "",
 		                      outformat->newline);
 		printfree("\tcontent: ",
-			poppler_annot_get_contents(m->annot),
+		                      poppler_annot_get_contents(m->annot),
+			              outformat->newline,
 			              outformat->newline);
 
 		printcontent(page, r, "	");
