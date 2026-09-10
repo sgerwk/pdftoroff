@@ -564,9 +564,9 @@ int main(int argn, char *argv[]) {
 	for (n = first; n < (last == -1 ? npages : last); n++) {
 		page = poppler_document_get_page(doc, n);
 		if (annotations)
-			present = present | (printannotations(page, flags) << 0);
+			present |= printannotations(page, flags) << 0;
 		if (links)
-			present = present | (printlinks(doc, page, flags) << 1);
+			present |= printlinks(doc, page, flags) << 1;
 		g_object_unref(page);
 	}
 
