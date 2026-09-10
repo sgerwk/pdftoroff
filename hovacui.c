@@ -475,16 +475,16 @@ struct output {
 	int offset;
 
 	/* show the ui (menu and help) */
-	int ui;
+	gboolean ui;
 
 	/* apply the changes immediately from the ui */
-	int immediate;
+	gboolean immediate;
 
 	/* draw draw the textbox and page box */
-	int drawbox;
+	gboolean drawbox;
 
 	/* show the page number when it changes */
-	int pagelabel;
+	gboolean pagelabel;
 
 	/* reload, or load a new file */
 	int *reload;
