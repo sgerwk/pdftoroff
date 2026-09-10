@@ -63,7 +63,7 @@ void printfree(gchar *prefix, gchar *s, gchar *newline, gchar *suffix) {
 	printf("%s", prefix);
 	for (p = strchr(s, '\r'); p != NULL; p = strchr(p + 1, '\r'))
 		*p = '\n';
-	for (p = s; n != NULL; p = n + 1) {
+	for (p = s, n = s; n != NULL; p = n + 1) {
 		n = strchr(p, '\n');
 		if (n != NULL)
 			*n = '\0';
