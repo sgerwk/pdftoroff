@@ -489,6 +489,12 @@ struct output {
 	/* show the annotations */
 	gboolean annotations;
 
+	/* show the first characters of each annotation content */
+	gint content;
+
+	/* text annotation marker */
+	int marker;
+
 	/* reload, or load a new file */
 	int *reload;
 
@@ -3318,7 +3324,60 @@ void pageborder(struct position *position, struct output *output) {
 }
 
 /*
- * draw the annotation numbers
+ * draw the annotation marker
+ */
+#define MARKER_NONE     0
+#define MARKER_BALLOON  1
+#define MARKER_TRIANGLE 2
+#define MARKER_CIRCLE   3
+void markers(struct output *output, gint type, double x, double y) {
+	if (type != POPPLER_ANNOT_TEXT)
+		return;
+	cairo_set_source_rgb(output->cr, 0.5, 0, 0);
+	switch (output->marker) {
+	case MARKER_TRIANGLE:
+		cairo_move_to(output->cr, x + 0, y - 8);
+		cairo_line_to(output->cr, x + 0, y + 0);
+		cairo_line_to(output->cr, x + 8, y + 0);
+		cairo_close_path(output->cr);
+		break;
+	case MARKER_CIRCLE:
+		cairo_move_to(output->cr, x + 4, y);
+		cairo_arc(output->cr, x, y, 4, 0, 7);
+		break;
+	}
+	cairo_stroke(output->cr);
+}
+
+/*
+ * draw the annotation number and content
+ */
+void content(struct output *output, PopplerAnnotMapping *m, int n,
+		double height) {
+	char number[20];
+	gchar *content;
+
+	cairo_move_to(output->cr,
+		m->area.x1 + 8,
+		height - m->area.y1 + rand() % 30 - 18);
+
+	sprintf(number, "%d", n);
+	cairo_set_source_rgb(output->cr, 0, 0, 1.0);
+	cairo_set_font_size(output->cr, 15);
+	cairo_show_text(output->cr, number);
+
+	if (output->content == 0)
+		return;
+	content = poppler_annot_get_contents(m->annot);
+	content[output->content] = '\0';
+	cairo_set_source_rgb(output->cr, 0.5, 0, 0);
+	cairo_set_font_size(output->cr, 12);
+	cairo_show_text(output->cr, ".");
+	cairo_show_text(output->cr, content);
+}
+
+/*
+ * draw the annotations
  */
 void annotations(struct cairoui *cairoui) {
 	struct position *position = POSITION(cairoui);
@@ -3327,7 +3386,7 @@ void annotations(struct cairoui *cairoui) {
 	PopplerAnnotMapping *m;
 	GList *annots, *s;
 	int n;
-	char number[20];
+	gint type;
 
 	if (! output->annotations)
 		return;
@@ -3337,17 +3396,15 @@ void annotations(struct cairoui *cairoui) {
 
 	n = 0;
 	srand(time(NULL));
-	cairo_set_font_size(output->cr, 18);
 	for (s = annots; s != NULL; s = s->next) {
 		m = (PopplerAnnotMapping *) s->data;
-		if (poppler_annot_get_annot_type(m->annot) == POPPLER_ANNOT_LINK)
+
+		type = poppler_annot_get_annot_type(m->annot);
+		if (type == POPPLER_ANNOT_LINK)
 			continue;
-		sprintf(number, "%d", ++n);
-		cairo_move_to(output->cr,
-			m->area.x1 + rand() % 25 - 8,
-			height - m->area.y1 + rand() % 30 - 15);
-		cairo_set_source_rgb(output->cr, 0, 0, 1.0);
-		cairo_show_text(output->cr, number);
+
+		content(output, m, ++n, height);
+		markers(output, type, m->area.x1, height - m->area.y1);
 	}
 
 	poppler_page_free_annot_mapping(annots);
@@ -3368,9 +3425,12 @@ void draw(struct cairoui *cairoui) {
 	}
 	cairoui_logstatus(LEVEL_DRAW, NULL, 0, cairoui, KEY_NONE);
 	poppler_page_render_full(position->page, output->cr, FALSE,
-		output->annotations ?
-			POPPLER_RENDER_ANNOTS_ALL :
-			POPPLER_RENDER_ANNOTS_LINK);
+		! output->annotations ?
+			POPPLER_RENDER_ANNOTS_LINK :
+			POPPLER_RENDER_ANNOTS_ALL &
+				(output->marker == MARKER_BALLOON ?
+					~ 0 :
+					~ POPPLER_RENDER_ANNOTS_TEXT));
 	annotations(cairoui);
 
 	if (output->night) {
@@ -3738,6 +3798,8 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	output.drawbox = TRUE;
 	output.pagelabel = TRUE;
 	output.annotations = TRUE;
+	output.content = 0;
+	output.marker = MARKER_BALLOON;
 	output.current = CURRENT_UNUSED;
 	output.pdfout = "selection-%d.pdf";
 	output.postsave = NULL;
@@ -3811,6 +3873,16 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 			cairoui.fontsize = d;
 		if (sscanf(configline, "margin %lg", &d) == 1)
 			cairoui.margin = d;
+		if (sscanf(configline, "content %d", &i) == 1)
+			output.content = i;
+		if (sscanf(configline, "marker %s", s) == 1) {
+			if (! strcmp(s, "none"))
+				output.marker = MARKER_NONE;
+			if (! strcmp(s, "triangle"))
+				output.marker = MARKER_TRIANGLE;
+			if (! strcmp(s, "circle"))
+				output.marker = MARKER_CIRCLE;
+		}
 		n = sscanf(configline, "area [%lg,%lg,%lg,%lg]",
 			&cairoui.area.x, &cairoui.area.y,
 			&cairoui.area.width, &cairoui.area.height);
@@ -3837,7 +3909,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 		if (sscanf(configline, "log %d", &i) == 1)
 			cairoui.log = i;
 
-		if (sscanf(configline, "%s", s) == 1) {
+		if (sscanf(configline, "%s %s", s, r) == 1) {
 			if (! strcmp(s, "noui"))
 				output.ui = FALSE;
 			if (! strcmp(s, "immediate"))
@@ -3850,6 +3922,10 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 				output.pagelabel = FALSE;
 			if (! strcmp(s, "noannotations"))
 				output.annotations = FALSE;
+			if (! strcmp(s, "content"))
+				output.content = 20;
+			if (! strcmp(s, "marker"))
+				output.marker = MARKER_TRIANGLE;
 			if (! strcmp(s, "notutorial"))
 				firstwindow = WINDOW_DOCUMENT;
 			if (! strcmp(s, "totalpages"))
@@ -3877,9 +3953,9 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 				output.current = CURRENT_NONE;
 			if (! strcmp(s, "nocachefile"))
 				output.cachefile = FALSE;
-			if (! strcmp(s, "log script"))
-				cairoui.log = -1;
 		}
+		if (! strcmp(configline, "log script\n"))
+			cairoui.log = -1;
 	}
 	if (config != NULL)
 		fclose(config);
