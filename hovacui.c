@@ -490,7 +490,7 @@ struct output {
 	gboolean annotations;
 
 	/* show the first characters of each annotation content */
-	gint content;
+	unsigned long content;
 
 	/* text annotation marker */
 	int marker;
@@ -3369,7 +3369,10 @@ void content(struct output *output, PopplerAnnotMapping *m, int n,
 	if (output->content == 0)
 		return;
 	content = poppler_annot_get_contents(m->annot);
-	content[output->content] = '\0';
+	if (content == NULL)
+		return;
+	if (output->content < strlen(content))
+		content[output->content] = '\0';
 	cairo_set_source_rgb(output->cr, 0.5, 0, 0);
 	cairo_set_font_size(output->cr, 12);
 	cairo_show_text(output->cr, ".");
