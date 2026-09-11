@@ -753,6 +753,7 @@ void cairoui_label(struct cairoui *cairoui, char *string, int bottom) {
 
 	cairo_identity_matrix(cairoui->cr);
 
+	cairo_set_font_size(cairoui->cr, cairoui->fontsize);
 	cairo_text_extents(cairoui->cr, string, &extents);
 	width = extents.x_advance;
 	h = cairoui->extents.height;
@@ -765,7 +766,6 @@ void cairoui_label(struct cairoui *cairoui, char *string, int bottom) {
 	cairo_fill(cairoui->cr);
 
 	cairo_set_source_rgb(cairoui->cr, 0.8, 0.8, 0.8);
-	cairo_set_font_size(cairoui->cr, cairoui->fontsize);
 	cairo_move_to(cairoui->cr, x, y - 10.0 + cairoui->extents.ascent);
 	cairo_show_text(cairoui->cr, string);
 
