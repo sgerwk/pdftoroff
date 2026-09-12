@@ -845,6 +845,32 @@ gboolean rectanglelist_place(PopplerRectangle *page,
 }
 
 /*
+ * position a rectangle around a point without intersecting the others
+ */
+gboolean rectanglelist_around(RectangleList *rl, PopplerRectangle *r,
+		gdouble cx, gdouble cy,
+		PopplerRectangle *moved) {
+	PopplerRectangle or;
+	gdouble x, y;
+	int d;
+
+	rectangle_copy(&or, r);
+	rectangle_shift(&or, -or.x1, -or.y1);
+
+	srand(42);
+	for (d = 1; d < 100; d += 5) {
+		x = cx + (rand() % d) - d / 2;
+		y = cy + (rand() % d) - d / 2;
+		rectangle_copy(moved, &or);
+		rectangle_shift(moved, x, y);
+		if (rectanglelist_overlap(rl, moved) == -1)
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
+/*
  * append the subtraction of rectangle sub from list orig to list res:
  *	res += orig - sub
  *

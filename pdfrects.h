@@ -164,6 +164,11 @@ gboolean rectanglelist_place(PopplerRectangle *page,
 		RectangleList *rl, PopplerRectangle *r,
 		PopplerRectangle *moved);
 
+/* position a rectangle around a point without intersecting the others */
+gboolean rectanglelist_around(RectangleList *rl, PopplerRectangle *r,
+		gdouble cx, gdouble cy,
+		PopplerRectangle *moved);
+
 /* subtract a rectangle list from another: orig -= sub */
 gboolean rectanglelist_subtract(RectangleList **orig, RectangleList *sub,
 		PopplerRectangle *cont, RectangleBound *b);

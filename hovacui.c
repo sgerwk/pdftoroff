@@ -3353,30 +3353,46 @@ void markers(struct output *output, gint type, double x, double y) {
  * draw the annotation number and content
  */
 void content(struct output *output, PopplerAnnotMapping *m, int n,
-		double height) {
+		RectangleList *list, double height) {
+	gdouble x, y;
 	char number[20];
 	gchar *content;
+	cairo_text_extents_t te;
+	PopplerRectangle text, moved;
 
-	cairo_move_to(output->cr,
-		m->area.x1 + 8,
-		height - m->area.y1 + rand() % 30 - 18);
+	x = m->area.x1;
+	y = height - m->area.y1;
 
-	sprintf(number, "%d", n);
 	cairo_set_source_rgb(output->cr, 0, 0, 1.0);
-	cairo_set_font_size(output->cr, 15);
-	cairo_show_text(output->cr, number);
+	cairo_move_to(output->cr, x, y);
 
+	cairo_set_font_size(output->cr, 15);
 	if (output->content == 0)
-		return;
-	content = poppler_annot_get_contents(m->annot);
-	if (content == NULL)
-		return;
-	if (output->content < strlen(content))
-		content[output->content] = '\0';
-	cairo_set_source_rgb(output->cr, 0.5, 0, 0);
-	cairo_set_font_size(output->cr, 12);
-	cairo_show_text(output->cr, ".");
-	cairo_show_text(output->cr, content);
+		sprintf(number, "%d", n);
+	else if ((content = poppler_annot_get_contents(m->annot)) == NULL)
+		sprintf(number, "%d", n);
+	else {
+		cairo_set_font_size(output->cr, 12);
+		if (output->content < strlen(content))
+			content[output->content] = '\0';
+		sprintf(number, "%d.%s", n, content);
+	}
+
+	cairo_text_extents(output->cr, number, &te);
+	text.x1 = 0;
+	text.y1 = 0;
+	text.x2 = te.width;
+	text.y2 = te.height;
+	if (list != NULL && rectanglelist_around(list, &text, x, y, &moved))
+		rectanglelist_add(list, &moved);
+	if (moved.x1 == x && moved.y1 == y)
+		cairo_move_to(output->cr, moved.x1 + 5, moved.y1);
+	else {
+		cairo_line_to(output->cr, moved.x1, moved.y1);
+		cairo_move_to(output->cr, moved.x1 + 3, moved.y1);
+	}
+	cairo_show_text(output->cr, number);
+	cairo_stroke(output->cr);
 }
 
 /*
@@ -3388,6 +3404,7 @@ void annotations(struct cairoui *cairoui) {
 	double width, height;
 	PopplerAnnotMapping *m;
 	GList *annots, *s;
+	RectangleList *boxes;
 	int n;
 	gint type;
 
@@ -3396,6 +3413,8 @@ void annotations(struct cairoui *cairoui) {
 
 	poppler_page_get_size(position->page, &width, &height);
 	annots = poppler_page_get_annot_mapping(position->page);
+
+	boxes = rectanglelist_new(200);
 
 	n = 0;
 	srand(time(NULL));
@@ -3406,9 +3425,11 @@ void annotations(struct cairoui *cairoui) {
 		if (type == POPPLER_ANNOT_LINK)
 			continue;
 
-		content(output, m, ++n, height);
+		content(output, m, ++n, boxes, height);
 		markers(output, type, m->area.x1, height - m->area.y1);
 	}
+
+	rectanglelist_free(boxes);
 
 	poppler_page_free_annot_mapping(annots);
 }
