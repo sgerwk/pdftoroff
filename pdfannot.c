@@ -216,6 +216,8 @@ int printannotations(PopplerPage *page, int flags) {
 	for (s = annots; s != NULL; s = s->next) {
 		m = (PopplerAnnotMapping *) s->data;
 		type = poppler_annot_get_annot_type(m->annot);
+		if (type == POPPLER_ANNOT_LINK)
+			continue;	// links are actions, print there
 
 		if (! present && type != POPPLER_ANNOT_LINK) {
 			printheader("ANNOTATIONS", page);
