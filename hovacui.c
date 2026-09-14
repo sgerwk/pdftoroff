@@ -486,8 +486,8 @@ struct output {
 	/* show the page number when it changes */
 	gboolean pagelabel;
 
-	/* show the annotations */
-	gboolean annotations;
+	/* how annotations are shown */
+	gint annotations;
 
 	/* show the first characters of each annotation content */
 	unsigned long content;
@@ -1964,6 +1964,19 @@ int keyscript(struct cairoui *cairoui, char c, gboolean unescaped) {
 }
 
 /*
+ * how annotations are shown
+ */
+#define ANNOTATION_NONE    0
+#define ANNOTATION_MARKER  1
+#define ANNOTATION_NUMBER  2
+#define ANNOTATION_CONTENT 3
+#define ANNOTATION_ROTATE  4
+
+#define ANNOTATION_HIDE    5
+#define ANNOTATION_FULL    6
+#define ANNOTATION_SHOW    7
+
+/*
  * the windows
  */
 enum window {
@@ -2030,7 +2043,12 @@ int document(int c, struct cairoui *cairoui) {
 		savecurrenttextbox(cairoui);
 		break;
 	case 'a':
-		output->annotations = ! output->annotations;
+		output->annotations =
+			output->annotations < ANNOTATION_ROTATE ?
+				(output->annotations + 1) % ANNOTATION_ROTATE :
+				output->annotations == ANNOTATION_FULL ?
+					ANNOTATION_HIDE :
+					ANNOTATION_FULL;
 		break;
 	case 'w':
 		return WINDOW_WIDTH;
@@ -3138,7 +3156,7 @@ void pagenumber(struct cairoui *cairoui) {
 	hasannots = checkannotations(position);
 	hasactions = checkactions(position);
 	other = hasannots || hasactions ? " - contains" : "";
-	annots = hasannots ? " annotations" : "";
+	annots = hasannots ? " (a)nnotations" : "";
 	actions = hasactions ? hasannots ? " and actions" : " actions" : "";
 
 	t = time(NULL);
@@ -3330,7 +3348,12 @@ void pageborder(struct position *position, struct output *output) {
 #define MARKER_BALLOON  1
 #define MARKER_TRIANGLE 2
 #define MARKER_CIRCLE   3
-void markers(struct output *output, gint type, double x, double y) {
+void marker(struct output *output, gint type, double x, double y) {
+	if (output->annotations < ANNOTATION_MARKER)
+		return;
+	if (output->annotations == ANNOTATION_HIDE)
+		return;
+
 	if (type != POPPLER_ANNOT_TEXT)
 		return;
 	cairo_set_source_rgb(output->cr, 0.5, 0, 0);
@@ -3355,10 +3378,15 @@ void markers(struct output *output, gint type, double x, double y) {
 void content(struct output *output, PopplerAnnotMapping *m, int n,
 		RectangleList *list, double height) {
 	gdouble x, y;
-	char number[20];
+	char *number;
 	gchar *content;
 	cairo_text_extents_t te;
 	PopplerRectangle text, moved;
+
+	if (output->annotations < ANNOTATION_NUMBER)
+		return;
+	if (output->annotations == ANNOTATION_HIDE)
+		return;
 
 	x = m->area.x1;
 	y = height - m->area.y1;
@@ -3366,8 +3394,10 @@ void content(struct output *output, PopplerAnnotMapping *m, int n,
 	cairo_set_source_rgb(output->cr, 0, 0, 1.0);
 	cairo_move_to(output->cr, x, y);
 
+	number = malloc(20 + output->content);
+
 	cairo_set_font_size(output->cr, 15);
-	if (output->content == 0)
+	if (output->annotations == ANNOTATION_NUMBER)
 		sprintf(number, "%d", n);
 	else if ((content = poppler_annot_get_contents(m->annot)) == NULL)
 		sprintf(number, "%d", n);
@@ -3393,6 +3423,7 @@ void content(struct output *output, PopplerAnnotMapping *m, int n,
 	}
 	cairo_show_text(output->cr, number);
 	cairo_stroke(output->cr);
+	free(number);
 }
 
 /*
@@ -3408,13 +3439,16 @@ void annotations(struct cairoui *cairoui) {
 	int n;
 	gint type;
 
-	if (! output->annotations)
+	if (output->annotations == ANNOTATION_NONE)
 		return;
 
 	poppler_page_get_size(position->page, &width, &height);
 	annots = poppler_page_get_annot_mapping(position->page);
 
-	boxes = rectanglelist_new(200);
+	boxes = output->annotations < ANNOTATION_NUMBER ||
+		output->annotations == ANNOTATION_NONE ?
+			NULL :
+			rectanglelist_new(200);
 
 	n = 0;
 	srand(time(NULL));
@@ -3426,7 +3460,7 @@ void annotations(struct cairoui *cairoui) {
 			continue;
 
 		content(output, m, ++n, boxes, height);
-		markers(output, type, m->area.x1, height - m->area.y1);
+		marker(output, type, m->area.x1, height - m->area.y1);
 	}
 
 	rectanglelist_free(boxes);
@@ -3449,7 +3483,8 @@ void draw(struct cairoui *cairoui) {
 	}
 	cairoui_logstatus(LEVEL_DRAW, NULL, 0, cairoui, KEY_NONE);
 	poppler_page_render_full(position->page, output->cr, FALSE,
-		! output->annotations ?
+		output->annotations == ANNOTATION_NONE ||
+		output->annotations == ANNOTATION_HIDE ?
 			POPPLER_RENDER_ANNOTS_LINK :
 			POPPLER_RENDER_ANNOTS_ALL &
 				(output->marker == MARKER_BALLOON ?
@@ -3821,8 +3856,8 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	output.nextfile = NULL;
 	output.drawbox = TRUE;
 	output.pagelabel = TRUE;
-	output.annotations = TRUE;
-	output.content = 0;
+	output.annotations = ANNOTATION_MARKER;
+	output.content = 20;
 	output.marker = MARKER_BALLOON;
 	output.current = CURRENT_UNUSED;
 	output.pdfout = "selection-%d.pdf";
@@ -3945,7 +3980,9 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 			if (! strcmp(s, "nopagelabel"))
 				output.pagelabel = FALSE;
 			if (! strcmp(s, "noannotations"))
-				output.annotations = FALSE;
+				output.annotations = ANNOTATION_NONE;
+			if (! strcmp(s, "fullannotations"))
+				output.annotations = ANNOTATION_FULL;
 			if (! strcmp(s, "content"))
 				output.content = 20;
 			if (! strcmp(s, "marker"))

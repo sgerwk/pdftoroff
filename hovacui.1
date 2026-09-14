@@ -387,7 +387,7 @@ number
 .TP
 .B
 a
-show or hide the annotation numbers
+change how annotations are shown (see \fIANNOTATIONS AND ACTIONS\fP, below)
 .TP
 .B
 x
@@ -598,8 +598,12 @@ do not draw the textbox and the page box
 do not show the page number when it changes; they are still shown by key 's'
 .TP
 .BI noannotations
-do not show the annotation numbers;
+do not initially show the annotations;
 still shown by pressing 'a'
+.TP
+.BI fullannotations
+show the content of text annotations;
+hidden by pressing 'a'
 .TP
 .BI content " [n]
 show the first \fIn\fP characters of each annotation; the default is 20
@@ -727,12 +731,25 @@ pages, it moves to page eight.
 .
 .SH ANNOTATIONS AND ACTIONS
 
-Annotations and actions are not shown. When the current page contains some of
-these, \fBhovacui\fP shows a label "contains annotations and actions" along
-with the page number. This label is not shown if the only annotations and
-actions in the page are internal links. The rationale is that the user is
-warned about the presence of content that is now shown, so that it can be
-retrieved with other programs, such as \fBpdfannot\fP.
+Text annotations are shown only by their markers by default. Their progressive
+number is shown by pressing 'a'. The beginning of their content is shown by
+pressing 'a' again. A further pression hides all of this. This is also the
+initial state with the \fInoannotation\fP configuration line. Pressing 'a' once
+again restarts the loop.
+
+If the \fIfullannotation\fP configuration line is given, annotation are first
+shown in full (marker, number and beginning of content). Pressing 'a' hides and
+the then restores the annotations.
+
+The progressive numbers allows finding the full content of annotations by other
+programs, such as \fBpdfannot\fP. The enclosed \fIpdfhscript\fP shows them in a
+browser.
+
+Actions are not shown. When the current page contains some of these,
+\fBhovacui\fP shows a label "contains actions" along with the page number. This
+label is not shown if the only actions in the page are internal links. The
+rationale is that the user is warned about the presence of content that is now
+shown, so that it can be retrieved with other programs, such as \fBpdfannot\fP.
 
 .
 .
