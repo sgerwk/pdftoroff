@@ -3393,22 +3393,26 @@ void content(struct output *output, PopplerAnnotMapping *m, int n,
 
 	number = malloc(20 + output->content);
 
-	cairo_set_font_size(output->cr, 15);
-	if (output->annotations == ANNOTATION_NUMBER)
+	if (output->annotations == ANNOTATION_NUMBER) {
 		sprintf(number, "%d", n);
-	else if ((content = poppler_annot_get_contents(m->annot)) == NULL)
-		sprintf(number, "%d", n);
+		cairo_set_font_size(output->cr, 15);
+	}
 	else {
 		cairo_set_font_size(output->cr, 12);
-		for (pos = content; *pos != '\0'; pos++) {
-			if (*pos == '\n' || *pos == '\r')
-				*pos = ' ';
-			if (pos - content >= output->content) {
-				*pos = '\0';
-				break;
+		content = poppler_annot_get_contents(m->annot);
+		if (content == NULL)
+			sprintf(number, "%d", n);
+		else {
+			for (pos = content; *pos != '\0'; pos++) {
+				if (*pos == '\n' || *pos == '\r')
+					*pos = ' ';
+				if (pos - content >= output->content) {
+					*pos = '\0';
+					break;
+				}
 			}
+			sprintf(number, "%d.%s", n, content);
 		}
-		sprintf(number, "%d.%s", n, content);
 	}
 
 	cairo_text_extents(output->cr, number, &te);
