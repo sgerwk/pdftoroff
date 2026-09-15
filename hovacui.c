@@ -3391,9 +3391,6 @@ void content(struct output *output, PopplerAnnotMapping *m, int n,
 	x = m->area.x1;
 	y = height - m->area.y1;
 
-	cairo_set_source_rgb(output->cr, 0, 0, 1.0);
-	cairo_move_to(output->cr, x, y);
-
 	number = malloc(20 + output->content);
 
 	cairo_set_font_size(output->cr, 15);
@@ -3413,16 +3410,28 @@ void content(struct output *output, PopplerAnnotMapping *m, int n,
 	text.y1 = 0;
 	text.x2 = te.width;
 	text.y2 = te.height;
-	if (list != NULL && rectanglelist_around(list, &text, x, y, &moved))
+	if (list != NULL &&
+	    rectanglelist_around(list, &text, x, y - text.y2, &moved))
 		rectanglelist_add(list, &moved);
-	if (moved.x1 == x && moved.y1 == y)
-		cairo_move_to(output->cr, moved.x1 + 5, moved.y1);
+	if (moved.x1 == x && moved.y1 == y - text.y2)
+		moved.x1 += 5;
 	else {
-		cairo_line_to(output->cr, moved.x1, moved.y1);
-		cairo_move_to(output->cr, moved.x1 + 3, moved.y1);
+		cairo_set_source_rgb(output->cr, 0.5, 0, 0);
+		cairo_move_to(output->cr, x, y);
+		cairo_line_to(output->cr, moved.x1, moved.y1 + text.y2 / 2);
+		cairo_move_to(output->cr, moved.x1, moved.y1 + 1);
+		cairo_line_to(output->cr, moved.x1, moved.y1 + text.y2 + 2);
+		cairo_stroke(output->cr);
+		moved.x1 += 3;
 	}
+	cairo_set_source_rgba(output->cr, 1.0, 1.0, 1.0, 0.6);
+	cairo_rectangle(output->cr,
+		moved.x1, moved.y1 + te.height + te.y_bearing - 1,
+		text.x2, text.y2 + 2);
+	cairo_fill(output->cr);
+	cairo_set_source_rgb(output->cr, 0, 0, 1.0);
+	cairo_move_to(output->cr, moved.x1, moved.y1 + text.y2);
 	cairo_show_text(output->cr, number);
-	cairo_stroke(output->cr);
 	free(number);
 }
 
