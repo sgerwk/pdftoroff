@@ -490,7 +490,7 @@ struct output {
 	gint annotations;
 
 	/* show the first characters of each annotation content */
-	unsigned long content;
+	long content;
 
 	/* text annotation marker */
 	int marker;
@@ -3379,7 +3379,7 @@ void content(struct output *output, PopplerAnnotMapping *m, int n,
 		RectangleList *list, double height) {
 	gdouble x, y;
 	char *number;
-	gchar *content;
+	gchar *content, *pos;
 	cairo_text_extents_t te;
 	PopplerRectangle text, moved;
 
@@ -3400,8 +3400,14 @@ void content(struct output *output, PopplerAnnotMapping *m, int n,
 		sprintf(number, "%d", n);
 	else {
 		cairo_set_font_size(output->cr, 12);
-		if (output->content < strlen(content))
-			content[output->content] = '\0';
+		for (pos = content; *pos != '\0'; pos++) {
+			if (*pos == '\n' || *pos == '\r')
+				*pos = ' ';
+			if (pos - content >= output->content) {
+				*pos = '\0';
+				break;
+			}
+		}
 		sprintf(number, "%d.%s", n, content);
 	}
 
