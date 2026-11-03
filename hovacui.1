@@ -656,8 +656,12 @@ show page numbers as "page X of Y" instead of "page X"
 .BI clock
 show the current time after the current page number
 .TP
-.BI noinitlabels
-do not show the file name, the viewing mode etc. at startup;
+.BI status " script
+show the output of the \fIscript\fP, which may display something about the
+current state of the system like the current charge and charge/discharge
+condition of the battery
+.TP
+.BI noinitlabels do not show the file name, the viewing mode etc. at startup;
 this is the default unless \fInotutorial\fP is present
 .TP
 .B doublebuffering

@@ -505,6 +505,7 @@ struct output {
 	gboolean pagenumber;
 	gboolean totalpages;
 	gboolean showclock;
+	char *showstatus;
 	gboolean showmode;
 	gboolean showfit;
 	gboolean filename;
@@ -3132,9 +3133,11 @@ void pagenumber(struct cairoui *cairoui) {
 	static int prev = -1;
 	char r[30], s[100];
 	int hasannots, hasactions;
-	char *other, *annots, *actions, clock[9];
+	char *other, *annots, *actions, clock[9], status[32];
 	time_t t;
 	struct tm n;
+	FILE *command;
+	int res;
 
 	if ((position->npage == prev || ! output->pagelabel) &&
 	    ! output->pagenumber)
@@ -3168,17 +3171,31 @@ void pagenumber(struct cairoui *cairoui) {
 		strftime(clock, 9, " - %H:%M", &n);
 	}
 
+	if (! output->showstatus)
+		status[0] = '\0';
+	else {
+		command = popen(output->showstatus, "r");
+		if (command == NULL)
+			strcpy(status, "ERROR");
+		else {
+			status[0] = ' ';
+			res = fread(status + 1, 1, 31, command);
+			status[res] = '\0';
+			pclose(command);
+		}
+	}
+
 	if (output->totalpages && output->offset == 1)
-		snprintf(s, 100, "page %d of %d%s%s%s%s%s",
+		snprintf(s, 100, "page %d of %d%s%s%s%s%s%s",
 			pagepdftoui(output, position->npage),
 			pagepdftoui(output, position->totpages - 1),
-			other, annots, actions, r, clock);
+			other, annots, actions, r, clock, status);
 	else if (output->totalpages) {
-		snprintf(s, 100, "page %d in %d-%d%s%s%s%s%s",
+		snprintf(s, 100, "page %d in %d-%d%s%s%s%s%s%s",
 			pagepdftoui(output, position->npage),
 			pagepdftoui(output, 0),
 			pagepdftoui(output, position->totpages - 1),
-			other, annots, actions, r, clock);
+			other, annots, actions, r, clock, status);
 	}
 	else
 		sprintf(s, "page %d%s%s%s%s%s",
@@ -3862,6 +3879,7 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 	output.viewmode = 0;
 	output.totalpages = FALSE;
 	output.showclock = FALSE;
+	output.showstatus = FALSE;
 	output.night = FALSE;
 	output.fit = 1;
 	output.minwidth = -1;
@@ -3986,6 +4004,9 @@ int hovacui(int argn, char *argv[], struct cairodevice *cairodevice) {
 		}
 		if (sscanf(configline, "log %d", &i) == 1)
 			cairoui.log = i;
+		if (sscanf(configline, "status '%[^']'", s) == 1 ||
+		    sscanf(configline, "status %s", s) == 1)
+			output.showstatus = strdup(s);
 
 		if (sscanf(configline, "%s %s", s, r) == 1) {
 			if (! strcmp(s, "noui"))
